@@ -2,7 +2,8 @@
 This module consists of helper functions used in the Adapter class. Names of the functions are self explanatory
 """
 
-from dolfinx import SubDomain, Point, PointSource, vertices, FunctionSpace, Function, edges
+from dolfinx import SubDomain, Point, PointSource, vertices, edges
+from dolfinx.fem import FunctionSpace, Function
 import numpy as np
 from enum import Enum
 import logging

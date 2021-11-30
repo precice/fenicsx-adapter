@@ -11,7 +11,7 @@ from .adapter_core import FunctionType, determine_function_type, convert_fenicsx
     get_communication_map, communicate_shared_vertices, CouplingMode, Vertices, VertexType, filter_point_sources
 from .expression_core import SegregatedRBFInterpolationExpression, EmptyExpression
 from .solverstate import SolverState
-from dolfinx import Function, FunctionSpace
+from dolfinx.fem import Function, FunctionSpace
 from mpi4py import MPI
 import copy
 
