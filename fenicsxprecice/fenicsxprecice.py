@@ -1,17 +1,17 @@
 """
-FEniCS - preCICE Adapter. API to help users couple FEniCS with other solvers using the preCICE library.
+FEniCSx - preCICE Adapter. API to help users couple FEniCS with other solvers using the preCICE library.
 :raise ImportError: if PRECICE_ROOT is not defined
 """
 import numpy as np
 from .config import Config
 import logging
 import precice
-from .adapter_core import FunctionType, determine_function_type, convert_fenics_to_precice, get_fenics_vertices, \
+from .adapter_core import FunctionType, determine_function_type, convert_fenicsx_to_precice, get_fenicsx_vertices, \
     get_owned_vertices, get_unowned_vertices, get_coupling_boundary_edges, get_forces_as_point_sources, \
     get_communication_map, communicate_shared_vertices, CouplingMode, Vertices, VertexType, filter_point_sources
 from .expression_core import SegregatedRBFInterpolationExpression, EmptyExpression
 from .solverstate import SolverState
-from fenics import Function, FunctionSpace
+from dolfinx import Function, FunctionSpace
 from mpi4py import MPI
 import copy
 
@@ -22,19 +22,20 @@ logger.setLevel(level=logging.INFO)
 class Adapter:
     """
     This adapter class provides an interface to the preCICE coupling library for setting up a coupling case which has
-    FEniCS as a participant for 2D problems.
-    The user can create and manage a dolfin.UserExpression and/or dolfin.PointSource at the coupling boundary.
+    FEniCSx as a participant for 2D problems.
+    The user can create and manage a dolfinx.UserExpression and/or dolfinx.PointSource at the coupling boundary.
     Reading data from preCICE and writing data to preCICE is also managed via functions of this class.
     If the user wants to perform implicit coupling then a steering mechanism for checkpointing is also provided.
 
-    For more information on setting up a coupling case using dolfin.UserExpression at the coupling boundary please have
+    For more information on setting up a coupling case using dolfinx.UserExpression at the coupling boundary please have
     a look at this tutorial:
-    https://github.com/precice/tutorials/tree/master/HT/partitioned-heat/fenics-fenics
+    TODO
 
-    For more information on setting up a coupling case using dolfin.PointSource at the coupling boundary please have a
+    For more information on setting up a coupling case using dolfinx.PointSource at the coupling boundary please have a
     look at this tutorial:
-    https://github.com/precice/tutorials/tree/master/FSI/flap_perp/OpenFOAM-FEniCS
-    NOTE: dolfin.PointSource use only works in serial
+    TODO
+
+    NOTE: dolfinx.PointSource use only works in serial
     """
 
     def __init__(self, adapter_config_filename='precice-adapter-config.json'):
@@ -55,7 +56,7 @@ class Adapter:
         self._interface = precice.Interface(self._config.get_participant_name(), self._config.get_config_file_name(),
                                             self._comm.Get_rank(), self._comm.Get_size())
 
-        # FEniCS related quantities
+        # FEniCSx related quantities
         self._read_function_space = None  # initialized later
         self._write_function_space = None  # initialized later
         self._dofmap = None  # initialized later using function space provided by user
@@ -63,10 +64,10 @@ class Adapter:
         # coupling mesh related quantities
         self._owned_vertices = Vertices(VertexType.OWNED)
         self._unowned_vertices = Vertices(VertexType.UNOWNED)
-        self._fenics_vertices = Vertices(VertexType.FENICS)
+        self._fenicsx_vertices = Vertices(VertexType.FENICSX)
         self._precice_vertex_ids = None  # initialized later
 
-        # read data related quantities (read data is read from preCICE and applied in FEniCS)
+        # read data related quantities (read data is read from preCICE and applied in FEniCSx)
         self._read_function_type = None  # stores whether read function is scalar or vector valued
         self._write_function_type = None  # stores whether write function is scalar or vector valued
 
@@ -93,8 +94,8 @@ class Adapter:
         # Determine type of coupling in initialization
         self._coupling_type = None
 
-        # Problem dimension in FEniCS
-        self._fenics_dims = None
+        # Problem dimension in FEniCSx
+        self._fenicsx_dims = None
 
     def _is_parallel(self):
         """
@@ -109,12 +110,12 @@ class Adapter:
 
     def create_coupling_expression(self):
         """
-        Creates a FEniCS Expression in the form of an object of class GeneralInterpolationExpression or
+        Creates a FEniCSx Expression in the form of an object of class GeneralInterpolationExpression or
         ExactInterpolationExpression. The adapter will hold this object till the coupling is on going.
 
         Returns
         -------
-        coupling_expression : Object of class dolfin.functions.expression.Expression
+        coupling_expression : Object of class dolfinx.functions.expression.Expression
             Reference to object of class GeneralInterpolationExpression or ExactInterpolationExpression.
         """
 
@@ -122,17 +123,9 @@ class Adapter:
             raise Exception("No valid read_function is provided in initialization. Cannot create coupling expression")
 
         if not self._empty_rank:
-            try:  # works with dolfin 1.6.0
-                # element information must be provided, else DOLFIN assumes scalar function
-                coupling_expression = self._my_expression(element=self._read_function_space.ufl_element())
-            except (TypeError, KeyError):  # works with dolfin 2017.2.0
-                coupling_expression = self._my_expression(element=self._read_function_space.ufl_element(), degree=0)
+            coupling_expression = self._my_expression(element=self._read_function_space.ufl_element(), degree=0)
         else:
-            try:  # works with dolfin 1.6.0
-                # element information must be provided, else DOLFIN assumes scalar function
-                coupling_expression = EmptyExpression(element=self._read_function_space.ufl_element())
-            except (TypeError, KeyError):  # works with dolfin 2017.2.0
-                coupling_expression = EmptyExpression(element=self._read_function_space.ufl_element(), degree=0)
+            coupling_expression = EmptyExpression(element=self._read_function_space.ufl_element(), degree=0)
             if self._read_function_type == FunctionType.SCALAR:
                 # todo: try to find a solution where we don't have to access the private
                 # member coupling_expression._vals
@@ -148,12 +141,12 @@ class Adapter:
 
     def update_coupling_expression(self, coupling_expression, data):
         """
-        Updates the given FEniCS Expression using provided data. The boundary data is updated.
+        Updates the given FEniCSx Expression using provided data. The boundary data is updated.
         User needs to explicitly call this function in each time step.
 
         Parameters
         ----------
-        coupling_expression : Object of class dolfin.functions.expression.Expression
+        coupling_expression : Object of class dolfinx.functions.expression.Expression
             Reference to object of class GeneralInterpolationExpression or ExactInterpolationExpression.
         data : dict_like
             The coupling data. A dictionary containing nodal data with vertex coordinates as key and associated data as
@@ -193,9 +186,9 @@ class Adapter:
         Read data from preCICE. Data is generated depending on the type of the read function (Scalar or Vector).
         For a scalar read function the data is a numpy array with shape (N) where N = number of coupling vertices
         For a vector read function the data is a numpy array with shape (N, D) where
-        N = number of coupling vertices and D = dimensions of FEniCS setup
+        N = number of coupling vertices and D = dimensions of FEniCSx setup
 
-        Note: For quasi 2D-3D coupled simulation (FEniCS participant is 2D) the Z-component of the data and vertices
+        Note: For quasi 2D-3D coupled simulation (FEniCSx participant is 2D) the Z-component of the data and vertices
         is deleted.
 
         Returns
@@ -223,7 +216,7 @@ class Adapter:
 
             read_data = {tuple(key): value for key, value in zip(self._owned_vertices.get_coordinates(), read_data)}
             read_data = communicate_shared_vertices(
-                self._comm, self._fenics_vertices, self._send_map, self._recv_map, read_data)
+                self._comm, self._fenicsx_vertices, self._send_map, self._recv_map, read_data)
         else:  # if there are no vertices, we return empty data
             read_data = None
 
@@ -236,15 +229,15 @@ class Adapter:
 
         Parameters
         ----------
-        write_function : Object of class dolfin.functions.function.Function
-            A FEniCS function consisting of the data which this participant will write to preCICE in every time step.
+        write_function : Object of class dolfinx.functions.function.Function
+            A FEniCSx function consisting of the data which this participant will write to preCICE in every time step.
         """
 
         assert (self._coupling_type is CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING or
                 CouplingMode.BI_DIRECTIONAL_COUPLING)
 
         w_func = write_function.copy()
-        # making sure that the FEniCS function provided by the user is not directly accessed by the Adapter
+        # making sure that the FEniCSx function provided by the user is not directly accessed by the Adapter
         assert (w_func != write_function)
 
         # Check that the function provided lives on the same function space provided during initialization
@@ -259,7 +252,7 @@ class Adapter:
 
         write_function_type = determine_function_type(write_function)
         assert (write_function_type in list(FunctionType))
-        write_data = convert_fenics_to_precice(write_function, self._owned_vertices.get_local_ids())
+        write_data = convert_fenicsx_to_precice(write_function, self._owned_vertices.get_local_ids())
         if write_function_type is FunctionType.SCALAR:
             assert (write_function.function_space().num_sub_spaces() == 0)
             self._interface.write_block_scalar_data(write_data_id, self._precice_vertex_ids, write_data)
@@ -275,16 +268,16 @@ class Adapter:
 
         Parameters
         ----------
-        coupling_subdomain : Object of class dolfin.cpp.mesh.SubDomain
+        coupling_subdomain : Object of class dolfinx.cpp.mesh.SubDomain
             SubDomain of mesh which is the physical coupling boundary.
-        read_function_space : Object of class dolfin.functions.functionspace.FunctionSpace
+        read_function_space : Object of class dolfinx.functions.functionspace.FunctionSpace
             Function space on which the read function lives. If not provided then the adapter assumes that this
             participant is a write-only participant.
-        write_object : Object of class dolfin.functions.functionspace.FunctionSpace / dolfin.functions.function.Function
-            Function space on which the write function lives or FEniCS function related to the quantity to be written
-            by FEniCS during each coupling iteration. If not provided then the adapter assumes that this participant is
+        write_object : Object of class dolfinx.functions.functionspace.FunctionSpace / dolfinx.functions.function.Function
+            Function space on which the write function lives or FEniCSx function related to the quantity to be written
+            by FEniCSx during each coupling iteration. If not provided then the adapter assumes that this participant is
             a read-only participant.
-        fixed_boundary : Object of class dolfin.fem.bcs.AutoSubDomain
+        fixed_boundary : Object of class dolfinx.fem.bcs.AutoSubDomain
             SubDomain consisting of a fixed boundary of the mesh. For example in FSI cases usually the solid body
             is fixed at one end (fixed end of a flexible beam).
 
@@ -304,15 +297,15 @@ class Adapter:
         elif write_object is None:
             pass
         else:
-            raise Exception("Given write object is neither of type dolfin.functions.function.Function or "
-                            "dolfin.functions.functionspace.FunctionSpace")
+            raise Exception("Given write object is neither of type dolfinx.functions.function.Function or "
+                            "dolfinx.functions.functionspace.FunctionSpace")
 
         if isinstance(read_function_space, FunctionSpace):
             pass
         elif read_function_space is None:
             pass
         else:
-            raise Exception("Given read_function_space is not of type dolfin.functions.functionspace.FunctionSpace")
+            raise Exception("Given read_function_space is not of type dolfinx.functions.functionspace.FunctionSpace")
 
         if read_function_space is None and write_function_space:
             self._coupling_type = CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING
@@ -350,7 +343,7 @@ class Adapter:
             self._write_function_space = write_function_space
 
         coords = function_space.tabulate_dof_coordinates()
-        _, self._fenics_dims = coords.shape
+        _, self._fenicsx_dims = coords.shape
 
         # Ensure that function spaces of read and write functions use the same mesh
         if self._coupling_type is CouplingMode.BI_DIRECTIONAL_COUPLING:
@@ -360,34 +353,34 @@ class Adapter:
         if fixed_boundary:
             self._Dirichlet_Boundary = fixed_boundary
 
-        if self._fenics_dims != 2:
-            raise Exception("Currently the fenics-adapter only supports 2D cases")
+        if self._fenicsx_dims != 2:
+            raise Exception("Currently the fenicsx-adapter only supports 2D cases")
 
-        if self._fenics_dims != self._interface.get_dimensions():
-            raise Exception("Dimension of preCICE setup and FEniCS do not match")
+        if self._fenicsx_dims != self._interface.get_dimensions():
+            raise Exception("Dimension of preCICE setup and FEniCSx do not match")
 
         # Set vertices on the coupling subdomain for this rank
-        lids, gids, coords = get_fenics_vertices(function_space, coupling_subdomain, self._fenics_dims)
-        self._fenics_vertices.set_local_ids(lids)
-        self._fenics_vertices.set_global_ids(gids)
-        self._fenics_vertices.set_coordinates(coords)
+        lids, gids, coords = get_fenicsx_vertices(function_space, coupling_subdomain, self._fenicsx_dims)
+        self._fenicsx_vertices.set_local_ids(lids)
+        self._fenicsx_vertices.set_global_ids(gids)
+        self._fenicsx_vertices.set_coordinates(coords)
 
         if self._is_parallel():
-            lids, gids, coords = get_owned_vertices(function_space, coupling_subdomain, self._fenics_dims)
+            lids, gids, coords = get_owned_vertices(function_space, coupling_subdomain, self._fenicsx_dims)
             self._owned_vertices.set_local_ids(lids)
             self._owned_vertices.set_global_ids(gids)
             self._owned_vertices.set_coordinates(coords)
 
-            gids = get_unowned_vertices(function_space, coupling_subdomain, self._fenics_dims)
+            gids = get_unowned_vertices(function_space, coupling_subdomain, self._fenicsx_dims)
             self._unowned_vertices.set_global_ids(gids)
         else:
-            # For serial execution, owned vertices are identical to fenics vertices
+            # For serial execution, owned vertices are identical to fenicsx vertices
             self._owned_vertices.set_local_ids(lids)
             self._owned_vertices.set_global_ids(gids)
             self._owned_vertices.set_coordinates(coords)
 
         # Set up mesh in preCICE
-        if self._fenics_vertices.get_global_ids().size > 0:
+        if self._fenicsx_vertices.get_global_ids().size > 0:
             self._empty_rank = False
         else:
             print("Rank {} has no part of coupling boundary.".format(self._comm.Get_rank()))
@@ -440,7 +433,7 @@ class Adapter:
 
         Parameters
         ----------
-        user_u : FEniCS Function
+        user_u : FEniCSx Function
             Current state of the physical variable of interest for this participant.
         t : double
             Current simulation time.
@@ -452,18 +445,18 @@ class Adapter:
 
         logger.debug("Store checkpoint")
         my_u = user_u.copy()
-        # making sure that the FEniCS function provided by user is not directly accessed by the Adapter
+        # making sure that the FEniCSx function provided by user is not directly accessed by the Adapter
         assert (my_u != user_u)
         self._checkpoint = SolverState(my_u, t, n)
         self._interface.mark_action_fulfilled(self.action_write_iteration_checkpoint())
 
     def retrieve_checkpoint(self):
         """
-        Resets the FEniCS participant state to the state of the stored checkpoint.
+        Resets the FEniCSx participant state to the state of the stored checkpoint.
 
         Returns
         -------
-        u : FEniCS Function
+        u : FEniCSx Function
             Current state of the physical variable of interest for this participant.
         t : double
             Current simulation time.

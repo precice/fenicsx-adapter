@@ -5,10 +5,7 @@ FROM $from
 
 USER root
 # Installing necessary dependencies
-RUN add-apt-repository -y ppa:fenics-packages/fenics && \
-    apt-get -qq update && \
-    apt-get -qq install --no-install-recommends fenics && \
-    rm -rf /var/lib/apt/lists/*
+## TODO
 
 USER precice
 
@@ -20,4 +17,4 @@ ARG CACHEBUST
 ARG branch=develop
 
 # Building fenics-adapter
-RUN python3 -m pip install --user git+https://github.com/precice/fenics-adapter.git@$branch
+RUN python3 -m pip install --user git+https://github.com/precice/fenicsx-adapter.git@$branch

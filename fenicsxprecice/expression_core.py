@@ -1,8 +1,8 @@
 """
-This module provides a mechanism to imterpolate point data acquired from preCICE into FEniCS Expressions.
+This module provides a mechanism to imterpolate point data acquired from preCICE into FEniCSx Expressions.
 """
 
-from dolfin import UserExpression
+from dolfinx import UserExpression
 from .adapter_core import FunctionType
 from scipy.interpolate import Rbf
 from scipy.linalg import lstsq
@@ -17,7 +17,7 @@ logger.setLevel(level=logging.INFO)
 
 class CouplingExpression(UserExpression):
     """
-    Creates functional representation (for FEniCS) of nodal data provided by preCICE.
+    Creates functional representation (for FEniCSx) of nodal data provided by preCICE.
     """
 
     def set_function_type(self, function_type):
@@ -25,7 +25,7 @@ class CouplingExpression(UserExpression):
 
     def update_boundary_data(self, vals, coords_x, coords_y=None, coords_z=None):
         """
-        Update object of this class of type FEniCS UserExpression with given point data.
+        Update object of this class of type FEniCSx UserExpression with given point data.
 
         Parameters
         ----------

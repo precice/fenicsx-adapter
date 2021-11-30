@@ -1,2 +1,2 @@
 include versioneer.py
-include fenicsprecice/_version.py
+include fenicsxprecice/_version.py

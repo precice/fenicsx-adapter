@@ -1,5 +1,5 @@
 """
-This is the configuration module of fenicsadapter
+This is the configuration module of fenicsxadapter
 """
 
 import json
@@ -9,7 +9,7 @@ import sys
 
 class Config:
     """
-    Handles reading of config. parameters of the fenicsadapter based on JSON
+    Handles reading of config. parameters of the fenicsxadapter based on JSON
     configuration file. Initializer calls read_json() method. Instance attributes
     can be accessed by provided getter functions.
     """

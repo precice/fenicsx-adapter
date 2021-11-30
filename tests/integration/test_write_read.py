@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 from unittest import TestCase
 from tests import MockedPrecice
-from fenics import Expression, UnitSquareMesh, FunctionSpace, VectorFunctionSpace, interpolate, SubDomain, near
+from dolfinx import Expression, UnitSquareMesh, FunctionSpace, VectorFunctionSpace, interpolate, SubDomain, near
 import numpy as np
 
 x_left, x_right = 0, 1
@@ -46,7 +46,7 @@ class TestWriteandReadData(TestCase):
         Test to check if Adapter function write() passes correct parameters to the API function write_block_scalar_data()
         """
         from precice import Interface
-        import fenicsprecice
+        import fenicsxprecice
 
         Interface.write_block_scalar_data = MagicMock()
         Interface.get_dimensions = MagicMock(return_value=2)
@@ -58,7 +58,7 @@ class TestWriteandReadData(TestCase):
         Interface.is_action_required = MagicMock(return_value=False)
         Interface.initialize_data = MagicMock()
 
-        precice = fenicsprecice.Adapter(self.dummy_config)
+        precice = fenicsxprecice.Adapter(self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice._write_data_id = self.fake_id
         precice.initialize(RightBoundary(), self.scalar_V, self.scalar_function)
@@ -81,8 +81,8 @@ class TestWriteandReadData(TestCase):
         Test to check if Adapter function write() passes correct parameters to the API function write_block_vector_data()
         """
         from precice import Interface
-        import fenicsprecice
-        from fenicsprecice.adapter_core import VertexType, Vertices, convert_fenics_to_precice
+        import fenicsxprecice
+        from fenicsxprecice.adapter_core import VertexType, Vertices, convert_fenicsx_to_precice
 
         Interface.write_block_vector_data = MagicMock()
         Interface.get_dimensions = MagicMock(return_value=self.dimension)
@@ -94,7 +94,7 @@ class TestWriteandReadData(TestCase):
         Interface.is_action_required = MagicMock(return_value=False)
         Interface.initialize_data = MagicMock()
 
-        precice = fenicsprecice.Adapter(self.dummy_config)
+        precice = fenicsxprecice.Adapter(self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice._write_data_id = self.fake_id
         precice.initialize(RightBoundary(), self.vector_V, self.vector_function)
@@ -122,7 +122,7 @@ class TestWriteandReadData(TestCase):
         Test to check if data return by API function read_block_scalar_data() is also returned by Adapter function read()
         """
         from precice import Interface
-        import fenicsprecice
+        import fenicsxprecice
 
         def return_dummy_data(n_points):
             data = np.arange(n_points)
@@ -138,7 +138,7 @@ class TestWriteandReadData(TestCase):
         Interface.is_action_required = MagicMock(return_value=False)
         Interface.initialize_data = MagicMock()
 
-        precice = fenicsprecice.Adapter(self.dummy_config)
+        precice = fenicsxprecice.Adapter(self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice._read_data_id = self.fake_id
         precice.initialize(RightBoundary(), self.scalar_V)
@@ -163,7 +163,7 @@ class TestWriteandReadData(TestCase):
         Test to check if data return by API function read_block_vector_data() is also returned by Adapter function read()
         """
         from precice import Interface
-        import fenicsprecice
+        import fenicsxprecice
 
         def return_dummy_data(n_points):
             data = np.arange(n_points * self.dimension).reshape(n_points, self.dimension)
@@ -179,7 +179,7 @@ class TestWriteandReadData(TestCase):
         Interface.is_action_required = MagicMock(return_value=False)
         Interface.initialize_data = MagicMock()
 
-        precice = fenicsprecice.Adapter(self.dummy_config)
+        precice = fenicsxprecice.Adapter(self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice._read_data_id = self.fake_id
         precice.initialize(RightBoundary(), self.vector_V)
