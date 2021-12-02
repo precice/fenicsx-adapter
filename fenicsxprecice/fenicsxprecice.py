@@ -6,8 +6,7 @@ import numpy as np
 from .config import Config
 import logging
 import precice
-from .adapter_core import FunctionType, determine_function_type, convert_fenicsx_to_precice, get_fenicsx_vertices, \
-    get_coupling_boundary_edges, CouplingMode, Vertices, VertexType
+from .adapter_core import FunctionType, determine_function_type, convert_fenicsx_to_precice, get_fenicsx_vertices, CouplingMode, Vertices, VertexType
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
 from dolfinx.fem import Function, FunctionSpace
@@ -97,7 +96,7 @@ class Adapter:
         if not (self._read_function_type is FunctionType.SCALAR or self._read_function_type is FunctionType.VECTOR):
             raise Exception("No valid read_function is provided in initialization. Cannot create coupling expression")
 
-        coupling_expression = self._my_expression(element=self._read_function_space.ufl_element(), degree=0)
+        coupling_expression = self._my_expression(self._read_function_space.mesh.geometry.dim)
         coupling_expression.set_function_type(self._read_function_type)
 
         return coupling_expression
@@ -151,7 +150,7 @@ class Adapter:
         elif self._read_function_type is FunctionType.VECTOR:
             read_data = self._interface.read_block_vector_data(read_data_id, self._precice_vertex_ids)
 
-        read_data = {tuple(key): value for key, value in zip(self._owned_vertices.get_coordinates(), read_data)}
+        read_data = {tuple(key): value for key, value in zip(self._fenicsx_vertices.get_coordinates(), read_data)}
 
         return copy.deepcopy(read_data)
 
@@ -169,25 +168,23 @@ class Adapter:
         assert (self._coupling_type is CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING or
                 CouplingMode.BI_DIRECTIONAL_COUPLING)
 
-        w_func = write_function.copy()
-        # making sure that the FEniCSx function provided by the user is not directly accessed by the Adapter
-        assert (w_func != write_function)
+        w_func = write_function
 
         # Check that the function provided lives on the same function space provided during initialization
         assert (self._write_function_type == determine_function_type(w_func))
-        assert (write_function.function_space() == self._write_function_space)
+        assert (write_function.function_space == self._write_function_space)
 
         write_data_id = self._interface.get_data_id(self._config.get_write_data_name(),
                                                     self._interface.get_mesh_id(self._config.get_coupling_mesh_name()))
 
         write_function_type = determine_function_type(write_function)
         assert (write_function_type in list(FunctionType))
-        write_data = convert_fenicsx_to_precice(write_function, self._owned_vertices.get_local_ids())
+        write_data = convert_fenicsx_to_precice(write_function, self._fenicsx_vertices.get_ids())
         if write_function_type is FunctionType.SCALAR:
-            assert (write_function.function_space().num_sub_spaces() == 0)
+            assert (write_function.function_space.num_sub_spaces() == 0)
             self._interface.write_block_scalar_data(write_data_id, self._precice_vertex_ids, write_data)
         elif write_function_type is FunctionType.VECTOR:
-            assert (write_function.function_space().num_sub_spaces() > 0)
+            assert (write_function.function_space.num_sub_spaces() > 0)
             self._interface.write_block_vector_data(write_data_id, self._precice_vertex_ids, write_data)
         else:
             raise Exception("write_function provided is neither VECTOR nor SCALAR type")
@@ -216,7 +213,7 @@ class Adapter:
 
         write_function_space, write_function = None, None
         if isinstance(write_object, Function):  # precice.initialize_data() will be called using this Function
-            write_function_space = write_object.function_space()
+            write_function_space = write_object.function_space
             write_function = write_object
         elif isinstance(write_object, FunctionSpace):  # preCICE will use default zero values for initialization.
             write_function_space = write_object
@@ -269,12 +266,12 @@ class Adapter:
             self._write_function_type = determine_function_type(write_function_space)
             self._write_function_space = write_function_space
 
-        coords = function_space.tabulate_dof_coordinates()
-        _, self._fenicsx_dims = coords.shape
+        coords = function_space.mesh.geometry.x
+        self._fenicsx_dims = function_space.mesh.geometry.dim
 
         # Ensure that function spaces of read and write functions use the same mesh
         if self._coupling_type is CouplingMode.BI_DIRECTIONAL_COUPLING:
-            assert (self._read_function_space.mesh() is write_function_space.mesh()
+            assert (self._read_function_space.mesh is write_function_space.mesh
                     ), "read_function_space and write_object need to be defined using the same mesh"
 
         if self._fenicsx_dims != 2:
@@ -284,27 +281,13 @@ class Adapter:
             raise Exception("Dimension of preCICE setup and FEniCSx do not match")
 
         # Set vertices on the coupling subdomain for this rank
-        lids, gids, coords = get_fenicsx_vertices(function_space, coupling_subdomain, self._fenicsx_dims)
-        self._fenicsx_vertices.set_local_ids(lids)
-        self._fenicsx_vertices.set_global_ids(gids)
+        ids, coords = get_fenicsx_vertices(function_space, coupling_subdomain, self._fenicsx_dims)
+        self._fenicsx_vertices.set_ids(ids)
         self._fenicsx_vertices.set_coordinates(coords)
 
         # Set up mesh in preCICE
         self._precice_vertex_ids = self._interface.set_mesh_vertices(self._interface.get_mesh_id(
             self._config.get_coupling_mesh_name()), self._fenicsx_vertices.get_coordinates())
-
-        # Set mesh edges in preCICE to allow nearest-projection mapping
-        # Define a mapping between coupling vertices and their IDs in preCICE
-        id_mapping = {key: value for key, value in zip(self._fenicsx_vertices.get_global_ids(), self._precice_vertex_ids)}
-
-        edge_vertex_ids1, edge_vertex_ids2 = get_coupling_boundary_edges(function_space, coupling_subdomain,
-                                                                         self._fenicsx_vertices.get_global_ids(),
-                                                                         id_mapping)
-
-        for i in range(len(edge_vertex_ids1)):
-            assert (edge_vertex_ids1[i] != edge_vertex_ids2[i])
-            self._interface.set_mesh_edge(self._interface.get_mesh_id(self._config.get_coupling_mesh_name()),
-                                          edge_vertex_ids1[i], edge_vertex_ids2[i])
 
         precice_dt = self._interface.initialize()
 

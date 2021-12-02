@@ -18,6 +18,8 @@ class CouplingExpression():
     """
     Creates functional representation (for FEniCSx) of nodal data provided by preCICE.
     """
+    def __init__(self, dims):
+        self._dimension = dims
 
     def set_function_type(self, function_type):
         self._function_type = function_type
@@ -38,13 +40,10 @@ class CouplingExpression():
             Z coordinate of points of which point data is provided.
         """
         self._coords_x = coords_x
-        self._dimension = 3
         if coords_y is None:
-            self._dimension -= 1
             coords_y = np.zeros(self._coords_x.shape)
         self._coords_y = coords_y
         if coords_z is None:
-            self._dimension -= 1
             coords_z = np.zeros(self._coords_x.shape)
 
         self._coords_y = coords_y
@@ -119,17 +118,7 @@ class CouplingExpression():
         tag : bool
             True if function being interpolated is scalar-valued, False otherwise.
         """
-        try:
-            if self._vals.ndim == 1:
-                assert(self._function_type is FunctionType.SCALAR)
-                return True
-            elif self._vals.ndim > 1:
-                assert(self._function_type is FunctionType.VECTOR)
-                return False
-            else:
-                raise Exception("Dimension of the function is 0 or negative!")
-        except AttributeError:
-            return self._function_type is FunctionType.SCALAR
+        return self._function_type is FunctionType.SCALAR
 
     def is_vector_valued(self):
         """
@@ -140,17 +129,7 @@ class CouplingExpression():
         tag : bool
             True if function being interpolated is vector-valued, False otherwise.
         """
-        try:
-            if self._vals.ndim > 1:
-                assert(self._function_type is FunctionType.VECTOR)
-                return True
-            elif self._vals.ndim == 1:
-                assert(self._function_type is FunctionType.SCALAR)
-                return False
-            else:
-                raise Exception("Dimension of the function is 0 or negative!")
-        except AttributeError:
-            return self._function_type is FunctionType.VECTOR
+        return self._function_type is FunctionType.VECTOR
 
 
 class SegregatedRBFInterpolationExpression(CouplingExpression):

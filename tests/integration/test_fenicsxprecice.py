@@ -134,9 +134,6 @@ class TestExpressionHandling(TestCase):
     samplepts_x = [1 for _ in range(n_samples)]
     samplepts_y = np.linspace(0, 1, n_samples)
 
-    def Right(x):
-        return abs(x[0] - 1.0) < 10**-14
-
     def test_update_expression_scalar(self):
         """
         Check if a sampling of points on a dolfinx Function interpolated via FEniCSx is matching with the sampling of the
@@ -156,19 +153,19 @@ class TestExpressionHandling(TestCase):
         Interface.mark_action_fulfilled = MagicMock()
         Interface.write_block_scalar_data = MagicMock()
 
-        right_boundary = self.Right()
+        right_boundary = lambda x: abs(x[0] - 1.0) < 10**-14
 
         precice = fenicsxprecice.Adapter(self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice.initialize(right_boundary, self.scalar_V, self.scalar_function)
-        values = np.array([self.scalar_function(x, y) for x, y in zip(self.vertices_x, self.vertices_y)])
+        values = np.array([self.scalar_function.eval([x, y, 0], 0) for x, y in zip(self.vertices_x, self.vertices_y)])
         data = {(x, y): v for x, y, v in zip(self.vertices_x, self.vertices_y, values)}
 
         scalar_coupling_expr = precice.create_coupling_expression()
         precice.update_coupling_expression(scalar_coupling_expr, data)
 
         expr_samples = np.array([scalar_coupling_expr(x, y) for x, y in zip(self.samplepts_x, self.samplepts_y)])
-        func_samples = np.array([self.scalar_function(x, y) for x, y in zip(self.samplepts_x, self.samplepts_y)])
+        func_samples = np.array([self.scalar_function.eval([x, y, 0], 0) for x, y in zip(self.samplepts_x, self.samplepts_y)])
 
         assert (np.allclose(expr_samples, func_samples, 1E-10))
 
@@ -191,18 +188,18 @@ class TestExpressionHandling(TestCase):
         Interface.mark_action_fulfilled = MagicMock()
         Interface.write_block_vector_data = MagicMock()
 
-        right_boundary = self.Right()
+        right_boundary = lambda x: abs(x[0] - 1.0) < 10**-14
 
         precice = fenicsxprecice.Adapter(self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice.initialize(right_boundary, self.vector_V, self.vector_function)
-        values = np.array([self.vector_function(x, y) for x, y in zip(self.vertices_x, self.vertices_y)])
+        values = np.array([self.vector_function.eval([x, y, 0],0) for x, y in zip(self.vertices_x, self.vertices_y)])
         data = {(x, y): v for x, y, v in zip(self.vertices_x, self.vertices_y, values)}
 
         vector_coupling_expr = precice.create_coupling_expression()
         precice.update_coupling_expression(vector_coupling_expr, data)
 
-        expr_samples = np.array([vector_coupling_expr(x, y) for x, y in zip(self.samplepts_x, self.samplepts_y)])
-        func_samples = np.array([self.vector_function(x, y) for x, y in zip(self.samplepts_x, self.samplepts_y)])
+        expr_samples = np.array([vector_coupling_expr([x, y]) for x, y in zip(self.samplepts_x, self.samplepts_y)])
+        func_samples = np.array([self.vector_function.eval([x, y, 0],0) for x, y in zip(self.samplepts_x, self.samplepts_y)])
 
         assert (np.allclose(expr_samples, func_samples, 1E-10))
