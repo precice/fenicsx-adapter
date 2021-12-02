@@ -53,7 +53,7 @@ class CouplingExpression():
         self._f = self.create_interpolant()
 
         if self.is_scalar_valued():
-            assert (self._vals.shape == self._coords_x.shape)
+            assert (self._vals.shape[0] == self._coords_x.shape[0])
         elif self.is_vector_valued():
             assert (self._vals.shape[0] == self._coords_x.shape[0])
 
@@ -174,7 +174,8 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
         interpolant = []
 
         if self.is_scalar_valued():  # check if scalar or vector-valued
-            interpolant.append(self.segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals))
+            for d in range(1):
+                interpolant.append(self.segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals[:, d]))
         elif self.is_vector_valued():
             for d in range(2):
                 interpolant.append(self.segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals[:, d]))
@@ -189,8 +190,12 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
         """
         assert (self._dimension == 2)  # current implementation only supports two dimensions
 
-        return_value = self._vals.ndim * [None]
-
-        for i in range(self._vals.ndim):
-            return_value[i] = self._f[i](x[0], x[1])
+        
+        
+        if self.is_scalar_valued():
+            return_value = [self._f[0](x[0], x[1])]
+        if self.is_vector_valued():
+            return_value = self._vals.ndim * [None]
+            for i in range(self._vals.ndim):
+                return_value[i] = self._f[i](x[0], x[1])
         return return_value

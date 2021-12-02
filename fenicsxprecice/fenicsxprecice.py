@@ -116,6 +116,7 @@ class Adapter:
         """
         vertices = np.array(list(data.keys()))
         nodal_data = np.array(list(data.values()))
+        print(nodal_data.shape)
         coupling_expression.update_boundary_data(nodal_data, vertices[:, 0], vertices[:, 1])
 
     def get_point_sources(self, data):
