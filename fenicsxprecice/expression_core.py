@@ -2,7 +2,6 @@
 This module provides a mechanism to imterpolate point data acquired from preCICE into FEniCSx Expressions.
 """
 
-from dolfinx import UserExpression
 from .adapter_core import FunctionType
 from scipy.interpolate import Rbf
 from scipy.linalg import lstsq
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 
-class CouplingExpression(UserExpression):
+class CouplingExpression():
     """
     Creates functional representation (for FEniCSx) of nodal data provided by preCICE.
     """
@@ -100,20 +99,16 @@ class CouplingExpression(UserExpression):
         raise Exception("Please use one of the classes derived from this class, that implements an actual strategy for"
                         "interpolation.")
 
-    def eval(self, value, x):
+    def __call__(self, x):
         """
         Evaluates expression at x using self.interpolate(x) and stores result to value.
 
         Parameters
         ----------
-        value : double
-            Buffer where result has to be returned to.
         x : double
             Coordinate where expression has to be evaluated.
         """
-        return_value = self.interpolate(x)
-        for i in range(self._vals.ndim):
-            value[i] = return_value[i]
+        return self.interpolate(x)
 
     def is_scalar_valued(self):
         """
@@ -220,29 +215,3 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
         for i in range(self._vals.ndim):
             return_value[i] = self._f[i](x[0], x[1])
         return return_value
-
-
-class EmptyExpression(CouplingExpression):
-    """A dummy expression that can be used for implementing a coupling boundary condition, if the participant's mesh has
-    no vertices on the coupling domain. Only used for parallel runs.
-
-    Example:
-    We want solve
-    F = u * v / dt * dx + dot(grad(u), grad(v)) * dx - (u_n / dt + f) * v * dx + v * coupling_expression * ds
-    The user defines F, but does not know whether the rank even has vertices on the Neumann coupling boundary.
-    If the rank does not have any vertices on the Neumann coupling boundary the coupling_expression is an
-    EmptyExpression. This "deactivates" the Neumann BC for that specific rank.
-    """
-
-    def eval(self, value, x):
-        """ Evaluates expression at x. For EmptyExpression always returns zero.
-
-        :param x: coordinate where expression has to be evaluated
-        :param value: buffer where result has to be returned to
-        """
-        assert(MPI.COMM_WORLD.Get_size() > 1)
-        for i in range(self._vals.ndim):
-            value[i] = 0
-
-    def update_boundary_data(self, vals, coords_x, coords_y=None, coords_z=None):
-        pass  # an EmptyExpression is never updated

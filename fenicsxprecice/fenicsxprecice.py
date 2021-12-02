@@ -7,9 +7,8 @@ from .config import Config
 import logging
 import precice
 from .adapter_core import FunctionType, determine_function_type, convert_fenicsx_to_precice, get_fenicsx_vertices, \
-    get_owned_vertices, get_unowned_vertices, get_coupling_boundary_edges, get_forces_as_point_sources, \
-    get_communication_map, communicate_shared_vertices, CouplingMode, Vertices, VertexType, filter_point_sources
-from .expression_core import SegregatedRBFInterpolationExpression, EmptyExpression
+    get_coupling_boundary_edges, CouplingMode, Vertices, VertexType
+from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
 from dolfinx.fem import Function, FunctionSpace
 from mpi4py import MPI
@@ -62,8 +61,6 @@ class Adapter:
         self._dofmap = None  # initialized later using function space provided by user
 
         # coupling mesh related quantities
-        self._owned_vertices = Vertices(VertexType.OWNED)
-        self._unowned_vertices = Vertices(VertexType.UNOWNED)
         self._fenicsx_vertices = Vertices(VertexType.FENICSX)
         self._precice_vertex_ids = None  # initialized later
 
@@ -71,42 +68,20 @@ class Adapter:
         self._read_function_type = None  # stores whether read function is scalar or vector valued
         self._write_function_type = None  # stores whether write function is scalar or vector valued
 
-        # write data related quantities (write data is written to preCICE)
-        self._write_function_type = None  # stores whether read function is scalar or vector valued
-
         # Interpolation strategy
         self._my_expression = SegregatedRBFInterpolationExpression
 
         # Solver state used by the Adapter internally to handle checkpointing
         self._checkpoint = None
 
-        # Dirichlet boundary for FSI Simulations
-        self._Dirichlet_Boundary = None  # stores a dirichlet boundary (if provided)
-
         # Necessary bools for enforcing proper control flow / warnings to user
         self._first_advance_done = False
-
-        # Parallel communication
-        self._send_map = None
-        self._recv_map = None
-        self._empty_rank = True
 
         # Determine type of coupling in initialization
         self._coupling_type = None
 
         # Problem dimension in FEniCSx
         self._fenicsx_dims = None
-
-    def _is_parallel(self):
-        """
-        Internal function to identify if the adapter is being used for parallel computations
-
-        Returns
-        -------
-        bool : bool
-            True if parallel initialization
-        """
-        return self._comm.Get_size() > 1
 
     def create_coupling_expression(self):
         """
@@ -122,19 +97,7 @@ class Adapter:
         if not (self._read_function_type is FunctionType.SCALAR or self._read_function_type is FunctionType.VECTOR):
             raise Exception("No valid read_function is provided in initialization. Cannot create coupling expression")
 
-        if not self._empty_rank:
-            coupling_expression = self._my_expression(element=self._read_function_space.ufl_element(), degree=0)
-        else:
-            coupling_expression = EmptyExpression(element=self._read_function_space.ufl_element(), degree=0)
-            if self._read_function_type == FunctionType.SCALAR:
-                # todo: try to find a solution where we don't have to access the private
-                # member coupling_expression._vals
-                coupling_expression._vals = np.empty(shape=0)
-            elif self._read_function_type == FunctionType.VECTOR:
-                # todo: try to find a solution where we don't have to access the private
-                # member coupling_expression._vals
-                coupling_expression._vals = np.empty(shape=(0, 0))
-
+        coupling_expression = self._my_expression(element=self._read_function_space.ufl_element(), degree=0)
         coupling_expression.set_function_type(self._read_function_type)
 
         return coupling_expression
@@ -152,34 +115,12 @@ class Adapter:
             The coupling data. A dictionary containing nodal data with vertex coordinates as key and associated data as
             value.
         """
-        if not self._empty_rank:
-            vertices = np.array(list(data.keys()))
-            nodal_data = np.array(list(data.values()))
-            coupling_expression.update_boundary_data(nodal_data, vertices[:, 0], vertices[:, 1])
+        vertices = np.array(list(data.keys()))
+        nodal_data = np.array(list(data.values()))
+        coupling_expression.update_boundary_data(nodal_data, vertices[:, 0], vertices[:, 1])
 
     def get_point_sources(self, data):
-        """
-        Update values of at points by defining a point source load using data.
-
-        Parameters
-        ----------
-        data : dict_like
-            The coupling data. A dictionary containing nodal data with vertex coordinates as key and associated data as
-            value.
-
-        Returns
-        -------
-        x_forces : list
-            List containing X component of forces with reference to respective point sources on the coupling subdomain.
-        y_forces : list
-            List containing Y component of forces with reference to respective point sources on the coupling subdomain.
-        """
-        assert (self._read_function_type is FunctionType.VECTOR), \
-            "PointSources only supported for vector valued read data."
-
-        assert (not self._is_parallel()), "get_point_sources function only works in serial."
-
-        return get_forces_as_point_sources(self._Dirichlet_Boundary, self._read_function_space, data)
+        raise Exception("PointSources are not implemented for the FEniCSx adapter.")
 
     def read_data(self):
         """
@@ -205,20 +146,12 @@ class Adapter:
 
         read_data = None
 
-        if self._empty_rank:
-            assert (self._is_parallel()), "having participants without coupling mesh nodes is only valid for parallel runs"
+        if self._read_function_type is FunctionType.SCALAR:
+            read_data = self._interface.read_block_scalar_data(read_data_id, self._precice_vertex_ids)
+        elif self._read_function_type is FunctionType.VECTOR:
+            read_data = self._interface.read_block_vector_data(read_data_id, self._precice_vertex_ids)
 
-        if not self._empty_rank:
-            if self._read_function_type is FunctionType.SCALAR:
-                read_data = self._interface.read_block_scalar_data(read_data_id, self._precice_vertex_ids)
-            elif self._read_function_type is FunctionType.VECTOR:
-                read_data = self._interface.read_block_vector_data(read_data_id, self._precice_vertex_ids)
-
-            read_data = {tuple(key): value for key, value in zip(self._owned_vertices.get_coordinates(), read_data)}
-            read_data = communicate_shared_vertices(
-                self._comm, self._fenicsx_vertices, self._send_map, self._recv_map, read_data)
-        else:  # if there are no vertices, we return empty data
-            read_data = None
+        read_data = {tuple(key): value for key, value in zip(self._owned_vertices.get_coordinates(), read_data)}
 
         return copy.deepcopy(read_data)
 
@@ -247,9 +180,6 @@ class Adapter:
         write_data_id = self._interface.get_data_id(self._config.get_write_data_name(),
                                                     self._interface.get_mesh_id(self._config.get_coupling_mesh_name()))
 
-        if self._empty_rank:
-            assert (self._is_parallel()), "having participants without coupling mesh nodes is only valid for parallel runs"
-
         write_function_type = determine_function_type(write_function)
         assert (write_function_type in list(FunctionType))
         write_data = convert_fenicsx_to_precice(write_function, self._owned_vertices.get_local_ids())
@@ -262,7 +192,7 @@ class Adapter:
         else:
             raise Exception("write_function provided is neither VECTOR nor SCALAR type")
 
-    def initialize(self, coupling_subdomain, read_function_space=None, write_object=None, fixed_boundary=None):
+    def initialize(self, coupling_subdomain, read_function_space=None, write_object=None):
         """
         Initializes the coupling and sets up the mesh where coupling happens in preCICE.
 
@@ -277,9 +207,6 @@ class Adapter:
             Function space on which the write function lives or FEniCSx function related to the quantity to be written
             by FEniCSx during each coupling iteration. If not provided then the adapter assumes that this participant is
             a read-only participant.
-        fixed_boundary : Object of class dolfinx.fem.bcs.AutoSubDomain
-            SubDomain consisting of a fixed boundary of the mesh. For example in FSI cases usually the solid body
-            is fixed at one end (fixed end of a flexible beam).
 
         Returns
         -------
@@ -350,9 +277,6 @@ class Adapter:
             assert (self._read_function_space.mesh() is write_function_space.mesh()
                     ), "read_function_space and write_object need to be defined using the same mesh"
 
-        if fixed_boundary:
-            self._Dirichlet_Boundary = fixed_boundary
-
         if self._fenicsx_dims != 2:
             raise Exception("Currently the fenicsx-adapter only supports 2D cases")
 
@@ -365,49 +289,16 @@ class Adapter:
         self._fenicsx_vertices.set_global_ids(gids)
         self._fenicsx_vertices.set_coordinates(coords)
 
-        if self._is_parallel():
-            lids, gids, coords = get_owned_vertices(function_space, coupling_subdomain, self._fenicsx_dims)
-            self._owned_vertices.set_local_ids(lids)
-            self._owned_vertices.set_global_ids(gids)
-            self._owned_vertices.set_coordinates(coords)
-
-            gids = get_unowned_vertices(function_space, coupling_subdomain, self._fenicsx_dims)
-            self._unowned_vertices.set_global_ids(gids)
-        else:
-            # For serial execution, owned vertices are identical to fenicsx vertices
-            self._owned_vertices.set_local_ids(lids)
-            self._owned_vertices.set_global_ids(gids)
-            self._owned_vertices.set_coordinates(coords)
-
         # Set up mesh in preCICE
-        if self._fenicsx_vertices.get_global_ids().size > 0:
-            self._empty_rank = False
-        else:
-            print("Rank {} has no part of coupling boundary.".format(self._comm.Get_rank()))
-
-        # Define mesh in preCICE
         self._precice_vertex_ids = self._interface.set_mesh_vertices(self._interface.get_mesh_id(
-            self._config.get_coupling_mesh_name()), self._owned_vertices.get_coordinates())
-
-        if self._coupling_type is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or \
-                self._coupling_type is CouplingMode.BI_DIRECTIONAL_COUPLING:
-            # Determine shared vertices with neighbouring processes and get dictionaries for communication
-            self._send_map, self._recv_map = get_communication_map(self._comm, self._read_function_space,
-                                                                   self._owned_vertices,
-                                                                   self._unowned_vertices)
-
-        # Check for double boundary points
-        if fixed_boundary:
-            # create empty data for the sake of searching for duplicate points
-            point_data = {tuple(key): None for key in self._owned_vertices.get_coordinates()}
-            _ = filter_point_sources(point_data, fixed_boundary, warn_duplicate=True)
+            self._config.get_coupling_mesh_name()), self._fenicsx_vertices.get_coordinates())
 
         # Set mesh edges in preCICE to allow nearest-projection mapping
         # Define a mapping between coupling vertices and their IDs in preCICE
-        id_mapping = {key: value for key, value in zip(self._owned_vertices.get_global_ids(), self._precice_vertex_ids)}
+        id_mapping = {key: value for key, value in zip(self._fenicsx_vertices.get_global_ids(), self._precice_vertex_ids)}
 
         edge_vertex_ids1, edge_vertex_ids2 = get_coupling_boundary_edges(function_space, coupling_subdomain,
-                                                                         self._owned_vertices.get_global_ids(),
+                                                                         self._fenicsx_vertices.get_global_ids(),
                                                                          id_mapping)
 
         for i in range(len(edge_vertex_ids1)):

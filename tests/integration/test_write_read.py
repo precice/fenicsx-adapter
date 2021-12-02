@@ -1,20 +1,18 @@
 from unittest.mock import MagicMock, patch
 from unittest import TestCase
 from tests import MockedPrecice
-from dolfinx import Expression, UnitSquareMesh, FunctionSpace, VectorFunctionSpace, interpolate, SubDomain, near
+from dolfinx import Expression, UnitSquareMesh
+from dolfinx.fem import FunctionSpace, VectorFunctionSpace, Function
+from mpi4py import MPI
 import numpy as np
 
 x_left, x_right = 0, 1
 y_bottom, y_top = 0, 1
 
 
-class RightBoundary(SubDomain):
-    def inside(self, x, on_boundary):
-        tol = 1E-14
-        if on_boundary and near(x[0], x_right, tol):
-            return True
-        else:
-            return False
+def RightBoundary(x):
+    tol = 1E-14
+    return abs(x[0] - x_right) < tol
 
 
 @patch.dict('sys.modules', {'precice': MockedPrecice})
@@ -25,16 +23,18 @@ class TestWriteandReadData(TestCase):
     """
     dummy_config = "tests/precice-adapter-config.json"
 
-    mesh = UnitSquareMesh(10, 10)
+    mesh = UnitSquareMesh(MPI.COMM_WORLD, 10, 10)
     dimension = 2
 
-    scalar_expr = Expression("x[0]*x[0] + x[1]*x[1]", degree=2)
-    scalar_V = FunctionSpace(mesh, "P", 2)
-    scalar_function = interpolate(scalar_expr, scalar_V)
+    scalar_expr = lambda x: x[0]*x[0] + x[1]*x[1]
+    scalar_V = FunctionSpace(mesh, ("P", 2))
+    scalar_function = Function(scalar_V)
+    scalar_function.interpolate(scalar_expr)
 
-    vector_expr = Expression(("x[0] + x[1]*x[1]", "x[0] - x[1]*x[1]"), degree=2)
-    vector_V = VectorFunctionSpace(mesh, "P", 2)
-    vector_function = interpolate(vector_expr, vector_V)
+    vector_expr = lambda x: (x[0] + x[1]*x[1], x[0] - x[1]*x[1])
+    vector_V = VectorFunctionSpace(mesh, ("P", 2))
+    vector_function = Function(vector_V)
+    vector_function.interpolate(vector_expr)
 
     n_vertices = 11
     fake_id = 15
