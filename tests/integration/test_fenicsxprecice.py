@@ -91,7 +91,7 @@ class TestCheckpointing(TestCase):
         Interface.is_time_window_complete = MagicMock(return_value=True)
         Interface.advance = MagicMock()
 
-        precice = fenicsxprecice.Adapter(self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
 
         precice.store_checkpoint(self.u_n_mocked, self.t, self.n)
 
@@ -155,7 +155,7 @@ class TestExpressionHandling(TestCase):
 
         right_boundary = lambda x: abs(x[0] - 1.0) < 10**-14
 
-        precice = fenicsxprecice.Adapter(self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice.initialize(right_boundary, self.scalar_V, self.scalar_function)
         values = np.array([self.scalar_function.eval([x, y, 0], 0) for x, y in zip(self.vertices_x, self.vertices_y)])
@@ -190,7 +190,7 @@ class TestExpressionHandling(TestCase):
 
         right_boundary = lambda x: abs(x[0] - 1.0) < 10**-14
 
-        precice = fenicsxprecice.Adapter(self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice.initialize(right_boundary, self.vector_V, self.vector_function)
         values = np.array([self.vector_function.eval([x, y, 0],0) for x, y in zip(self.vertices_x, self.vertices_y)])

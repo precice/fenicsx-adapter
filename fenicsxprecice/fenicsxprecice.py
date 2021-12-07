@@ -10,7 +10,6 @@ from .adapter_core import FunctionType, determine_function_type, convert_fenicsx
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
 from dolfinx.fem import Function, FunctionSpace
-from mpi4py import MPI
 import copy
 
 logger = logging.getLogger(__name__)
@@ -36,20 +35,22 @@ class Adapter:
     NOTE: dolfinx.PointSource use only works in serial
     """
 
-    def __init__(self, adapter_config_filename='precice-adapter-config.json'):
+    def __init__(self, mpi_comm, adapter_config_filename='precice-adapter-config.json'):
         """
         Constructor of Adapter class.
 
         Parameters
         ----------
+        mpi_comm : mpi4py.MPI.Intercomm
+            Communicator used by the adapter. Should be the same one used by FEniCSx, usually MPI.COMM_WORLD
         adapter_config_filename : string
             Name of the JSON adapter configuration file (to be provided by the user)
         """
 
         self._config = Config(adapter_config_filename)
 
-        # Setup up MPI communicator on mpi4py
-        self._comm = MPI.COMM_WORLD
+        # Setup up MPI communicator
+        self._comm = mpi_comm
 
         self._interface = precice.Interface(self._config.get_participant_name(), self._config.get_config_file_name(),
                                             self._comm.Get_rank(), self._comm.Get_size())
