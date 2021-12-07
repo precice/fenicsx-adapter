@@ -2,7 +2,8 @@
 Problem setup for partitioned-heat-conduction/fenics-fenics tutorial
 """
 
-from dolfinx import SubDomain, RectangleMesh, near, Function, VectorFunctionSpace, Expression
+from dolfinx import SubDomain, near, Function, VectorFunctionSpace, Expression
+from dolfinx.generation import DiagonalType, RectangleMesh
 from my_enums import DomainPart
 
 
@@ -49,7 +50,7 @@ def get_geometry(mpi_comm, domain_part):
     else:
         raise Exception("invalid domain_part: {}".format(domain_part))
 
-    mesh = RectangleMesh(mpi_comm, [p0, p1], [nx, ny], diagonal="left")
+    mesh = RectangleMesh(mpi_comm, [p0, p1], [nx, ny], diagonal=DiagonalType.left)
     coupling_boundary = StraightBoundary()
     remaining_boundary = ExcludeStraightBoundary()
 
