@@ -185,6 +185,8 @@ class Adapter:
         if write_function_type is FunctionType.SCALAR:
             assert (write_function.function_space.num_sub_spaces() == 0)
             self._interface.write_block_scalar_data(write_data_id, self._precice_vertex_ids, write_data)
+            # TODO this causes error in heat.py -n: 
+            # ValueError: Buffer has wrong number of dimensions (expected 1, got 2)
         elif write_function_type is FunctionType.VECTOR:
             assert (write_function.function_space.num_sub_spaces() > 0)
             self._interface.write_block_vector_data(write_data_id, self._precice_vertex_ids, write_data)

@@ -26,12 +26,12 @@ Heat equation with mixed boundary conditions. (Neumann problem)
 
 from __future__ import print_function, division
 from mpi4py import MPI
-from dolfinx.fem import Function, FunctionSpace, VectorFunctionSpace, Expression, Constant, DirichletBC  
-# from dolfinx import File, MeshFunction
-from ufl import TrialFunction, TestFunction, dx, dS, dot, grad, inner, lhs, rhs
+from dolfinx.fem import Function, FunctionSpace, Expression, Constant, DirichletBC, locate_dofs_geometrical
+# from dolfinx import File, MeshFunction  # unused
+from ufl import TrialFunction, TestFunction, dx, dS, dot, grad, inner, lhs, rhs, FiniteElement, VectorElement
 from petsc4py import PETSc
 from fenicsxprecice import Adapter
-from errorcomputation import compute_errors
+# from errorcomputation import compute_errors  # TODO update do dolfinx
 from my_enums import ProblemType, DomainPart
 import argparse
 import numpy as np
@@ -80,25 +80,42 @@ elif args.neumann and not args.dirichlet:
 mesh, coupling_boundary, remaining_boundary = get_geometry(MPI.COMM_WORLD, domain_part)
 
 # Define function space using mesh
-V = FunctionSpace(mesh, 'P', 2)
-V_g = VectorFunctionSpace(mesh, 'P', 1)
+scalar_element = FiniteElement("P", mesh.ufl_cell(), 2)
+vector_element = VectorElement("P", mesh.ufl_cell(), 1)
+V = FunctionSpace(mesh, scalar_element)
+V_g = FunctionSpace(mesh, vector_element)
 W = V_g.sub(0).collapse()
 
 # Define boundary conditions
-u_D = Expression('1 + x[0]*x[0] + alpha*x[1]*x[1] + beta*t', degree=2, alpha=alpha, beta=beta, t=0)
+class Expression_u_D:
+    def __init__(self):
+        self.t = 0.0
+        self.alpha = alpha
+        self.beta = beta
+    def eval(self, x):
+        return np.full(x.shape[1], 1 + x[0]*x[0] + self.alpha*x[1]*x[1] + self.beta*self.t)
+
+u_D = Expression_u_D()
 u_D_function = Function(V)
-u_D_function.interpolate(u_D)
+u_D_function.interpolate(u_D.eval)
 
 if problem is ProblemType.DIRICHLET:
     # Define flux in x direction
-    f_N = Expression("2 * x[0]", degree=1, alpha=alpha, t=0)
+    class Expression_f_N:
+        def __init__(self):
+            self.alpha = alpha
+            self.t = 0.0
+        def eval(self, x):
+            return np.full(x.shape[1], 2*x[0])
+
+    f_N = Expression_f_N()
     f_N_function = Function(V)
-    f_N_function.interpolate(f_N)
+    f_N_function.interpolate(f_N.eval)
 
 # Define initial value
-u_n = Function(V)
-u_n.interpolate(u_D)
-u_n.rename("Temperature", "")
+u_n = Function(V, name="Temperature")
+u_n.interpolate(u_D.eval)
+# u_n.rename("Temperature", "")
 
 precice, precice_dt, initial_data = None, 0.0, None
 
@@ -110,23 +127,35 @@ elif problem is ProblemType.NEUMANN:
     precice = Adapter(MPI.COMM_WORLD, adapter_config_filename="precice-adapter-config-N.json")
     precice_dt = precice.initialize(coupling_boundary, read_function_space=W, write_object=u_D_function)
 
-dt = Constant(0)
-dt.assign(np.min([fenics_dt, precice_dt]))
+dt = np.min([fenics_dt, precice_dt])  # TODO does that work? This used to be a Constant() object in dolfin.
 
 # Define variational problem
 u = TrialFunction(V)
 v = TestFunction(V)
-f = Expression('beta - 2 - 2*alpha', degree=2, alpha=alpha, beta=beta, t=0)
-F = u * v / dt * dx + dot(grad(u), grad(v)) * dx - (u_n / dt + f) * v * dx
+class Expression_f:
+    def __init__(self):
+        self.alpha = alpha
+        self.beta = beta
+        self.t = 0.0
+    def eval(self, x):
+        return np.full(x.shape[1], self.beta - 2 - 2*self.alpha)
+f = Expression_f()
+f_function = Function(V)
+f_function.interpolate(f.eval)
+F = u * v / dt * dx + dot(grad(u), grad(v)) * dx - (u_n / dt + f_function) * v * dx
 
-bcs = [DirichletBC(V, u_D, remaining_boundary)]
+dofs_remaining = locate_dofs_geometrical(V, remaining_boundary)
+bcs = [DirichletBC(u_D_function, dofs_remaining)]
 
 # Set boundary conditions at coupling interface once wrt to the coupling
 # expression
 coupling_expression = precice.create_coupling_expression()
 if problem is ProblemType.DIRICHLET:
     # modify Dirichlet boundary condition on coupling interface
-    bcs.append(DirichletBC(V, coupling_expression, coupling_boundary))
+    dofs_coupling = locate_dofs_geometrical(V, coupling_boundary)
+    bcs.append(DirichletBC(coupling_expression, dofs_coupling))
+    # TODO coupling_expression currently not supported here:
+    # https://github.com/FEniCS/dolfinx/blob/e0c3206281d71e0391482f4e07e3e30cc2cc1199/python/dolfinx/fem/dirichletbc.py#L147
 if problem is ProblemType.NEUMANN:
     # modify Neumann boundary condition on coupling interface, modify weak
     # form correspondingly
@@ -171,7 +200,7 @@ ref_out << u_ref
 ranks << mesh_rank
 '''
 
-error_total, error_pointwise = compute_errors(u_n, u_ref, V)
+# error_total, error_pointwise = compute_errors(u_n, u_ref, V) # TODO
 '''
 # TODO
 error_out << error_pointwise
@@ -234,8 +263,9 @@ while precice.is_coupling_ongoing():
     if precice.is_time_window_complete():
         u_ref.interpolate(u_D)
         u_ref.rename("reference", " ")
-        error, error_pointwise = compute_errors(u_n, u_ref, V, total_error_tol=error_tol)
-        print('n = %d, t = %.2f: L2 error on domain = %.3g' % (n, t, error))
+        # TODO
+        # error, error_pointwise = compute_errors(u_n, u_ref, V, total_error_tol=error_tol)
+        # print('n = %d, t = %.2f: L2 error on domain = %.3g' % (n, t, error))
         '''
         # TODO
         # output solution and reference solution at t_n+1
@@ -246,8 +276,8 @@ while precice.is_coupling_ongoing():
         '''
 
     # Update Dirichlet BC
-    u_D.t = t + float(dt)
-    f.t = t + float(dt)
+    u_D.t = t + float(dt)  # TODO update properly
+    f.t = t + float(dt)  # TODO update properly
 
 # Hold plot
 precice.finalize()
