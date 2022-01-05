@@ -127,7 +127,7 @@ elif problem is ProblemType.NEUMANN:
     precice = Adapter(MPI.COMM_WORLD, adapter_config_filename="precice-adapter-config-N.json")
     precice_dt = precice.initialize(coupling_boundary, read_function_space=W, write_object=u_D_function)
 
-dt = np.min([fenics_dt, precice_dt])  # TODO does that work? This used to be a Constant() object in dolfin.
+dt = np.min([fenics_dt, precice_dt])  # TODO use Constant here, required for preCICE adaptive timestepping
 
 # Define variational problem
 u = TrialFunction(V)
@@ -149,30 +149,30 @@ bcs = [DirichletBC(u_D_function, dofs_remaining)]
 
 # Set boundary conditions at coupling interface once wrt to the coupling
 # expression
+# TODO hide that in coupling_expression
 coupling_expression = precice.create_coupling_expression()
+read_data = precice.read_data()
+precice.update_coupling_expression(coupling_expression, read_data)
+function_coupling = Function(V)
+function_coupling.interpolate(coupling_expression.__call__)
 if problem is ProblemType.DIRICHLET:
     # modify Dirichlet boundary condition on coupling interface
     dofs_coupling = locate_dofs_geometrical(V, coupling_boundary)
-    bcs.append(DirichletBC(coupling_expression, dofs_coupling))
-    # TODO coupling_expression currently not supported here:
-    # https://github.com/FEniCS/dolfinx/blob/e0c3206281d71e0391482f4e07e3e30cc2cc1199/python/dolfinx/fem/dirichletbc.py#L147
+    bcs.append(DirichletBC(function_coupling, dofs_coupling))
 if problem is ProblemType.NEUMANN:
     # modify Neumann boundary condition on coupling interface, modify weak
     # form correspondingly
-    F += v * coupling_expression * dS
+    F += v * function_coupling * dS  # TODO 
 
 a, L = lhs(F), rhs(F)
 
 # Time-stepping
-u_np1 = Function(V)
-u_np1.rename("Temperature", "")
+u_np1 = Function(V, name="Temperature")
 t = 0
 
 # reference solution at t=0
-u_ref = Function(V)
-u_ref.interpolate(u_D)
-u_ref.rename("reference", " ")
-
+u_ref = Function(V, name="reference")
+u_ref.interpolate(u_D_function)
 '''
 # TODO
 # mark mesh w.r.t ranks
@@ -207,9 +207,10 @@ error_out << error_pointwise
 '''
 # set t_1 = t_0 + dt, this gives u_D^1
 # call dt(0) to evaluate FEniCS Constant. Todo: is there a better way?
-u_D.t = t + dt(0)
-f.t = t + dt(0)
-
+u_D.t = t + dt
+u_D_function.interpolate(u_D.eval)
+f.t = t + dt
+f_function.interpolate(f.eval)
 # define a solver
 solver = PETSc.KSP().create(mesh.comm)
 solver.setOperators(A)
@@ -217,8 +218,7 @@ solver.setType(PETSc.KSP.Type.PREONLY)
 solver.getPC().setType(PETSc.PC.Type.LU)
 
 if problem is ProblemType.DIRICHLET:
-    flux = Function(V_g)
-    flux.rename("Flux", "")
+    flux = Function(V_g, name="Flux")
 
 while precice.is_coupling_ongoing():
 
@@ -261,8 +261,7 @@ while precice.is_coupling_ongoing():
         n += 1
 
     if precice.is_time_window_complete():
-        u_ref.interpolate(u_D)
-        u_ref.rename("reference", " ")
+        u_ref.interpolate(u_D, name="reference")
         # TODO
         # error, error_pointwise = compute_errors(u_n, u_ref, V, total_error_tol=error_tol)
         # print('n = %d, t = %.2f: L2 error on domain = %.3g' % (n, t, error))

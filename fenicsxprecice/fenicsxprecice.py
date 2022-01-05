@@ -2,6 +2,7 @@
 FEniCSx - preCICE Adapter. API to help users couple FEniCS with other solvers using the preCICE library.
 :raise ImportError: if PRECICE_ROOT is not defined
 """
+from os import write
 import numpy as np
 from .config import Config
 import logging
@@ -184,9 +185,8 @@ class Adapter:
         write_data = convert_fenicsx_to_precice(write_function, self._fenicsx_vertices.get_ids())
         if write_function_type is FunctionType.SCALAR:
             assert (write_function.function_space.num_sub_spaces() == 0)
+            write_data = np.squeeze(write_data)  # TODO dirty solution
             self._interface.write_block_scalar_data(write_data_id, self._precice_vertex_ids, write_data)
-            # TODO this causes error in heat.py -n: 
-            # ValueError: Buffer has wrong number of dimensions (expected 1, got 2)
         elif write_function_type is FunctionType.VECTOR:
             assert (write_function.function_space.num_sub_spaces() > 0)
             self._interface.write_block_vector_data(write_data_id, self._precice_vertex_ids, write_data)
