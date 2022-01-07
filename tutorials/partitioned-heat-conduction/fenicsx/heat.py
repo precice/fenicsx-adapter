@@ -27,9 +27,8 @@ Heat equation with mixed boundary conditions. (Neumann problem)
 from __future__ import print_function, division
 from mpi4py import MPI
 from dolfinx.fem import Function, FunctionSpace, Expression, Constant, dirichletbc, locate_dofs_geometrical, LinearProblem
-# from dolfinx import File, MeshFunction  # unused
+from dolfinx.io import XDMFFile
 from ufl import TrialFunction, TestFunction, dx, ds, dot, grad, inner, lhs, rhs, FiniteElement, VectorElement
-from petsc4py import PETSc
 from fenicsxprecice import Adapter
 # from errorcomputation import compute_errors  # TODO update do dolfinx
 from my_enums import ProblemType, DomainPart
@@ -182,100 +181,101 @@ if problem is ProblemType.NEUMANN:
 else:
     mesh_rank.set_all(MPI.rank(MPI.comm_world) + 0)
 mesh_rank.rename("myRank", "")
-
-# Generating output files
-temperature_out = File("out/%s.pvd" % precice.get_participant_name())
-ref_out = File("out/ref%s.pvd" % precice.get_participant_name())
-error_out = File("out/error%s.pvd" % precice.get_participant_name())
-ranks = File("out/ranks%s.pvd" % precice.get_participant_name())
 '''
 
-# output solution and reference solution at t=0, n=0
-n = 0
-'''
-# TODO
-print('output u^%d and u_ref^%d' % (n, n))
-temperature_out << u_n
-ref_out << u_ref
-ranks << mesh_rank
-'''
+with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w") as xdmf:
+    xdmf.write_mesh(mesh)
 
-# error_total, error_pointwise = compute_errors(u_n, u_ref, V) # TODO
-'''
-# TODO
-error_out << error_pointwise
-'''
-# set t_1 = t_0 + dt, this gives u_D^1
-# call dt(0) to evaluate FEniCS Constant. Todo: is there a better way?
-u_D.t = t + dt
-u_D_function.interpolate(u_D.eval)
-f.t = t + dt
-f_function.interpolate(f.eval)
+    # output solution and reference solution at t=0, n=0
+    n = 0
+    xdmf.write_function(u_n, t)
+    '''
+    print('output u^%d and u_ref^%d' % (n, n))
+    temperature_out << u_n
+    ref_out << u_ref
+    ranks << mesh_rank
+    '''
 
-if problem is ProblemType.DIRICHLET:
-    flux = Function(V_g, name="Flux")
-
-while precice.is_coupling_ongoing():
-
-    # write checkpoint
-    if precice.is_action_required(precice.action_write_iteration_checkpoint()):
-        precice.store_checkpoint(u_n, t, n)
-
-    read_data = precice.read_data()
-
-    # Update the coupling expression with the new read data
-    precice.update_coupling_expression(coupling_expression, read_data)
-
-    dt = np.min([fenics_dt, precice_dt])  # TODO this used to be a dt.assign
-
-    # Compute solution u^n+1, use bcs u_D^n+1, u^n and coupling bcs
-    linear_problem = LinearProblem(a, L, bcs=bcs) #, petsc_options={"ksp_type": "preonly", "pc_type": "lu"})  # TODO is it possible to do that only once (before th coupling-loop)?
-    u_np1 = linear_problem.solve()
-
-
-    # Write data to preCICE according to which problem is being solved
-    if problem is ProblemType.DIRICHLET:
-        # Dirichlet problem reads temperature and writes flux on boundary to Neumann problem
-        flux = determine_gradient(V_g, u_np1)
-        flux_x = Function(W)
-        flux_x.interpolate(flux.sub(0))
-        precice.write_data(flux_x)
-    elif problem is ProblemType.NEUMANN:
-        # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
-        precice.write_data(u_np1)
-
-    precice_dt = precice.advance(dt)
-
-    # roll back to checkpoint
-    if precice.is_action_required(precice.action_read_iteration_checkpoint()):
-        u_cp, t_cp, n_cp = precice.retrieve_checkpoint()
-        u_n.interpolate(u_cp)
-        t = t_cp
-        n = n_cp
-    else:  # update solution
-        u_n.interpolate(u_np1)
-        t += float(dt)
-        n += 1
-
-    if precice.is_time_window_complete():
-        u_ref.interpolate(u_D_function)
-        # TODO
-        # error, error_pointwise = compute_errors(u_n, u_ref, V, total_error_tol=error_tol)
-        # print('n = %d, t = %.2f: L2 error on domain = %.3g' % (n, t, error))
-        '''
-        # TODO
-        # output solution and reference solution at t_n+1
-        print('output u^%d and u_ref^%d' % (n, n))
-        temperature_out << u_n
-        ref_out << u_ref
-        error_out << error_pointwise
-        '''
-
-    # Update Dirichlet BC
-    u_D.t = t + float(dt)  # TODO update properly
+    # error_total, error_pointwise = compute_errors(u_n, u_ref, V) # TODO
+    '''
+    # TODO
+    error_out << error_pointwise
+    '''
+    # set t_1 = t_0 + dt, this gives u_D^1
+    # call dt(0) to evaluate FEniCS Constant. Todo: is there a better way?
+    u_D.t = t + dt
     u_D_function.interpolate(u_D.eval)
-    f.t = t + float(dt)  # TODO update properly
+    f.t = t + dt
     f_function.interpolate(f.eval)
+
+    if problem is ProblemType.DIRICHLET:
+        flux = Function(V_g, name="Flux")
+
+    while precice.is_coupling_ongoing():
+
+        # write checkpoint
+        if precice.is_action_required(precice.action_write_iteration_checkpoint()):
+            precice.store_checkpoint(u_n, t, n)
+
+        read_data = precice.read_data()
+
+        # Update the coupling expression with the new read data
+        precice.update_coupling_expression(coupling_expression, read_data)
+        function_coupling.interpolate(coupling_expression.__call__)  # TODO include that in update_coupling_expression
+
+        dt = np.min([fenics_dt, precice_dt])  # TODO this used to be a dt.assign
+
+        # Compute solution u^n+1, use bcs u_D^n+1, u^n and coupling bcs
+        linear_problem = LinearProblem(a, L, bcs=bcs) #, petsc_options={"ksp_type": "preonly", "pc_type": "lu"})  # TODO is it possible to do that only once (before th coupling-loop)?
+        u_np1 = linear_problem.solve()
+
+
+        # Write data to preCICE according to which problem is being solved
+        if problem is ProblemType.DIRICHLET:
+            # Dirichlet problem reads temperature and writes flux on boundary to Neumann problem
+            flux = determine_gradient(V_g, u_np1)
+            flux_x = Function(W)
+            flux_x.interpolate(flux.sub(0))
+            precice.write_data(flux_x)
+        elif problem is ProblemType.NEUMANN:
+            # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
+            precice.write_data(u_np1)
+
+        precice_dt = precice.advance(dt)
+
+        # roll back to checkpoint
+        if precice.is_action_required(precice.action_read_iteration_checkpoint()):
+            u_cp, t_cp, n_cp = precice.retrieve_checkpoint()
+            u_n.interpolate(u_cp)
+            t = t_cp
+            n = n_cp
+        else:  # update solution
+            u_n.interpolate(u_np1)
+            t += float(dt)
+            n += 1
+
+        if precice.is_time_window_complete():
+            u_ref.interpolate(u_D_function)
+            # TODO
+            # error, error_pointwise = compute_errors(u_n, u_ref, V, total_error_tol=error_tol)
+            # print('n = %d, t = %.2f: L2 error on domain = %.3g' % (n, t, error))
+            print('output u^%d and u_ref^%d' % (n, n))
+            xdmf.write_function(u_n, t)
+            '''
+            # TODO
+            # output solution and reference solution at t_n+1
+            temperature_out << u_n
+            ref_out << u_ref
+            error_out << error_pointwise
+            '''
+
+        # Update Dirichlet BC
+        u_D.t = t + float(dt)  # TODO update properly
+        u_D_function.interpolate(u_D.eval)
+        f.t = t + float(dt)  # TODO update properly
+        f_function.interpolate(f.eval)
+
+
 
 # Hold plot
 precice.finalize()
