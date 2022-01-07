@@ -84,9 +84,9 @@ def determine_function_type(input_obj):
         0 if input_function is SCALAR and 1 if input_function is VECTOR.
     """
     if isinstance(input_obj, FunctionSpace):  # scalar-valued functions have rank 0 is FEniCSx
-        if input_obj.num_sub_spaces() == 0:
+        if input_obj.num_sub_spaces == 0:
             return FunctionType.SCALAR
-        elif input_obj.num_sub_spaces() == 2:
+        elif input_obj.num_sub_spaces == 2:
             return FunctionType.VECTOR
     elif isinstance(input_obj, Function):
         if input_obj.compute_point_values().shape[1] == 1:
@@ -123,7 +123,7 @@ def convert_fenicsx_to_precice(fenicsx_function, local_ids):
     sampled_data = fenicsx_function.compute_point_values()
 
     if len(local_ids):
-        if fenicsx_function.function_space.num_sub_spaces() > 0:  # function space is VectorFunctionSpace
+        if fenicsx_function.function_space.num_sub_spaces > 0:  # function space is VectorFunctionSpace
             for lid in local_ids:
                 precice_data.append(sampled_data[lid, :])
         else:  # function space is FunctionSpace (scalar)

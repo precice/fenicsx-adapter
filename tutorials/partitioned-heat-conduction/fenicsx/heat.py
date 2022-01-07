@@ -26,9 +26,9 @@ Heat equation with mixed boundary conditions. (Neumann problem)
 
 from __future__ import print_function, division
 from mpi4py import MPI
-from dolfinx.fem import Function, FunctionSpace, Expression, Constant, DirichletBC, locate_dofs_geometrical
+from dolfinx.fem import Function, FunctionSpace, Expression, Constant, dirichletbc, locate_dofs_geometrical, LinearProblem
 # from dolfinx import File, MeshFunction  # unused
-from ufl import TrialFunction, TestFunction, dx, dS, dot, grad, inner, lhs, rhs, FiniteElement, VectorElement
+from ufl import TrialFunction, TestFunction, dx, ds, dot, grad, inner, lhs, rhs, FiniteElement, VectorElement
 from petsc4py import PETSc
 from fenicsxprecice import Adapter
 # from errorcomputation import compute_errors  # TODO update do dolfinx
@@ -38,12 +38,11 @@ import numpy as np
 from problem_setup import get_geometry
 
 
-def determine_gradient(V_g, u, flux):
+def determine_gradient(V_g, u):
     """
     compute flux following http://hplgit.github.io/INF5620/doc/pub/fenics_tutorial1.1/tu2.html#tut-poisson-gradu
     :param V_g: Vector function space
     :param u: solution where gradient is to be determined
-    :param flux: returns calculated flux into this value
     """
 
     w = TrialFunction(V_g)
@@ -51,7 +50,8 @@ def determine_gradient(V_g, u, flux):
 
     a = inner(w, v) * dx
     L = inner(grad(u), v) * dx
-    solve(a == L, flux)
+    problem = LinearProblem(a, L)
+    return problem.solve()
 
 
 parser = argparse.ArgumentParser(description="Solving heat equation for simple or complex interface case")
@@ -141,11 +141,11 @@ class Expression_f:
         return np.full(x.shape[1], self.beta - 2 - 2*self.alpha)
 f = Expression_f()
 f_function = Function(V)
-f_function.interpolate(f.eval)
+# f_function.interpolate(f.eval)
 F = u * v / dt * dx + dot(grad(u), grad(v)) * dx - (u_n / dt + f_function) * v * dx
 
 dofs_remaining = locate_dofs_geometrical(V, remaining_boundary)
-bcs = [DirichletBC(u_D_function, dofs_remaining)]
+bcs = [dirichletbc(u_D_function, dofs_remaining)]
 
 # Set boundary conditions at coupling interface once wrt to the coupling
 # expression
@@ -158,11 +158,11 @@ function_coupling.interpolate(coupling_expression.__call__)
 if problem is ProblemType.DIRICHLET:
     # modify Dirichlet boundary condition on coupling interface
     dofs_coupling = locate_dofs_geometrical(V, coupling_boundary)
-    bcs.append(DirichletBC(function_coupling, dofs_coupling))
+    bcs.append(dirichletbc(function_coupling, dofs_coupling))
 if problem is ProblemType.NEUMANN:
     # modify Neumann boundary condition on coupling interface, modify weak
     # form correspondingly
-    F += v * function_coupling * dS  # TODO 
+    F += v * function_coupling * ds
 
 a, L = lhs(F), rhs(F)
 
@@ -211,11 +211,6 @@ u_D.t = t + dt
 u_D_function.interpolate(u_D.eval)
 f.t = t + dt
 f_function.interpolate(f.eval)
-# define a solver
-solver = PETSc.KSP().create(mesh.comm)
-solver.setOperators(A)
-solver.setType(PETSc.KSP.Type.PREONLY)
-solver.getPC().setType(PETSc.PC.Type.LU)
 
 if problem is ProblemType.DIRICHLET:
     flux = Function(V_g, name="Flux")
@@ -231,15 +226,17 @@ while precice.is_coupling_ongoing():
     # Update the coupling expression with the new read data
     precice.update_coupling_expression(coupling_expression, read_data)
 
-    dt.assign(np.min([fenics_dt, precice_dt]))
+    dt = np.min([fenics_dt, precice_dt])  # TODO this used to be a dt.assign
 
     # Compute solution u^n+1, use bcs u_D^n+1, u^n and coupling bcs
-    solver.solve(a == L, u_np1, bcs)
+    linear_problem = LinearProblem(a, L, bcs=bcs) #, petsc_options={"ksp_type": "preonly", "pc_type": "lu"})  # TODO is it possible to do that only once (before th coupling-loop)?
+    u_np1 = linear_problem.solve()
+
 
     # Write data to preCICE according to which problem is being solved
     if problem is ProblemType.DIRICHLET:
         # Dirichlet problem reads temperature and writes flux on boundary to Neumann problem
-        determine_gradient(V_g, u_np1, flux)
+        flux = determine_gradient(V_g, u_np1)
         flux_x = Function(W)
         flux_x.interpolate(flux.sub(0))
         precice.write_data(flux_x)
@@ -247,21 +244,21 @@ while precice.is_coupling_ongoing():
         # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
         precice.write_data(u_np1)
 
-    precice_dt = precice.advance(dt(0))
+    precice_dt = precice.advance(dt)
 
     # roll back to checkpoint
     if precice.is_action_required(precice.action_read_iteration_checkpoint()):
         u_cp, t_cp, n_cp = precice.retrieve_checkpoint()
-        u_n.assign(u_cp)
+        u_n.interpolate(u_cp)
         t = t_cp
         n = n_cp
     else:  # update solution
-        u_n.assign(u_np1)
+        u_n.interpolate(u_np1)
         t += float(dt)
         n += 1
 
     if precice.is_time_window_complete():
-        u_ref.interpolate(u_D, name="reference")
+        u_ref.interpolate(u_D_function)
         # TODO
         # error, error_pointwise = compute_errors(u_n, u_ref, V, total_error_tol=error_tol)
         # print('n = %d, t = %.2f: L2 error on domain = %.3g' % (n, t, error))
@@ -276,7 +273,9 @@ while precice.is_coupling_ongoing():
 
     # Update Dirichlet BC
     u_D.t = t + float(dt)  # TODO update properly
+    u_D_function.interpolate(u_D.eval)
     f.t = t + float(dt)  # TODO update properly
+    f_function.interpolate(f.eval)
 
 # Hold plot
 precice.finalize()
