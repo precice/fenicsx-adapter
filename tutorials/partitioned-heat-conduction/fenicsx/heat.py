@@ -126,7 +126,8 @@ elif problem is ProblemType.NEUMANN:
     precice = Adapter(MPI.COMM_WORLD, V, adapter_config_filename="precice-adapter-config-N.json")
     precice_dt = precice.initialize(coupling_boundary, read_function_space=W, write_object=u_D_function)
 
-dt = np.min([fenics_dt, precice_dt])  # TODO use Constant here, required for preCICE adaptive timestepping
+dt = Constant(mesh, 0.0)
+dt.value = np.min([fenics_dt, precice_dt])
 
 # Define variational problem
 u = TrialFunction(V)
@@ -199,11 +200,9 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
     # TODO
     error_out << error_pointwise
     '''
-    # set t_1 = t_0 + dt, this gives u_D^1
-    # call dt(0) to evaluate FEniCS Constant. Todo: is there a better way?
-    u_D.t = t + dt
+    u_D.t = t + dt.value
     u_D_function.interpolate(u_D.eval)
-    f.t = t + dt
+    f.t = t + dt.value
     f_function.interpolate(f.eval)
 
     if problem is ProblemType.DIRICHLET:
@@ -220,7 +219,7 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
         # Update the coupling expression with the new read data
         precice.update_coupling_expression(coupling_expression, read_data)
 
-        dt = np.min([fenics_dt, precice_dt])  # TODO this used to be a dt.assign
+        dt.value = np.min([fenics_dt, precice_dt])
 
         # Compute solution u^n+1, use bcs u_D^n+1, u^n and coupling bcs
         linear_problem = LinearProblem(a, L, bcs=bcs) #, petsc_options={"ksp_type": "preonly", "pc_type": "lu"})  # TODO is it possible to do that only once (before th coupling-loop)?
@@ -238,7 +237,7 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
             # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
             precice.write_data(u_np1)
 
-        precice_dt = precice.advance(dt)
+        precice_dt = precice.advance(dt.value)
 
         # roll back to checkpoint
         if precice.is_action_required(precice.action_read_iteration_checkpoint()):
@@ -248,7 +247,7 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
             n = n_cp
         else:  # update solution
             u_n.interpolate(u_np1)
-            t += float(dt)
+            t += dt.value
             n += 1
 
         if precice.is_time_window_complete():
@@ -267,9 +266,9 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
             '''
 
         # Update Dirichlet BC
-        u_D.t = t + float(dt)  # TODO update properly
+        u_D.t = t + dt.value
         u_D_function.interpolate(u_D.eval)
-        f.t = t + float(dt)  # TODO update properly
+        f.t = t + dt.value
         f_function.interpolate(f.eval)
 
 
