@@ -36,7 +36,7 @@ class Adapter:
     NOTE: dolfinx.PointSource use only works in serial
     """
 
-    def __init__(self, mpi_comm, adapter_config_filename='precice-adapter-config.json'):
+    def __init__(self, mpi_comm, function_space, adapter_config_filename='precice-adapter-config.json'):
         """
         Constructor of Adapter class.
 
@@ -44,6 +44,8 @@ class Adapter:
         ----------
         mpi_comm : mpi4py.MPI.Intercomm
             Communicator used by the adapter. Should be the same one used by FEniCSx, usually MPI.COMM_WORLD
+        function_space: dolfinx.fem.FunctionSpace
+            Function space of the FEM problem, used to set the boundary conditions.
         adapter_config_filename : string
             Name of the JSON adapter configuration file (to be provided by the user)
         """
@@ -84,6 +86,10 @@ class Adapter:
         # Problem dimension in FEniCSx
         self._fenicsx_dims = None
 
+        # Coupling function related quantities
+        self._function_space = function_space
+
+
     def create_coupling_expression(self):
         """
         Creates a FEniCSx Expression in the form of an object of class GeneralInterpolationExpression or
@@ -98,7 +104,7 @@ class Adapter:
         if not (self._read_function_type is FunctionType.SCALAR or self._read_function_type is FunctionType.VECTOR):
             raise Exception("No valid read_function is provided in initialization. Cannot create coupling expression")
 
-        coupling_expression = self._my_expression(self._read_function_space.mesh.geometry.dim)
+        coupling_expression = self._my_expression(self._read_function_space.mesh.geometry.dim, self._function_space)
         coupling_expression.set_function_type(self._read_function_type)
 
         return coupling_expression
@@ -119,6 +125,7 @@ class Adapter:
         vertices = np.array(list(data.keys()))
         nodal_data = np.array(list(data.values()))
         coupling_expression.update_boundary_data(nodal_data, vertices[:, 0], vertices[:, 1])
+        coupling_expression.interpolate(coupling_expression.interpolate_precice)
 
     def get_point_sources(self, data):
         raise Exception("PointSources are not implemented for the FEniCSx adapter.")

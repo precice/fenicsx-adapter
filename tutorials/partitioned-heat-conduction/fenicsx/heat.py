@@ -120,10 +120,10 @@ precice, precice_dt, initial_data = None, 0.0, None
 
 # Initialize the adapter according to the specific participant
 if problem is ProblemType.DIRICHLET:
-    precice = Adapter(MPI.COMM_WORLD, adapter_config_filename="precice-adapter-config-D.json")
+    precice = Adapter(MPI.COMM_WORLD, V, adapter_config_filename="precice-adapter-config-D.json")
     precice_dt = precice.initialize(coupling_boundary, read_function_space=V, write_object=f_N_function)
 elif problem is ProblemType.NEUMANN:
-    precice = Adapter(MPI.COMM_WORLD, adapter_config_filename="precice-adapter-config-N.json")
+    precice = Adapter(MPI.COMM_WORLD, V, adapter_config_filename="precice-adapter-config-N.json")
     precice_dt = precice.initialize(coupling_boundary, read_function_space=W, write_object=u_D_function)
 
 dt = np.min([fenics_dt, precice_dt])  # TODO use Constant here, required for preCICE adaptive timestepping
@@ -152,16 +152,14 @@ bcs = [dirichletbc(u_D_function, dofs_remaining)]
 coupling_expression = precice.create_coupling_expression()
 read_data = precice.read_data()
 precice.update_coupling_expression(coupling_expression, read_data)
-function_coupling = Function(V)
-function_coupling.interpolate(coupling_expression.__call__)
 if problem is ProblemType.DIRICHLET:
     # modify Dirichlet boundary condition on coupling interface
     dofs_coupling = locate_dofs_geometrical(V, coupling_boundary)
-    bcs.append(dirichletbc(function_coupling, dofs_coupling))
+    bcs.append(dirichletbc(coupling_expression, dofs_coupling))
 if problem is ProblemType.NEUMANN:
     # modify Neumann boundary condition on coupling interface, modify weak
     # form correspondingly
-    F += v * function_coupling * ds
+    F += v * coupling_expression * ds
 
 a, L = lhs(F), rhs(F)
 
@@ -221,7 +219,6 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
 
         # Update the coupling expression with the new read data
         precice.update_coupling_expression(coupling_expression, read_data)
-        function_coupling.interpolate(coupling_expression.__call__)  # TODO include that in update_coupling_expression
 
         dt = np.min([fenics_dt, precice_dt])  # TODO this used to be a dt.assign
 

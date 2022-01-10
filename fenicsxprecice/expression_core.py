@@ -5,6 +5,7 @@ This module provides a mechanism to imterpolate point data acquired from preCICE
 from .adapter_core import FunctionType
 from scipy.interpolate import Rbf
 from scipy.linalg import lstsq
+from dolfinx.fem import Function
 import numpy as np
 from mpi4py import MPI
 
@@ -14,12 +15,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 
-class CouplingExpression():
+class CouplingExpression(Function):
     """
     Creates functional representation (for FEniCSx) of nodal data provided by preCICE.
     """
-    def __init__(self, dims):
+    def __init__(self, dims, function_space):
         self._dimension = dims
+        super().__init__(function_space)
 
     def set_function_type(self, function_type):
         self._function_type = function_type
@@ -57,7 +59,7 @@ class CouplingExpression():
         elif self.is_vector_valued():
             assert (self._vals.shape[0] == self._coords_x.shape[0])
 
-    def interpolate(self, x):
+    def interpolate_precice(self, x):
         # TODO: the correct way to deal with this would be using an abstract class. Since this is technically more
         # complex and the current implementation is a workaround anyway, we do not
         # use the proper solution, but this hack.
@@ -97,17 +99,6 @@ class CouplingExpression():
         """
         raise Exception("Please use one of the classes derived from this class, that implements an actual strategy for"
                         "interpolation.")
-
-    def __call__(self, x):
-        """
-        Evaluates expression at x using self.interpolate(x) and stores result to value.
-
-        Parameters
-        ----------
-        x : double
-            Coordinate where expression has to be evaluated.
-        """
-        return self.interpolate(x)
 
     def is_scalar_valued(self):
         """
@@ -185,7 +176,7 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
 
         return interpolant
 
-    def interpolate(self, x):
+    def interpolate_precice(self, x):
         """
         See base class description.
         """
