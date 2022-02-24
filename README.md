@@ -14,6 +14,8 @@
     <img src="https://github.com/precice/fenicsx-adapter/actions/workflows/pythonpublish.yml/badge.svg" alt="Upload Python Package">
 </a>
 
+# 🚧 Note the fenicsx-adapter is under construction. Our current version of FEniCS-X that we use for development is [`3584702`](https://github.com/FEniCS/dolfinx/commit/358470227bf9b7dea179fca52fbd36182a277010) 🚧
+
 preCICE-adapter for the open source computing platform FEniCSx.
 
 Notes:
