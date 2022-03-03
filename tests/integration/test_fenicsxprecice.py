@@ -5,8 +5,8 @@ from unittest import TestCase
 from tests import MockedPrecice
 import numpy as np
 from mpi4py import MPI
-from dolfinx import UnitSquareMesh, Function
-from dolfinx.fem import FunctionSpace, VectorFunctionSpace
+from dolfinx.mesh import create_unit_square
+from dolfinx.fem import Function, FunctionSpace, VectorFunctionSpace
 
 
 class MockedArray:
@@ -63,6 +63,8 @@ class TestCheckpointing(TestCase):
     t_cp_mocked = t  # time for the checkpoint
     n_cp_mocked = n  # iteration count for the checkpoint
     dummy_config = "tests/precice-adapter-config.json"
+    mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)
+    dummy_V = FunctionSpace(mesh, ("P", 2))
 
     # todo if we support multirate, we should use the lines below for checkpointing
     # for the general case the checkpoint u_cp (and t_cp and n_cp) can differ from u_n and u_np1
@@ -91,7 +93,7 @@ class TestCheckpointing(TestCase):
         Interface.is_time_window_complete = MagicMock(return_value=True)
         Interface.advance = MagicMock()
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_V, self.dummy_config)
 
         precice.store_checkpoint(self.u_n_mocked, self.t, self.n)
 
@@ -111,7 +113,7 @@ class TestExpressionHandling(TestCase):
     """
     dummy_config = "tests/precice-adapter-config.json"
 
-    mesh = UnitSquareMesh(MPI.COMM_WORLD, 10, 10)
+    mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)
     dimension = 2
 
     scalar_expr = lambda x: x[0] + x[1]
@@ -155,7 +157,7 @@ class TestExpressionHandling(TestCase):
 
         right_boundary = lambda x: abs(x[0] - 1.0) < 10**-14
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice.initialize(right_boundary, self.scalar_V, self.scalar_function)
         values = np.array([self.scalar_function.eval([x, y, 0], 0) for x, y in zip(self.vertices_x, self.vertices_y)])
@@ -190,7 +192,7 @@ class TestExpressionHandling(TestCase):
 
         right_boundary = lambda x: abs(x[0] - 1.0) < 10**-14
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice.initialize(right_boundary, self.vector_V, self.vector_function)
         values = np.array([self.vector_function.eval([x, y, 0],0) for x, y in zip(self.vertices_x, self.vertices_y)])

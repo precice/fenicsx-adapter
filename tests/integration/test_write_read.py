@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 from unittest import TestCase
 from tests import MockedPrecice
-from dolfinx import Expression, UnitSquareMesh
+from dolfinx.mesh import create_unit_square
 from dolfinx.fem import FunctionSpace, VectorFunctionSpace, Function
 from mpi4py import MPI
 import numpy as np
@@ -25,7 +25,7 @@ class TestWriteandReadData(TestCase):
     """
     dummy_config = "tests/precice-adapter-config.json"
 
-    mesh = UnitSquareMesh(MPI.COMM_WORLD, 10, 10)
+    mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)
     dimension = 2
 
     scalar_V = FunctionSpace(mesh, ("P", 2))
@@ -58,7 +58,7 @@ class TestWriteandReadData(TestCase):
         Interface.is_action_required = MagicMock(return_value=False)
         Interface.initialize_data = MagicMock()
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice._write_data_id = self.fake_id
         precice.initialize(right_boundary, self.scalar_V, self.scalar_function)
@@ -74,6 +74,7 @@ class TestWriteandReadData(TestCase):
             if isinstance(arg, int):
                 self.assertTrue(arg == expected_arg)
             elif isinstance(arg, np.ndarray):
+                expected_arg = expected_arg.reshape(arg.shape)
                 np.testing.assert_allclose(arg, expected_arg)
 
     def test_vector_write(self):
@@ -93,8 +94,7 @@ class TestWriteandReadData(TestCase):
         Interface.initialize = MagicMock()
         Interface.is_action_required = MagicMock(return_value=False)
         Interface.initialize_data = MagicMock()
-
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice._write_data_id = self.fake_id
         precice.initialize(right_boundary, self.vector_V, self.vector_function)
@@ -138,7 +138,7 @@ class TestWriteandReadData(TestCase):
         Interface.is_action_required = MagicMock(return_value=False)
         Interface.initialize_data = MagicMock()
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice._read_data_id = self.fake_id
         precice.initialize(right_boundary, self.scalar_V)
@@ -179,7 +179,7 @@ class TestWriteandReadData(TestCase):
         Interface.is_action_required = MagicMock(return_value=False)
         Interface.initialize_data = MagicMock()
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice._read_data_id = self.fake_id
         precice.initialize(right_boundary, self.vector_V)
