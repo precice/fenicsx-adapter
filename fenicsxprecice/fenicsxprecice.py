@@ -89,7 +89,6 @@ class Adapter:
         # Coupling function related quantities
         self._function_space = function_space
 
-
     def create_coupling_expression(self):
         """
         Creates a FEniCSx Expression in the form of an object of class GeneralInterpolationExpression or

@@ -14,8 +14,10 @@ def right_boundary(x):
     tol = 1E-14
     return abs(x[0] - x_right) < tol
 
-scalar_expr = lambda x: x[0]*x[0] + x[1]*x[1]
-vector_expr = lambda x: (x[0] + x[1]*x[1], x[0] - x[1]*x[1])
+
+def scalar_expr(x): return x[0] * x[0] + x[1] * x[1]
+def vector_expr(x): return (x[0] + x[1] * x[1], x[0] - x[1] * x[1])
+
 
 @patch.dict('sys.modules', {'precice': MockedPrecice})
 class TestWriteandReadData(TestCase):

@@ -26,7 +26,6 @@ class TestAdapterCore(TestCase):
             def __call__(self, x):
                 return fun_lambda(x[0], x[1])
 
-
         fenicsx_function = Function(V)
         fenicsx_function.interpolate(my_expression())
 
@@ -40,7 +39,6 @@ class TestAdapterCore(TestCase):
         data = convert_fenicsx_to_precice(fenicsx_function, local_ids)
 
         np.testing.assert_allclose(data, manual_sampling, atol=10**-16)
-
 
     def test_convert_vector_fenicsx_to_precice(self):
         """
@@ -61,7 +59,6 @@ class TestAdapterCore(TestCase):
         class my_expression():
             def __call__(self, x):
                 return fun_lambda(x[0], x[1])
-
 
         fenicsx_function = Function(W)
         fenicsx_function.interpolate(my_expression())

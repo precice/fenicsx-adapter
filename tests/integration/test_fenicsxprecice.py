@@ -116,12 +116,12 @@ class TestExpressionHandling(TestCase):
     mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)
     dimension = 2
 
-    scalar_expr = lambda x: x[0] + x[1]
+    def scalar_expr(x): return x[0] + x[1]
     scalar_V = FunctionSpace(mesh, ("P", 1))
     scalar_function = Function(scalar_V)
     scalar_function.interpolate(scalar_expr)
 
-    vector_expr = lambda x: (x[0] + x[1]*x[1], x[0] - x[1]*x[1])
+    def vector_expr(x): return (x[0] + x[1] * x[1], x[0] - x[1] * x[1])
     vector_V = VectorFunctionSpace(mesh, ("P", 2))
     vector_function = Function(vector_V)
     vector_function.interpolate(vector_expr)
@@ -155,7 +155,7 @@ class TestExpressionHandling(TestCase):
         Interface.mark_action_fulfilled = MagicMock()
         Interface.write_block_scalar_data = MagicMock()
 
-        right_boundary = lambda x: abs(x[0] - 1.0) < 10**-14
+        def right_boundary(x): return abs(x[0] - 1.0) < 10**-14
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
@@ -167,7 +167,8 @@ class TestExpressionHandling(TestCase):
         precice.update_coupling_expression(scalar_coupling_expr, data)
 
         expr_samples = np.array([scalar_coupling_expr([x, y]) for x, y in zip(self.samplepts_x, self.samplepts_y)])
-        func_samples = np.array([self.scalar_function.eval([x, y, 0], 0) for x, y in zip(self.samplepts_x, self.samplepts_y)])
+        func_samples = np.array([self.scalar_function.eval([x, y, 0], 0)
+                                for x, y in zip(self.samplepts_x, self.samplepts_y)])
 
         assert (np.allclose(expr_samples, func_samples, 1E-10))
 
@@ -190,18 +191,19 @@ class TestExpressionHandling(TestCase):
         Interface.mark_action_fulfilled = MagicMock()
         Interface.write_block_vector_data = MagicMock()
 
-        right_boundary = lambda x: abs(x[0] - 1.0) < 10**-14
+        def right_boundary(x): return abs(x[0] - 1.0) < 10**-14
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice.initialize(right_boundary, self.vector_V, self.vector_function)
-        values = np.array([self.vector_function.eval([x, y, 0],0) for x, y in zip(self.vertices_x, self.vertices_y)])
+        values = np.array([self.vector_function.eval([x, y, 0], 0) for x, y in zip(self.vertices_x, self.vertices_y)])
         data = {(x, y): v for x, y, v in zip(self.vertices_x, self.vertices_y, values)}
 
         vector_coupling_expr = precice.create_coupling_expression()
         precice.update_coupling_expression(vector_coupling_expr, data)
 
         expr_samples = np.array([vector_coupling_expr([x, y]) for x, y in zip(self.samplepts_x, self.samplepts_y)])
-        func_samples = np.array([self.vector_function.eval([x, y, 0],0) for x, y in zip(self.samplepts_x, self.samplepts_y)])
+        func_samples = np.array([self.vector_function.eval([x, y, 0], 0)
+                                for x, y in zip(self.samplepts_x, self.samplepts_y)])
 
         assert (np.allclose(expr_samples, func_samples, 1E-10))

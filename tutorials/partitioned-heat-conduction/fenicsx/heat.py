@@ -86,13 +86,17 @@ V_g = FunctionSpace(mesh, vector_element)
 W = V_g.sub(0).collapse()
 
 # Define boundary conditions
+
+
 class Expression_u_D:
     def __init__(self):
         self.t = 0.0
         self.alpha = alpha
         self.beta = beta
+
     def eval(self, x):
-        return np.full(x.shape[1], 1 + x[0]*x[0] + self.alpha*x[1]*x[1] + self.beta*self.t)
+        return np.full(x.shape[1], 1 + x[0] * x[0] + self.alpha * x[1] * x[1] + self.beta * self.t)
+
 
 u_D = Expression_u_D()
 u_D_function = Function(V)
@@ -104,8 +108,9 @@ if problem is ProblemType.DIRICHLET:
         def __init__(self):
             self.alpha = alpha
             self.t = 0.0
+
         def eval(self, x):
-            return np.full(x.shape[1], 2*x[0])
+            return np.full(x.shape[1], 2 * x[0])
 
     f_N = Expression_f_N()
     f_N_function = Function(V)
@@ -132,13 +137,18 @@ dt.value = np.min([fenics_dt, precice_dt])
 # Define variational problem
 u = TrialFunction(V)
 v = TestFunction(V)
+
+
 class Expression_f:
     def __init__(self):
         self.alpha = alpha
         self.beta = beta
         self.t = 0.0
+
     def eval(self, x):
-        return np.full(x.shape[1], self.beta - 2 - 2*self.alpha)
+        return np.full(x.shape[1], self.beta - 2 - 2 * self.alpha)
+
+
 f = Expression_f()
 f_function = Function(V)
 # f_function.interpolate(f.eval)
@@ -222,9 +232,9 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
         dt.value = np.min([fenics_dt, precice_dt])
 
         # Compute solution u^n+1, use bcs u_D^n+1, u^n and coupling bcs
-        linear_problem = LinearProblem(a, L, bcs=bcs) #, petsc_options={"ksp_type": "preonly", "pc_type": "lu"})  # TODO is it possible to do that only once (before th coupling-loop)?
+        # , petsc_options={"ksp_type": "preonly", "pc_type": "lu"})  # TODO is it possible to do that only once (before th coupling-loop)?
+        linear_problem = LinearProblem(a, L, bcs=bcs)
         u_np1 = linear_problem.solve()
-
 
         # Write data to preCICE according to which problem is being solved
         if problem is ProblemType.DIRICHLET:
@@ -270,7 +280,6 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
         u_D_function.interpolate(u_D.eval)
         f.t = t + dt.value
         f_function.interpolate(f.eval)
-
 
 
 # Hold plot

@@ -19,6 +19,7 @@ class CouplingExpression(Function):
     """
     Creates functional representation (for FEniCSx) of nodal data provided by preCICE.
     """
+
     def __init__(self, dims, function_space):
         self._dimension = dims
         super().__init__(function_space)
@@ -168,8 +169,9 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
             for d in range(1):
                 interpolant.append(self.segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals))
         elif self.is_vector_valued():
-            for d in range(2): 
-                raise Exception("Not tested")  # TODO check if self._vals[:, d] is required here, above it had to be removed
+            for d in range(2):
+                # TODO check if self._vals[:, d] is required here, above it had to be removed
+                raise Exception("Not tested")
                 interpolant.append(self.segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals[:, d]))
         else:
             raise Exception("Problem dimension and data dimension not matching.")
@@ -182,8 +184,6 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
         """
         assert (self._dimension == 2)  # current implementation only supports two dimensions
 
-        
-        
         if self.is_scalar_valued():
             return_value = [self._f[0](x[0], x[1])]
         if self.is_vector_valued():
