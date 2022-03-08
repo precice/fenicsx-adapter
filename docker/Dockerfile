@@ -431,12 +431,3 @@ ENV PRECICE_ROOT=/usr/local/precice/precice
 
 # Install pyprecice
 RUN pip3 install pyprecice==2.3.*
-
-RUN mkdir /home/workdir && \
-    mkdir /root/fenicsx-adapter
-
-COPY  . /root/fenicsx-adapter
-RUN cd /root/fenicsx-adapter && \
-    pip3 install -e .
-
-WORKDIR /home/workdir
