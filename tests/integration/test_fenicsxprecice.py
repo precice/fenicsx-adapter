@@ -168,7 +168,7 @@ class TestExpressionHandling(TestCase):
 
         expr_samples = np.array([scalar_coupling_expr([x, y]) for x, y in zip(self.samplepts_x, self.samplepts_y)])
         func_samples = np.array([self.scalar_function.eval([x, y, 0], 0)
-                                for x, y in zip(self.samplepts_x, self.samplepts_y)])
+                                 for x, y in zip(self.samplepts_x, self.samplepts_y)])
 
         assert (np.allclose(expr_samples, func_samples, 1E-10))
 
@@ -204,6 +204,6 @@ class TestExpressionHandling(TestCase):
 
         expr_samples = np.array([vector_coupling_expr([x, y]) for x, y in zip(self.samplepts_x, self.samplepts_y)])
         func_samples = np.array([self.vector_function.eval([x, y, 0], 0)
-                                for x, y in zip(self.samplepts_x, self.samplepts_y)])
+                                 for x, y in zip(self.samplepts_x, self.samplepts_y)])
 
         assert (np.allclose(expr_samples, func_samples, 1E-10))
