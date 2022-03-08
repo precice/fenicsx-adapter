@@ -439,7 +439,4 @@ COPY  . /root/fenicsx-adapter
 RUN cd /root/fenicsx-adapter && \
     pip3 install -e .
 
-# dependency for tests
-RUN pip3 install sympy
-
 WORKDIR /home/workdir
