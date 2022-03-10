@@ -125,10 +125,10 @@ precice, precice_dt, initial_data = None, 0.0, None
 
 # Initialize the adapter according to the specific participant
 if problem is ProblemType.DIRICHLET:
-    precice = Adapter(MPI.COMM_WORLD, V, adapter_config_filename="precice-adapter-config-D.json")
+    precice = Adapter(MPI.COMM_WORLD, adapter_config_filename="precice-adapter-config-D.json")
     precice_dt = precice.initialize(coupling_boundary, read_function_space=V, write_object=f_N_function)
 elif problem is ProblemType.NEUMANN:
-    precice = Adapter(MPI.COMM_WORLD, V, adapter_config_filename="precice-adapter-config-N.json")
+    precice = Adapter(MPI.COMM_WORLD, adapter_config_filename="precice-adapter-config-N.json")
     precice_dt = precice.initialize(coupling_boundary, read_function_space=W, write_object=u_D_function)
 
 dt = Constant(mesh, 0.0)

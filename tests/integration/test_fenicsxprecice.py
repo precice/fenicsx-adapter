@@ -63,8 +63,6 @@ class TestCheckpointing(TestCase):
     t_cp_mocked = t  # time for the checkpoint
     n_cp_mocked = n  # iteration count for the checkpoint
     dummy_config = "tests/precice-adapter-config.json"
-    mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)
-    dummy_V = FunctionSpace(mesh, ("P", 2))
 
     # todo if we support multirate, we should use the lines below for checkpointing
     # for the general case the checkpoint u_cp (and t_cp and n_cp) can differ from u_n and u_np1
@@ -93,7 +91,7 @@ class TestCheckpointing(TestCase):
         Interface.is_time_window_complete = MagicMock(return_value=True)
         Interface.advance = MagicMock()
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_V, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
 
         precice.store_checkpoint(self.u_n_mocked, self.t, self.n)
 
@@ -143,7 +141,6 @@ class TestExpressionHandling(TestCase):
         """
         from precice import Interface
         import fenicsxprecice
-
         Interface.get_dimensions = MagicMock(return_value=2)
         Interface.set_mesh_vertices = MagicMock(return_value=self.vertex_ids)
         Interface.get_mesh_id = MagicMock()
@@ -157,16 +154,17 @@ class TestExpressionHandling(TestCase):
 
         def right_boundary(x): return abs(x[0] - 1.0) < 10**-14
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice.initialize(right_boundary, self.scalar_V, self.scalar_function)
-        values = np.array([self.scalar_function.eval([x, y, 0], 0) for x, y in zip(self.vertices_x, self.vertices_y)])
+        values = np.array([self.scalar_function.eval([x, y, 0], 0)[0]
+                          for x, y in zip(self.vertices_x, self.vertices_y)])
         data = {(x, y): v for x, y, v in zip(self.vertices_x, self.vertices_y, values)}
-
         scalar_coupling_expr = precice.create_coupling_expression()
         precice.update_coupling_expression(scalar_coupling_expr, data)
 
-        expr_samples = np.array([scalar_coupling_expr([x, y]) for x, y in zip(self.samplepts_x, self.samplepts_y)])
+        expr_samples = np.array([scalar_coupling_expr.eval([x, y, 0], 0)
+                                for x, y in zip(self.samplepts_x, self.samplepts_y)])
         func_samples = np.array([self.scalar_function.eval([x, y, 0], 0)
                                  for x, y in zip(self.samplepts_x, self.samplepts_y)])
 
@@ -193,7 +191,7 @@ class TestExpressionHandling(TestCase):
 
         def right_boundary(x): return abs(x[0] - 1.0) < 10**-14
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice.initialize(right_boundary, self.vector_V, self.vector_function)
         values = np.array([self.vector_function.eval([x, y, 0], 0) for x, y in zip(self.vertices_x, self.vertices_y)])
@@ -202,7 +200,8 @@ class TestExpressionHandling(TestCase):
         vector_coupling_expr = precice.create_coupling_expression()
         precice.update_coupling_expression(vector_coupling_expr, data)
 
-        expr_samples = np.array([vector_coupling_expr([x, y]) for x, y in zip(self.samplepts_x, self.samplepts_y)])
+        expr_samples = np.array([vector_coupling_expr.eval([x, y, 0], 0)
+                                for x, y in zip(self.samplepts_x, self.samplepts_y)])
         func_samples = np.array([self.vector_function.eval([x, y, 0], 0)
                                  for x, y in zip(self.samplepts_x, self.samplepts_y)])
 

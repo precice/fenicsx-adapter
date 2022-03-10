@@ -60,7 +60,7 @@ class TestWriteandReadData(TestCase):
         Interface.is_action_required = MagicMock(return_value=False)
         Interface.initialize_data = MagicMock()
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice._write_data_id = self.fake_id
         precice.initialize(right_boundary, self.scalar_V, self.scalar_function)
@@ -96,7 +96,7 @@ class TestWriteandReadData(TestCase):
         Interface.initialize = MagicMock()
         Interface.is_action_required = MagicMock(return_value=False)
         Interface.initialize_data = MagicMock()
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice._write_data_id = self.fake_id
         precice.initialize(right_boundary, self.vector_V, self.vector_function)
@@ -140,7 +140,7 @@ class TestWriteandReadData(TestCase):
         Interface.is_action_required = MagicMock(return_value=False)
         Interface.initialize_data = MagicMock()
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice._read_data_id = self.fake_id
         precice.initialize(right_boundary, self.scalar_V)
@@ -181,7 +181,7 @@ class TestWriteandReadData(TestCase):
         Interface.is_action_required = MagicMock(return_value=False)
         Interface.initialize_data = MagicMock()
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.scalar_V, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice._read_data_id = self.fake_id
         precice.initialize(right_boundary, self.vector_V)
