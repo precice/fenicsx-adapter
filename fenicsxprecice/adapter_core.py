@@ -162,12 +162,23 @@ def get_fenicsx_vertices(function_space, coupling_subdomain, dims):
     mesh = function_space.mesh
 
     # Get coordinates and IDs of all vertices of the mesh which lie on the coupling boundary.
-    ids, coords = [], []
-    for idx in range(mesh.geometry.x.shape[0]):
-        v = mesh.geometry.x[idx]
-        if coupling_subdomain(v):
-            ids.append(idx)
-            if dims == 2:
-                coords.append([v[0], v[1]])
-
-    return np.array(ids), np.array(coords)
+    try:
+        on_subdomain = coupling_subdomain(mesh.geometry.x.T)
+        ids = np.where(on_subdomain)
+        if dims == 2:
+            coords = coords[:,:2]
+        else:
+            coords = np.array([])
+    except Exception as e:  # fall back to old method  # TODO is that to general? Better use, e.g., IndexError here?
+        print(f"Caught the following exception in the detection of the coupling subdomain:\n{e}")
+        print("Falling back to old, point-wise method.")
+        ids, coords = [], []
+        for idx in range(mesh.geometry.x.shape[0]):
+            v = mesh.geometry.x[idx]
+            if coupling_subdomain(v):
+                ids.append(idx)
+                if dims == 2:
+                    coords.append([v[0], v[1]])
+        ids = np.array(ids)
+        coords = np.array(coords)
+    return ids, coords
