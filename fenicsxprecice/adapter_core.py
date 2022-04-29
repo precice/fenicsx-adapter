@@ -89,9 +89,9 @@ def determine_function_type(input_obj):
         elif input_obj.num_sub_spaces == 2:
             return FunctionType.VECTOR
     elif isinstance(input_obj, Function):
-        if input_obj.compute_point_values().shape[1] == 1:
+        if len(input_obj.x.array.shape) == 1:
             return FunctionType.SCALAR
-        elif input_obj.compute_point_values().shape[1] > 1:
+        elif input_obj.x.array.shape[1] > 1:
             return FunctionType.VECTOR
         else:
             raise Exception("Error determining type of given dolfin Function")
@@ -120,7 +120,7 @@ def convert_fenicsx_to_precice(fenicsx_function, local_ids):
         raise Exception("Cannot handle data type {}".format(type(fenicsx_function)))
 
     precice_data = []
-    sampled_data = fenicsx_function.compute_point_values()
+    sampled_data = fenicsx_function.x.array
 
     if len(local_ids):
         if fenicsx_function.function_space.num_sub_spaces > 0:  # function space is VectorFunctionSpace
