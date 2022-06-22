@@ -26,7 +26,8 @@ Heat equation with mixed boundary conditions. (Neumann problem)
 
 from __future__ import print_function, division
 from mpi4py import MPI
-from dolfinx.fem import Function, FunctionSpace, Expression, Constant, dirichletbc, locate_dofs_geometrical, LinearProblem
+from dolfinx.fem import Function, FunctionSpace, Expression, Constant, dirichletbc, locate_dofs_geometrical
+from dolfinx.fem.petsc import LinearProblem
 from dolfinx.io import XDMFFile
 from ufl import TrialFunction, TestFunction, dx, ds, dot, grad, inner, lhs, rhs, FiniteElement, VectorElement
 from fenicsxprecice import Adapter
@@ -83,7 +84,7 @@ scalar_element = FiniteElement("P", mesh.ufl_cell(), 2)
 vector_element = VectorElement("P", mesh.ufl_cell(), 1)
 V = FunctionSpace(mesh, scalar_element)
 V_g = FunctionSpace(mesh, vector_element)
-W = V_g.sub(0).collapse()
+W = V_g.sub(0).collapse()[0]
 
 # Define boundary conditions
 
