@@ -1,82 +1,76 @@
 from unittest.mock import MagicMock
 from unittest import TestCase
 import numpy as np
-from dolfinx import FunctionSpace, VectorFunctionSpace, UnitSquareMesh, SubDomain, near, vertices, Expression, interpolate
+from mpi4py import MPI
+from dolfinx.mesh import create_unit_square
+from dolfinx.fem import Function, FunctionSpace, VectorFunctionSpace
 
 
 class TestAdapterCore(TestCase):
-    def test_get_coupling_boundary_edges(self):
+    def test_convert_scalar_fenicsx_to_precice(self):
         """
-        Test coupling edge detection
-        """
-        from fenicsxprecice.adapter_core import get_coupling_boundary_edges
-
-        class RightBoundary(SubDomain):
-            def inside(self, x, on_boundary):
-                tol = 1E-14
-                if on_boundary and near(x[0], 1, tol):
-                    return True
-                else:
-                    return False
-
-        mesh = UnitSquareMesh(10, 10)  # create dummy mesh
-        V = FunctionSpace(mesh, 'P', 2)  # Create function space using mesh
-        right_edge = RightBoundary()  # right edge of dummy mesh
-        id_mapping = MagicMock()  # a fake id_mapping returning dummy values
-
-        global_ids = []
-        for v in vertices(mesh):
-            if right_edge.inside(v.point(), True):
-                global_ids.append(v.global_index())
-
-        edge_vertex_ids1, edge_vertex_ids2 = get_coupling_boundary_edges(V, right_edge, global_ids, id_mapping)
-
-        self.assertEqual(len(edge_vertex_ids1), 10)
-        self.assertEqual(len(edge_vertex_ids2), 10)
-
-    def test_convert_fenicsx_to_precice(self):
-        """
-        Test conversion from function to write_data
+        Test conversion from function to write_data for scalar
         """
         from fenicsxprecice.adapter_core import convert_fenicsx_to_precice
-        from sympy import lambdify, symbols, printing
+        from sympy import lambdify, symbols
 
-        mesh = UnitSquareMesh(10, 10)  # create dummy mesh
+        mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)  # create dummy mesh
 
         # scalar valued
-        V = FunctionSpace(mesh, 'P', 2)  # Create function space using mesh
+        V = FunctionSpace(mesh, ('P', 2))  # Create function space using mesh
         x, y = symbols('x[0], x[1]')
         fun_sym = y + x * x
         fun_lambda = lambdify([x, y], fun_sym)
-        fun_string = printing.ccode(fun_sym)
-        expression = Expression(fun_string, degree=2)
-        fenicsx_function = interpolate(expression, V)
+
+        class my_expression():
+            def __call__(self, x):
+                return fun_lambda(x[0], x[1])
+
+        fenicsx_function = Function(V)
+        fenicsx_function.interpolate(my_expression())
 
         local_ids = []
         manual_sampling = []
-        for v in vertices(mesh):
-            local_ids.append(v.index())
-            manual_sampling.append(fun_lambda(v.x(0), v.x(1)))
+        for i in range(mesh.geometry.x.shape[0]):
+            v = mesh.geometry.x[i]
+            local_ids.append(i)
+            manual_sampling.append([fun_lambda(v[0], v[1])])
+        manual_sampling = np.array(manual_sampling).squeeze()
 
         data = convert_fenicsx_to_precice(fenicsx_function, local_ids)
 
-        np.testing.assert_allclose(data, manual_sampling)
+        np.testing.assert_allclose(data, manual_sampling, atol=10**-16)
+
+    def test_convert_vector_fenicsx_to_precice(self):
+        """
+        Test conversion from function to write_data for vector
+        """
+        from fenicsxprecice.adapter_core import convert_fenicsx_to_precice
+        from sympy import lambdify, symbols
+
+        mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)  # create dummy mesh
 
         # vector valued
-        W = VectorFunctionSpace(mesh, 'P', 2)  # Create function space using mesh
+        W = VectorFunctionSpace(mesh, ('P', 2))  # Create function space using mesh
+        x, y = symbols('x[0], x[1]')
         fun_sym_x = y + x * x
         fun_sym_y = y * y + x * x * x * 2
         fun_lambda = lambdify([x, y], [fun_sym_x, fun_sym_y])
-        fun_string = (printing.ccode(fun_sym_x), printing.ccode(fun_sym_y))
-        expression = Expression(fun_string, degree=2)
-        fenicsx_function = interpolate(expression, W)
+
+        class my_expression():
+            def __call__(self, x):
+                return fun_lambda(x[0], x[1])
+
+        fenicsx_function = Function(W)
+        fenicsx_function.interpolate(my_expression())
 
         local_ids = []
         manual_sampling = []
-        for v in vertices(mesh):
-            local_ids.append(v.index())
-            manual_sampling.append(fun_lambda(v.x(0), v.x(1)))
+        for i in range(mesh.geometry.x.shape[0]):
+            v = mesh.geometry.x[i]
+            local_ids.append(i)
+            manual_sampling.append(fun_lambda(v[0], v[1]))
 
         data = convert_fenicsx_to_precice(fenicsx_function, local_ids)
 
-        np.testing.assert_allclose(data, manual_sampling)
+        np.testing.assert_allclose(data, manual_sampling, atol=10**-16)
