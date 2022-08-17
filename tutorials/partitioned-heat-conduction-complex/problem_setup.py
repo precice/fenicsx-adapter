@@ -2,25 +2,35 @@
 Problem setup for HT fenics-fenics tutorial
 """
 
-from fenics import SubDomain, Point, RectangleMesh, near, Function, VectorFunctionSpace, Expression
+#from fenics import SubDomain, Point, RectangleMesh, np.isclose, Function, VectorFunctionSpace, Expression
+from dolfinx.mesh import create_rectangle
+from dolfinx.fem import Function, VectorFunctionSpace, Expression
 from my_enums import DomainPart, ProblemType
-import mshr
+#import mshr
 import numpy as np
+
+# TODO: replace near by np.isclose
+# TODO: replace mesher
+# TODO: update to Dolfinx 0.5 ? See https://jorgensd.github.io/dolfinx-tutorial/Changelog.html
+
 
 y_bottom, y_top = 0, 1
 x_left, x_right = 0, 2
 x_coupling = 1.5  # x coordinate of coupling interface
 radius = 0.2
-midpoint = Point(0.5, 0.5)
+#midpoint = Point(0.5, 0.5)
 
+def exclude_straight_boundary(V):
+    return locate_dofs_geometrical(V, lambda x: not np.isclose(x[0], x_coupling, tol) or np.isclose(x[1], y_top, tol) or np.isclose(x[1], y_bottom, tol))
 
+"""
 class ExcludeStraightBoundary(SubDomain):
     def get_user_input_args(self, args):
         self._interface = args.interface
 
     def inside(self, x, on_boundary):
         tol = 1E-14
-        if on_boundary and not near(x[0], x_coupling, tol) or near(x[1], y_top, tol) or near(x[1], y_bottom, tol):
+        if on_boundary and not np.isclose(x[0], x_coupling, tol) or np.isclose(x[1], y_top, tol) or np.isclose(x[1], y_bottom, tol):
             return True
         else:
             return False
@@ -39,7 +49,7 @@ class ExcludeCircleBoundary(SubDomain):
 class StraightBoundary(SubDomain):
     def inside(self, x, on_boundary):
         tol = 1E-14
-        if on_boundary and near(x[0], x_coupling, tol):
+        if on_boundary and np.isclose(x[0], x_coupling, tol):
             return True
         else:
             return False
@@ -53,7 +63,7 @@ class CircleBoundary(SubDomain):
             return True
         else:
             return False
-
+"""
 
 def get_problem_setup(args):
     if args.dirichlet and not args.neumann:
