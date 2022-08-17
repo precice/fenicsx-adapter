@@ -271,7 +271,6 @@ class Adapter:
             self._write_function_type = determine_function_type(write_function_space)
             self._write_function_space = write_function_space
 
-        coords = function_space.mesh.geometry.x
         self._fenicsx_dims = function_space.mesh.geometry.dim
 
         # Ensure that function spaces of read and write functions use the same mesh
