@@ -20,7 +20,4 @@ ARG CACHEBUST
 ARG branch=develop
 
 # Building fenicsx-adapter
-WORKDIR /home/precice
-RUN git clone https://github.com/precice/fenicsx-adapter.git -b ${branch}
-WORKDIR /home/precice/fenicsx-adapter
-RUN python3 -m pip install --user -e .
+RUN python3 -m pip install --user git+https://github.com/precice/fenicsx-adapter.git@$branch
