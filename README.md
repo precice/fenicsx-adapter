@@ -31,7 +31,7 @@ It is recommended to install [fenicsxprecice from PyPI](https://pypi.org/project
 pip3 install --user fenicsxprecice
 ```
 
-This should work out of the box, if all dependencies are installed correctly. If you face problems during installation or you want to run the tests, see below for a list of dependencies and alternative installation procedures
+This should work out of the box, if all dependencies are installed correctly and if your FEniCSx installation version matches the one supported by the adapter. If you face problems during installation or you want to run the tests, see below for a list of dependencies and alternative installation procedures
 
 ### Clone this repository and use pip3
 
