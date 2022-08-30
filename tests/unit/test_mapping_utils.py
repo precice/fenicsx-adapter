@@ -17,7 +17,8 @@ class TestAdapterCore(TestCase):
 
         mesh = create_unit_square(MPI.COMM_WORLD, 2, 2)  # create dummy mesh
         precice_vertices = np.array([[0.5, 0.5, 0.0],
-                                     [0.2, 0.2, 0.0]])
+                                     [0.2, 0.2, 0.0],
+                                     [1.0, 1.0, 0.0]])
         cells = precompute_eval_vertices(precice_vertices, mesh)
 
         # scalar valued
@@ -26,7 +27,7 @@ class TestAdapterCore(TestCase):
         fenicsx_function = Function(V)
         fenicsx_function.interpolate(lambda x: x[0] + x[1]*x[1])
 
-        expected_data = np.array([0.75, 0.24]).reshape((2, 1))
+        expected_data = np.array([0.75, 0.24, 2.0]).reshape((3, 1))
 
         data = fenicsx_function.eval(precice_vertices, cells)
         np.testing.assert_almost_equal(data, expected_data)
@@ -37,7 +38,7 @@ class TestAdapterCore(TestCase):
         fenicsx_function = Function(V)
         fenicsx_function.interpolate(lambda x: (x[0] + x[1]*x[1], x[0]))
 
-        expected_data = np.array([[0.75, 0.50], [0.24, 0.20]])
+        expected_data = np.array([[0.75, 0.50], [0.24, 0.20], [2.0, 1.0]])
 
         data = fenicsx_function.eval(precice_vertices, cells)
         np.testing.assert_almost_equal(data, expected_data)

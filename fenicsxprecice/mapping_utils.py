@@ -9,6 +9,14 @@ import numpy as np
 
 
 def precompute_eval_vertices(precice_vertices: np.ndarray, mesh: Mesh):
+    # Pre-processing: pad with zeros if 2D vector
+    n_vertices, dim = precice_vertices.shape
+    if dim == 2:
+        precice_vertices = np.append(
+            precice_vertices, np.zeros((n_vertices, 1)), axis=1)
+
+    assert precice_vertices.shape[1] == 3
+
     tree = BoundingBoxTree(mesh, mesh.geometry.dim)
     cell_candidates = compute_collisions(tree, precice_vertices)
     cell = compute_colliding_cells(mesh, cell_candidates, precice_vertices)
