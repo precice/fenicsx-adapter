@@ -24,4 +24,4 @@ def precompute_eval_vertices(precice_vertices: np.ndarray, mesh: Mesh):
     # Adjacency list: convert to array and take the first match for each item.
     # Use offsets (but the last one) to compute indices in the array
     list_of_cells = cell.array[cell.offsets[:-1]]
-    return list_of_cells
+    return precice_vertices, list_of_cells

@@ -19,7 +19,9 @@ class TestAdapterCore(TestCase):
         precice_vertices = np.array([[0.5, 0.5, 0.0],
                                      [0.2, 0.2, 0.0],
                                      [1.0, 1.0, 0.0]])
-        cells = precompute_eval_vertices(precice_vertices, mesh)
+
+        # eval_pos is a copy of precice_vertices but with padded 0s in the z-dim
+        eval_pos, cells = precompute_eval_vertices(precice_vertices, mesh)
 
         # scalar valued
         V = FunctionSpace(mesh, ('P', 2))  # Create function space using mesh
@@ -29,7 +31,7 @@ class TestAdapterCore(TestCase):
 
         expected_data = np.array([0.75, 0.24, 2.0]).reshape((3, 1))
 
-        data = fenicsx_function.eval(precice_vertices, cells)
+        data = fenicsx_function.eval(eval_pos, cells)
         np.testing.assert_almost_equal(data, expected_data)
 
         # Vector valued
@@ -40,5 +42,5 @@ class TestAdapterCore(TestCase):
 
         expected_data = np.array([[0.75, 0.50], [0.24, 0.20], [2.0, 1.0]])
 
-        data = fenicsx_function.eval(precice_vertices, cells)
+        data = fenicsx_function.eval(eval_pos, cells)
         np.testing.assert_almost_equal(data, expected_data)
