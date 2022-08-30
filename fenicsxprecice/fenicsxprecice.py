@@ -289,6 +289,12 @@ class Adapter:
         self._fenicsx_vertices.set_ids(ids)
         self._fenicsx_vertices.set_coordinates(coords)
 
+        # Set up helpers to write data to preCICE:
+        if self._coupling_type is CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING or \
+                self._coupling_type is CouplingMode.BI_DIRECTIONAL_COUPLING:
+            self._fenicsx_vertices_eval, self._fenicsx_cells_eval = precompute_eval_vertices(
+                self._fenicsx_vertices.get_coordinates(), write_function_space.mesh)
+
         # Set up mesh in preCICE
         self._precice_vertex_ids = self._interface.set_mesh_vertices(self._interface.get_mesh_id(
             self._config.get_coupling_mesh_name()), self._fenicsx_vertices.get_coordinates())
