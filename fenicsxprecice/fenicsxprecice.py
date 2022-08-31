@@ -10,6 +10,7 @@ import precice
 from .adapter_core import FunctionType, determine_function_type, convert_fenicsx_to_precice, get_fenicsx_vertices, CouplingMode, Vertices, VertexType
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
+from .mapping_utils import precompute_eval_vertices
 from dolfinx.fem import Function, FunctionSpace
 import copy
 
