@@ -85,7 +85,7 @@ class TestWriteandReadData(TestCase):
         """
         from precice import Interface
         import fenicsxprecice
-        from fenicsxprecice.adapter_core import VertexType, Vertices, convert_fenicsx_to_precice
+        from fenicsxprecice.adapter_core import VertexType, Vertices
 
         Interface.write_block_vector_data = MagicMock()
         Interface.get_dimensions = MagicMock(return_value=self.dimension)
