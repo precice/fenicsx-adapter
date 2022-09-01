@@ -93,7 +93,7 @@ def determine_function_type(input_obj):
     if space.num_sub_spaces == 0:
         return FunctionType.SCALAR
     elif space.num_sub_spaces == 2:
-       return FunctionType.VECTOR
+        return FunctionType.VECTOR
     else:
         raise Exception("Error determining type of given dolfin FunctionSpace")
 

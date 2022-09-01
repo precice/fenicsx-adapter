@@ -27,7 +27,7 @@ class TestAdapterCore(TestCase):
         V = FunctionSpace(mesh, ('P', 2))  # Create function space using mesh
 
         fenicsx_function = Function(V)
-        fenicsx_function.interpolate(lambda x: x[0] + x[1]*x[1])
+        fenicsx_function.interpolate(lambda x: x[0] + x[1] * x[1])
 
         expected_data = np.array([0.75, 0.24, 2.0]).reshape((3, 1))
 
@@ -38,7 +38,7 @@ class TestAdapterCore(TestCase):
         V = VectorFunctionSpace(mesh, ('P', 2))
 
         fenicsx_function = Function(V)
-        fenicsx_function.interpolate(lambda x: (x[0] + x[1]*x[1], x[0]))
+        fenicsx_function.interpolate(lambda x: (x[0] + x[1] * x[1], x[0]))
 
         expected_data = np.array([[0.75, 0.50], [0.24, 0.20], [2.0, 1.0]])
 

@@ -158,13 +158,13 @@ class TestExpressionHandling(TestCase):
         precice._interface = Interface(None, None, None, None)
         precice.initialize(right_boundary, self.scalar_V, self.scalar_function)
         values = np.array([self.scalar_function.eval([x, y, 0], 0)[0]
-                          for x, y in zip(self.vertices_x, self.vertices_y)])
+                           for x, y in zip(self.vertices_x, self.vertices_y)])
         data = {(x, y): v for x, y, v in zip(self.vertices_x, self.vertices_y, values)}
         scalar_coupling_expr = precice.create_coupling_expression()
         precice.update_coupling_expression(scalar_coupling_expr, data)
 
         expr_samples = np.array([scalar_coupling_expr.eval([x, y, 0], 0)
-                                for x, y in zip(self.samplepts_x, self.samplepts_y)])
+                                 for x, y in zip(self.samplepts_x, self.samplepts_y)])
         func_samples = np.array([self.scalar_function.eval([x, y, 0], 0)
                                  for x, y in zip(self.samplepts_x, self.samplepts_y)])
 
@@ -201,7 +201,7 @@ class TestExpressionHandling(TestCase):
         precice.update_coupling_expression(vector_coupling_expr, data)
 
         expr_samples = np.array([vector_coupling_expr.eval([x, y, 0], 0)
-                                for x, y in zip(self.samplepts_x, self.samplepts_y)])
+                                 for x, y in zip(self.samplepts_x, self.samplepts_y)])
         func_samples = np.array([self.vector_function.eval([x, y, 0], 0)
                                  for x, y in zip(self.samplepts_x, self.samplepts_y)])
 

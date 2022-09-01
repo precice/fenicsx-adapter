@@ -198,8 +198,6 @@ class Adapter:
         else:
             raise Exception("write_function provided is neither VECTOR nor SCALAR type")
 
-        
-
     def initialize(self, coupling_subdomain, read_function_space=None, write_object=None):
         """
         Initializes the coupling and sets up the mesh where coupling happens in preCICE.
