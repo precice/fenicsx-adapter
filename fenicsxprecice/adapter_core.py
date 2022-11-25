@@ -76,7 +76,7 @@ def determine_function_type(input_obj):
     Parameters
     ----------
     input_obj :
-        A FEniCSx function.
+        A DOLFINx function.
 
     Returns
     -------
@@ -95,7 +95,7 @@ def determine_function_type(input_obj):
     elif space.num_sub_spaces == 2:
         return FunctionType.VECTOR
     else:
-        raise Exception("Error determining type of given dolfin FunctionSpace")
+        raise Exception("Error determining type of the provided DOLFINx Function or FunctionSpace")
 
 
 def get_fenicsx_vertices(function_space, coupling_subdomain, dims):
