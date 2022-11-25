@@ -31,7 +31,7 @@ from dolfinx.fem.petsc import LinearProblem
 from dolfinx.io import XDMFFile
 from ufl import TrialFunction, TestFunction, dx, ds, dot, grad, inner, lhs, rhs, FiniteElement, VectorElement
 from fenicsxprecice import Adapter
-# from errorcomputation import compute_errors  # TODO update do dolfinx
+from errorcomputation import compute_errors  # TODO update do dolfinx
 from my_enums import ProblemType, DomainPart
 import argparse
 import numpy as np
@@ -206,9 +206,10 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
     ranks << mesh_rank
     '''
 
-    # error_total, error_pointwise = compute_errors(u_n, u_ref, V) # TODO
-    '''
+    #error_total, error_pointwise = compute_errors(u_n, u_ref, V) # TODO
+    ''
     # TODO
+    '''
     error_out << error_pointwise
     '''
     u_D.t = t + dt.value
@@ -264,13 +265,16 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
         if precice.is_time_window_complete():
             u_ref.interpolate(u_D_function)
             # TODO
-            # error, error_pointwise = compute_errors(u_n, u_ref, V, total_error_tol=error_tol)
-            # print('n = %d, t = %.2f: L2 error on domain = %.3g' % (n, t, error))
+            ''
+            error, error_pointwise = compute_errors(u_n, u_ref, V, total_error_tol=error_tol)
+            print('n = %d, t = %.2f: L2 error on domain = %.3g' % (n, t, error))
             print('output u^%d and u_ref^%d' % (n, n))
+            ''
             xdmf.write_function(u_n, t)
-            '''
+            ''
             # TODO
             # output solution and reference solution at t_n+1
+            '''
             temperature_out << u_n
             ref_out << u_ref
             error_out << error_pointwise
