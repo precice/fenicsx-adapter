@@ -88,6 +88,7 @@ W = V_g.sub(0).collapse()[0]
 
 # Define boundary conditions
 
+
 class Expression_u_D:
     def __init__(self):
         self.t = 0.0
@@ -205,7 +206,7 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
     ranks << mesh_rank
     '''
 
-    #error_total, error_pointwise = compute_errors(u_n, u_ref, V) # TODO
+    # error_total, error_pointwise = compute_errors(u_n, u_ref, V) # TODO
     ''
     # TODO
     '''
@@ -267,9 +268,9 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
             error = compute_errors(u_n, u_ref, total_error_tol=error_tol)
             print('n = %d, t = %.2f: L2 error on domain = %.3g' % (n, t, error))
             print('output u^%d and u_ref^%d' % (n, n))
-            
+
             xdmf.write_function(u_n, t)
-            
+
             # output solution and reference solution at t_n+1
             # temperature_out << u_n
             # ref_out << u_ref
