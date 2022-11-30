@@ -1,22 +1,14 @@
-from ufl import dot, form, dx, inner
-from dolfinx.fem import assemble_scalar, assemble
+import ufl
+from ufl import dot, dx, inner
+from dolfinx.fem import assemble_scalar, assemble, form
 import numpy as np
 from mpi4py import MPI
 
-def compute_errors(mesh, u_approx, u_ref, total_error_tol=10 ** -4):
+def compute_errors(u_approx, u_ref, total_error_tol=10 ** -4):
     # compute pointwise L2 error
-    
-    error_normalized = (u_ref - u_approx) / u_ref
-
-    inner_p = inner(error_normalized, error_normalized)
-    assembly = assemble_scalar(inner_p * dx)
-
-    error_total = np.sqrt(assembly)
-
-    # error_total = np.sqrt(assemble(inner(error_normalized, error_normalized) * dx))
-
-    # error_pointwise = form(dot(u_approx - u_ref, u_approx - u_ref)*dx)
-    # error_total =  np.sqrt(mesh.comm.allreduce(assemble_scalar(error_pointwise), op=MPI.SUM))
+    mesh = u_ref.function_space.mesh
+    error_pointwise = form((u_approx - u_ref) ** 2 *dx)
+    error_total =  np.sqrt(mesh.comm.allreduce(assemble_scalar(error_pointwise), MPI.SUM))
 
     assert (error_total < total_error_tol)
 

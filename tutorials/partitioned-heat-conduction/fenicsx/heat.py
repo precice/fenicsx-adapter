@@ -264,7 +264,7 @@ with XDMFFile(MPI.COMM_WORLD, f"./out/{precice.get_participant_name()}.xdmf", "w
         if precice.is_time_window_complete():
             u_ref.interpolate(u_D_function)
             # error, error_pointwise = compute_errors(mesh, u_n, u_ref, total_error_tol=error_tol)
-            error = compute_errors(mesh, u_n, u_ref, total_error_tol=error_tol)
+            error = compute_errors(u_n, u_ref, total_error_tol=error_tol)
             print('n = %d, t = %.2f: L2 error on domain = %.3g' % (n, t, error))
             print('output u^%d and u_ref^%d' % (n, n))
             
