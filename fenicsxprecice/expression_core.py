@@ -134,7 +134,7 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
     """
 
     def segregated_interpolant_2d(self, coords_x, coords_y, data):
-        assert(coords_x.shape == coords_y.shape)
+        assert (coords_x.shape == coords_y.shape)
         # create least squares system to approximate a * x ** 2 + b * x + c ~= y
 
         def lstsq_interp(x, y, w): return w[0] * x ** 2 + w[1] * y ** 2 + w[2] * x * y + w[3] * x + w[4] * y + w[5]

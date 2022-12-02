@@ -1,7 +1,6 @@
 """
 Problem setup for partitioned-heat-conduction/fenics-fenics tutorial
 """
-# from dolfinx.fem import Function, VectorFunctionSpace, Expression
 from dolfinx.mesh import DiagonalType, create_rectangle
 from my_enums import DomainPart
 import numpy as np
