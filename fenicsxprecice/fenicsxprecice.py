@@ -7,9 +7,10 @@ import numpy as np
 from .config import Config
 import logging
 import precice
-from .adapter_core import FunctionType, determine_function_type, convert_fenicsx_to_precice, get_fenicsx_vertices, CouplingMode, Vertices, VertexType
+from .adapter_core import FunctionType, determine_function_type, get_fenicsx_vertices, CouplingMode, Vertices, VertexType
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
+from .mapping_utils import precompute_eval_vertices
 from dolfinx.fem import Function, FunctionSpace
 import copy
 
@@ -157,7 +158,7 @@ class Adapter:
 
         return copy.deepcopy(read_data)
 
-    def write_data(self, write_function):
+    def write_data(self, write_function: Function):
         """
         Writes data to preCICE. Depending on the dimensions of the simulation (2D-3D Coupling, 2D-2D coupling or
         Scalar/Vector write function) write_data is first converted into a format needed for preCICE.
@@ -172,18 +173,21 @@ class Adapter:
                 CouplingMode.BI_DIRECTIONAL_COUPLING)
 
         w_func = write_function
+        write_function_type = determine_function_type(write_function)
 
         # Check that the function provided lives on the same function space provided during initialization
-        assert (self._write_function_type == determine_function_type(w_func))
-        # TODO this raises AssertionError, not sure why. I just commented it out, still works...
-        # assert (write_function.function_space == self._write_function_space)
+        assert (self._write_function_type == write_function_type)
+        # TODO: fails for weird reasons.
+        #assert (write_function.function_space == self._write_function_space)
 
         write_data_id = self._interface.get_data_id(self._config.get_write_data_name(),
                                                     self._interface.get_mesh_id(self._config.get_coupling_mesh_name()))
 
-        write_function_type = determine_function_type(write_function)
         assert (write_function_type in list(FunctionType))
-        write_data = convert_fenicsx_to_precice(write_function, self._fenicsx_vertices.get_ids())
+
+        # Eval the function on the vertices
+        write_data = w_func.eval(self._fenicsx_vertices_eval, self._fenicsx_cells_eval)
+
         if write_function_type is FunctionType.SCALAR:
             assert (write_function.function_space.num_sub_spaces == 0)
             write_data = np.squeeze(write_data)  # TODO dirty solution
@@ -288,6 +292,12 @@ class Adapter:
         ids, coords = get_fenicsx_vertices(function_space, coupling_subdomain, self._fenicsx_dims)
         self._fenicsx_vertices.set_ids(ids)
         self._fenicsx_vertices.set_coordinates(coords)
+
+        # Set up helpers to write data to preCICE:
+        if self._coupling_type is CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING or \
+                self._coupling_type is CouplingMode.BI_DIRECTIONAL_COUPLING:
+            self._fenicsx_vertices_eval, self._fenicsx_cells_eval = precompute_eval_vertices(
+                self._fenicsx_vertices.get_coordinates(), write_function_space.mesh)
 
         # Set up mesh in preCICE
         self._precice_vertex_ids = self._interface.set_mesh_vertices(self._interface.get_mesh_id(

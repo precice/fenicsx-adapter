@@ -76,74 +76,26 @@ def determine_function_type(input_obj):
     Parameters
     ----------
     input_obj :
-        A FEniCSx function.
+        A DOLFINx function.
 
     Returns
     -------
     tag : bool
         0 if input_function is SCALAR and 1 if input_function is VECTOR.
     """
-    if isinstance(input_obj, FunctionSpace):  # scalar-valued functions have rank 0 is FEniCSx
-        if input_obj.num_sub_spaces == 0:
-            return FunctionType.SCALAR
-        elif input_obj.num_sub_spaces == 2:
-            return FunctionType.VECTOR
+    if isinstance(input_obj, FunctionSpace):
+        space = input_obj
     elif isinstance(input_obj, Function):
-        if len(input_obj.x.array.shape) == 1:
-            return FunctionType.SCALAR
-        elif input_obj.x.array.shape[1] > 1:
-            return FunctionType.VECTOR
-        else:
-            raise Exception("Error determining type of given dolfin Function")
+        space = input_obj.function_space
     else:
-        raise Exception("Error determining type of given dolfin FunctionSpace")
+        raise Exception("Error: determine_function_type must take a Function or FunctionSpace as argument.")
 
-
-def convert_fenicsx_to_precice(fenicsx_function, local_ids):
-    """
-    Converts data of type dolfin.Function into Numpy array for all x and y coordinates on the boundary.
-
-    Parameters
-    ----------
-    fenicsx_function : FEniCSx function
-        A FEniCSx function referring to a physical variable in the problem.
-    local_ids: numpy array
-        Array of local indices of vertices on the coupling interface and owned by this rank.
-
-    Returns
-    -------
-    precice_data : array_like
-        Array of FEniCSx function values at each point on the boundary.
-    """
-
-    if not isinstance(fenicsx_function, Function):
-        raise Exception("Cannot handle data type {}".format(type(fenicsx_function)))
-
-    precice_data = []
-    # sampled_data = fenicsx_function.x.array  # that works only for 1st order elements where dofs = grid points
-    # TODO begin dirty fix
-    x_mesh = fenicsx_function.function_space.mesh.geometry.x
-    x_dofs = fenicsx_function.function_space.tabulate_dof_coordinates()
-    mask = []  # where dof coordinate == mesh coordinate
-    for i in range(x_dofs.shape[0]):
-        for j in range(x_mesh.shape[0]):
-            if np.allclose(x_dofs[i, :], x_mesh[j, :], 1e-15):
-                mask.append(i)
-                break
-    sampled_data = fenicsx_function.x.array[mask]
-    # end dirty fix
-
-    if len(local_ids):
-        if fenicsx_function.function_space.num_sub_spaces > 0:  # function space is VectorFunctionSpace
-            for lid in local_ids:
-                precice_data.append(sampled_data[lid, :])
-        else:  # function space is FunctionSpace (scalar)
-            for lid in local_ids:
-                precice_data.append(sampled_data[lid])
+    if space.num_sub_spaces == 0:
+        return FunctionType.SCALAR
+    elif space.num_sub_spaces == 2:
+        return FunctionType.VECTOR
     else:
-        precice_data = np.array([])
-
-    return np.array(precice_data)
+        raise Exception("Error determining type of the provided DOLFINx Function or FunctionSpace")
 
 
 def get_fenicsx_vertices(function_space, coupling_subdomain, dims):
