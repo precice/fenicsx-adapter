@@ -119,11 +119,6 @@ class TestExpressionHandling(TestCase):
     scalar_function = Function(scalar_V)
     scalar_function.interpolate(scalar_expr)
 
-    def vector_expr(x): return (x[0] + x[1] * x[1], x[0] - x[1] * x[1])
-    vector_V = VectorFunctionSpace(mesh, ("P", 2))
-    vector_function = Function(vector_V)
-    vector_function.interpolate(vector_expr)
-
     n_vertices = 11
     fake_id = 15
     vertices_x = [1 for _ in range(n_vertices)]
@@ -166,43 +161,6 @@ class TestExpressionHandling(TestCase):
         expr_samples = np.array([scalar_coupling_expr.eval([x, y, 0], 0)
                                 for x, y in zip(self.samplepts_x, self.samplepts_y)])
         func_samples = np.array([self.scalar_function.eval([x, y, 0], 0)
-                                 for x, y in zip(self.samplepts_x, self.samplepts_y)])
-
-        assert (np.allclose(expr_samples, func_samples, 1E-10))
-
-    def test_update_expression_vector(self):
-        """
-        Check if a sampling of points on a dolfinx Function interpolated via FEniCSx is matching with the sampling of the
-        same points on a FEniCSx Expression created by the Adapter
-        """
-        from precice import Interface
-        import fenicsxprecice
-
-        Interface.get_dimensions = MagicMock(return_value=2)
-        Interface.set_mesh_vertices = MagicMock(return_value=self.vertex_ids)
-        Interface.get_mesh_id = MagicMock()
-        Interface.get_data_id = MagicMock()
-        Interface.set_mesh_edge = MagicMock()
-        Interface.initialize = MagicMock()
-        Interface.initialize_data = MagicMock()
-        Interface.is_action_required = MagicMock()
-        Interface.mark_action_fulfilled = MagicMock()
-        Interface.write_block_vector_data = MagicMock()
-
-        def right_boundary(x): return abs(x[0] - 1.0) < 10**-14
-
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
-        precice._interface = Interface(None, None, None, None)
-        precice.initialize(right_boundary, self.vector_V, self.vector_function)
-        values = np.array([self.vector_function.eval([x, y, 0], 0) for x, y in zip(self.vertices_x, self.vertices_y)])
-        data = {(x, y): v for x, y, v in zip(self.vertices_x, self.vertices_y, values)}
-
-        vector_coupling_expr = precice.create_coupling_expression()
-        precice.update_coupling_expression(vector_coupling_expr, data)
-
-        expr_samples = np.array([vector_coupling_expr.eval([x, y, 0], 0)
-                                for x, y in zip(self.samplepts_x, self.samplepts_y)])
-        func_samples = np.array([self.vector_function.eval([x, y, 0], 0)
                                  for x, y in zip(self.samplepts_x, self.samplepts_y)])
 
         assert (np.allclose(expr_samples, func_samples, 1E-10))
