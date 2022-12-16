@@ -20,7 +20,7 @@ Notes:
 
 * This adapter is a fork from the original [FEniCS-preCICE adapter](https://github.com/precice/fenics-adapter). Based on [v1.2.0](https://github.com/precice/fenics-adapter/releases/tag/v1.2.0).
 * This adapter is currently under development and experimental.
-* Target version: dolfinx v0.4.1
+* Target version: dolfinx v0.5.2. Other version that have been tested and might also work: v0.4.1
 
 ## Installing the package
 
