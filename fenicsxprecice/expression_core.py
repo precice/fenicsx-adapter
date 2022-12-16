@@ -53,32 +53,14 @@ class CouplingExpression(Function):
         self._coords_z = coords_z
         self._vals = vals
 
-        self._f = self.create_interpolant()
+        interpolant = self.create_interpolant()
 
         if self.is_scalar_valued():
             assert (self._vals.shape[0] == self._coords_x.shape[0])
         elif self.is_vector_valued():
             assert (self._vals.shape[0] == self._coords_x.shape[0])
 
-    def interpolate_precice(self, x):
-        # TODO: the correct way to deal with this would be using an abstract class. Since this is technically more
-        # complex and the current implementation is a workaround anyway, we do not
-        # use the proper solution, but this hack.
-        """
-        Interpolates at x. Uses buffered interpolant self._f.
-        Parameters
-        ----------
-        x : double
-            Point.
-
-        Returns
-        -------
-        list : python list
-            A list containing the interpolated values. If scalar function is interpolated this list has a single
-            element. If a vector function is interpolated the list has self._dimensions elements.
-        """
-        raise Exception("Please use one of the classes derived from this class, that implements an actual strategy for"
-                        "interpolation.")
+        self.interpolate(interpolant)
 
     def create_interpolant(self, x):
         # TODO: the correct way to deal with this would be using an abstract class. Since this is technically more
@@ -162,32 +144,6 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
         """
         See base class description.
         """
-        assert (self._dimension == 2)  # current implementation only supports two dimensions
-        interpolant = []
-
-        if self.is_scalar_valued():  # check if scalar or vector-valued
-            for d in range(1):
-                interpolant.append(self.segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals))
-        elif self.is_vector_valued():
-            for d in range(2):
-                # TODO check if self._vals[:, d] is required here, above it had to be removed
-                raise Exception("Not tested")
-                interpolant.append(self.segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals[:, d]))
-        else:
-            raise Exception("Problem dimension and data dimension not matching.")
-
-        return interpolant
-
-    def interpolate_precice(self, x):
-        """
-        See base class description.
-        """
-        assert (self._dimension == 2)  # current implementation only supports two dimensions
-
-        if self.is_scalar_valued():
-            return_value = [self._f[0](x[0], x[1])]
-        if self.is_vector_valued():
-            return_value = self._vals.ndim * [None]
-            for i in range(self._vals.ndim):
-                return_value[i] = self._f[i](x[0], x[1])
-        return return_value
+        assert (self.is_scalar_valued())  # this implementation only supports scalar valued functions
+        assert (self._dimension == 2)  # this implementation only supports two dimensions
+        return lambda x: self.segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals)(x[0], x[1])

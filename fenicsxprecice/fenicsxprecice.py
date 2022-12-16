@@ -119,7 +119,6 @@ class Adapter:
         vertices = np.array(list(data.keys()))
         nodal_data = np.array(list(data.values()))
         coupling_expression.update_boundary_data(nodal_data, vertices[:, 0], vertices[:, 1])
-        coupling_expression.interpolate(coupling_expression.interpolate_precice)
 
     def get_point_sources(self, data):
         raise Exception("PointSources are not implemented for the FEniCSx adapter.")
