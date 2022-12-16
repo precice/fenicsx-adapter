@@ -136,8 +136,6 @@ def convert_fenicsx_to_precice(fenicsx_function, local_ids):
     if len(local_ids):
         if fenicsx_function.function_space.num_sub_spaces > 0:  # function space is VectorFunctionSpace
             raise Exception("Functions from VectorFunctionSpaces are currently not supported.")
-            #for lid in local_ids:  
-               #precice_data.append(sampled_data[lid, :])  # this line raises an IndexError
         else:  # function space is FunctionSpace (scalar)
             for lid in local_ids:
                 precice_data.append(sampled_data[lid])
