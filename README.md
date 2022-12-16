@@ -25,7 +25,7 @@ Notes:
 
 ### :construction: Using pip3 to install from PyPI (under construction)
 
-It is recommended to install [fenicsxprecice from PyPI](https://pypi.org/project/fenicsxprecice/) via
+It is recommended to install fenicsxprecice from PyPI (**TODO** link to `https://pypi.org/project/fenicsxprecice/` as soon as released) via
 
 ```bash
 pip3 install --user fenicsxprecice
@@ -63,7 +63,7 @@ python3 -m unittest tests.test_write_read.TestWriteandReadData.test_vector_write
 
 ## Use the adapter
 
-Please refer to [our website](https://www.precice.org/adapter-fenicsx.html#how-can-i-use-my-own-solver-with-the-adapter-).
+Please refer to [our website](https://www.precice.org/adapter-fenics.html#how-can-i-use-my-own-solver-with-the-adapter-) :construction: Refers to the FEniCS version of the adapter :construction:.
 
 ## Packaging
 
@@ -73,7 +73,7 @@ To create and install the `fenicsxprecice` python package the following instruct
 
 If you are using this adapter, please refer to the [citing information on the FEniCS adapter](https://www.precice.org/adapter-fenics.html#how-to-cite).
 
-preCICE is an academic project, developed at the [Technical University of Munich](https://www5.in.tum.de/) and at the [University of Stuttgart](https://www.ipvs.uni-stuttgart.de/). If you use preCICE, please [cite us](https://www.precice.org/publications/):
+preCICE is an academic project, developed at the [Technical University of Munich](https://www.cs.cit.tum.de/en/sccs/home/) and at the [University of Stuttgart](https://www.ipvs.uni-stuttgart.de/). If you use preCICE, please [cite us](https://www.precice.org/publications/):
 
 *H.-J. Bungartz, F. Lindner, B. Gatzhammer, M. Mehl, K. Scheufele, A. Shukaev, and B. Uekermann: preCICE - A Fully Parallel Library for Multi-Physics Surface Coupling. Computers and Fluids, 141, 250–258, 2016.*
 
@@ -81,10 +81,10 @@ If you are using FEniCSx, please also consider the information on [the official 
 
 ## Development history
 
-2018: The initial version of the [fenics-adapter](https://github.com/precice/fenics-adapter) was developed by [Benjamin Rodenberg](https://www.in.tum.de/i05/personen/personen/benjamin-rodenberg/) during his research stay at Lund University in the group for [Numerical Analysis](http://www.maths.lu.se/english/research/research-divisions/numerical-analysis/) in close collaboration with [Peter Meisrimel](https://www.lunduniversity.lu.se/lucat/user/09d80f0367a060bcf2a22d7c22e5e504).
+2018: The initial version of the [fenics-adapter](https://github.com/precice/fenics-adapter) was developed by [Benjamin Rodenberg](https://www.cs.cit.tum.de/sccs/personen/benjamin-rodenberg/) during his research stay at Lund University in the group for [Numerical Analysis](http://www.maths.lu.se/english/research/research-divisions/numerical-analysis/) in close collaboration with [Peter Meisrimel](https://www.lunduniversity.lu.se/lucat/user/09d80f0367a060bcf2a22d7c22e5e504).
 
 2019: [Richard Hertrich](https://github.com/richahert) contributed the possibility to perform FSI simulations using the adapter in his [Bachelor thesis](https://mediatum.ub.tum.de/node?id=1520579).
 
 2020: [Ishaan Desai](https://www.ipvs.uni-stuttgart.de/institute/team/Desai/) improved the user interface and extended the adapter to also allow for parallel FEniCS computations.
 
-2021: :construction: For development of FEniCSx support, `precice/fenics-adapter@v1.2.0` was forked as `precice/fenicsx-adapter`. The required modifications were carried out by [Benjamin Rodenberg](https://www.in.tum.de/i05/personen/personen/benjamin-rodenberg/) and [Ishaan Desai](https://www.ipvs.uni-stuttgart.de/institute/team/Desai/). :construction:
+2021: :construction: For development of FEniCSx support, `precice/fenics-adapter@v1.2.0` was forked as `precice/fenicsx-adapter`. The required modifications were carried out by [Benjamin Rodenberg](https://www.cs.cit.tum.de/sccs/personen/benjamin-rodenberg/) and [Ishaan Desai](https://www.ipvs.uni-stuttgart.de/institute/team/Desai/). :construction:
