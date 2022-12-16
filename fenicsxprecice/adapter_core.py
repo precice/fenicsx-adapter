@@ -121,7 +121,7 @@ def convert_fenicsx_to_precice(fenicsx_function, local_ids):
 
     precice_data = []
     # sampled_data = fenicsx_function.x.array  # that works only for 1st order elements where dofs = grid points
-    # TODO begin dirty fix
+    # TODO begin dirty fix. See https://github.com/precice/fenicsx-adapter/issues/17 for details.
     x_mesh = fenicsx_function.function_space.mesh.geometry.x
     x_dofs = fenicsx_function.function_space.tabulate_dof_coordinates()
     mask = []  # where dof coordinate == mesh coordinate
