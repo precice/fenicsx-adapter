@@ -42,3 +42,5 @@ jobs:
         run:  python3 setup.py test -s tests.unit
       - name: Run integration tests
         run:  python3 setup.py test -s tests.integration
+      - name: Run all tests
+        run:  python3 setup.py test
