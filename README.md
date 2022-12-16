@@ -87,4 +87,4 @@ If you are using FEniCSx, please also consider the information on [the official 
 
 2020: [Ishaan Desai](https://www.ipvs.uni-stuttgart.de/institute/team/Desai/) improved the user interface and extended the adapter to also allow for parallel FEniCS computations.
 
-2021: :construction: For development of FEniCSx support, `precice/fenics-adapter@v1.2.0` was forked as `precice/fenicsx-adapter`. The required modifications were carried out by [Benjamin Rodenberg]([https://www.in.tum.de/i05/personen/personen/benjamin-rodenberg/](https://www.cs.cit.tum.de/sccs/personen/benjamin-rodenberg/)) and [Ishaan Desai](https://www.ipvs.uni-stuttgart.de/institute/team/Desai/). :construction:
+2021: :construction: For development of FEniCSx support, `precice/fenics-adapter@v1.2.0` was forked as `precice/fenicsx-adapter`. The required modifications were carried out by [Benjamin Rodenberg](https://www.cs.cit.tum.de/sccs/personen/benjamin-rodenberg/) and [Ishaan Desai](https://www.ipvs.uni-stuttgart.de/institute/team/Desai/). :construction:
