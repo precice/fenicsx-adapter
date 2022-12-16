@@ -5,7 +5,9 @@ keywords: FEniCS, Nutils, Heat conduction
 summary: We solve a simple heat equation. The domain is partitioned and the coupling is established in a Dirichlet-Neumann fashion.
 ---
 
-{% include note.html content="Get the [case files of this tutorial](https://github.com/precice/tutorials/tree/master/partitioned-heat-conduction). Read how in the [tutorials introduction](https://www.precice.org/tutorials.html)." %}
+{% note %}
+Get the [case files of this tutorial](https://github.com/precice/tutorials/tree/master/partitioned-heat-conduction). Read how in the [tutorials introduction](https://www.precice.org/tutorials.html).
+{% endnote %}
 
 ## Setup
 
@@ -25,7 +27,9 @@ You can either couple a solver with itself or different solvers with each other.
 
 * FEniCS. Install [FEniCS](https://fenicsproject.org/download/) and the [FEniCS-adapter](https://github.com/precice/fenics-adapter). The code is largely based on this [fenics-tutorial](https://github.com/hplgit/fenics-tutorial/blob/master/pub/python/vol1/ft03_heat.py) from [1].
 
-* Nutils. Install [Nutils](http://www.nutils.org/en/latest/).
+* Nutils. Install [Nutils](https://nutils.org/install-nutils.html).
+
+* OpenFOAM. This case also requires [funkySetFields](https://openfoamwiki.net/index.php/Contrib/funkySetFields) (part of [swak4Foam](https://openfoamwiki.net/index.php/Contrib/swak4Foam)) and uses the custom [heatTransfer](https://github.com/precice/tutorials/blob/master/partitioned-heat-conduction/openfoam-solver/heatTransfer.C) solver (find it in `openfoam-solver` and build with `wmake`). Read more details in the [OpenFOAM adapter](https://precice.org/adapter-openfoam-overview.html).
 
 ## Running the simulation
 
