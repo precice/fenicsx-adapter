@@ -98,8 +98,7 @@ class Adapter:
         if not (self._read_function_type is FunctionType.SCALAR or self._read_function_type is FunctionType.VECTOR):
             raise Exception("No valid read_function is provided in initialization. Cannot create coupling expression")
 
-        coupling_expression = self._my_expression(self._read_function_space)
-        coupling_expression.set_function_type(self._read_function_type)
+        coupling_expression = self._my_expression(self._read_function_space, self._read_function_type)
 
         return coupling_expression
 

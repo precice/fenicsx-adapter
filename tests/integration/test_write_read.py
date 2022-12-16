@@ -79,7 +79,6 @@ class TestWriteandReadData(TestCase):
                 expected_arg = expected_arg.reshape(arg.shape)
                 np.testing.assert_allclose(arg, expected_arg)
 
-
     def test_scalar_read(self):
         """
         Test to check if Adapter function read() passes correct parameters to the API function read_block_scalar_data()

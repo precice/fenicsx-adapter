@@ -20,12 +20,10 @@ class CouplingExpression(Function):
     Creates functional representation (for FEniCSx) of nodal data provided by preCICE.
     """
 
-    def __init__(self, function_space):
+    def __init__(self, function_space, function_type):
         self._dimension = function_space.mesh.geometry.dim
-        super().__init__(function_space)
-
-    def set_function_type(self, function_type):
         self._function_type = function_type
+        super().__init__(function_space)
 
     def update_boundary_data(self, vals, coords_x, coords_y=None, coords_z=None):
         """
@@ -53,16 +51,16 @@ class CouplingExpression(Function):
         self._coords_z = coords_z
         self._vals = vals
 
-        interpolant = self.create_interpolant()
+        interpolant = self._create_interpolant()
 
-        if self.is_scalar_valued():
+        if self._is_scalar_valued():
             assert (self._vals.shape[0] == self._coords_x.shape[0])
-        elif self.is_vector_valued():
+        elif self._is_vector_valued():
             assert (self._vals.shape[0] == self._coords_x.shape[0])
 
         self.interpolate(interpolant)
 
-    def create_interpolant(self, x):
+    def _create_interpolant(self, x):
         # TODO: the correct way to deal with this would be using an abstract class. Since this is technically more
         # complex and the current implementation is a workaround anyway, we do not
         # use the proper solution, but this hack.
@@ -83,7 +81,7 @@ class CouplingExpression(Function):
         raise Exception("Please use one of the classes derived from this class, that implements an actual strategy for"
                         "interpolation.")
 
-    def is_scalar_valued(self):
+    def _is_scalar_valued(self):
         """
         Determines if function being interpolated is scalar-valued based on dimension of provided vector self._vals.
 
@@ -94,7 +92,7 @@ class CouplingExpression(Function):
         """
         return self._function_type is FunctionType.SCALAR
 
-    def is_vector_valued(self):
+    def _is_vector_valued(self):
         """
         Determines if function being interpolated is vector-valued based on dimension of provided vector self._vals.
 
@@ -115,7 +113,7 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
     simulations.
     """
 
-    def segregated_interpolant_2d(self, coords_x, coords_y, data):
+    def _segregated_interpolant_2d(self, coords_x, coords_y, data):
         assert (coords_x.shape == coords_y.shape)
         # create least squares system to approximate a * x ** 2 + b * x + c ~= y
 
@@ -140,10 +138,10 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
 
         return lambda x, y: rbf_interp(x, y) + lstsq_interp(x, y, w)
 
-    def create_interpolant(self):
+    def _create_interpolant(self):
         """
         See base class description.
         """
-        assert (self.is_scalar_valued())  # this implementation only supports scalar valued functions
+        assert (self._is_scalar_valued())  # this implementation only supports scalar valued functions
         assert (self._dimension == 2)  # this implementation only supports two dimensions
-        return lambda x: self.segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals)(x[0], x[1])
+        return lambda x: self._segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals)(x[0], x[1])
