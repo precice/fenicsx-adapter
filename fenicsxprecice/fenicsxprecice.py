@@ -7,7 +7,7 @@ import numpy as np
 from .config import Config
 import logging
 import precice
-from .adapter_core import FunctionType, determine_function_type, convert_fenicsx_to_precice, get_fenicsx_vertices, CouplingMode, Vertices, VertexType
+from .adapter_core import FunctionType, determine_function_type, convert_fenicsx_to_precice, get_fenicsx_vertices, CouplingMode, Vertices
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
 from dolfinx.fem import Function, FunctionSpace
@@ -62,7 +62,7 @@ class Adapter:
         self._dofmap = None  # initialized later using function space provided by user
 
         # coupling mesh related quantities
-        self._fenicsx_vertices = Vertices(VertexType.FENICSX)
+        self._fenicsx_vertices = Vertices()
         self._precice_vertex_ids = None  # initialized later
 
         # read data related quantities (read data is read from preCICE and applied in FEniCSx)

@@ -12,27 +12,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 
-class VertexType(Enum):
-    """
-    Defines type of vertices that exist in the adapter.
-    OWNED vertices are vertices on the coupling interface owned by this rank
-    UNOWNED vertices are vertices on the coupling interface which are not owned by this rank. They are borrowed
-        vertices from neigbouring ranks
-    FENICSX vertices are OWNED + UNOWNED vertices in the order as seen by FEniCSx
-    """
-    OWNED = 153
-    UNOWNED = 471
-    FENICSX = 557
-
-
 class Vertices:
     """
     Vertices class provides a generic skeleton for vertices. A set of vertices has a set of IDs and
     coordinates as defined in FEniCSx.
     """
 
-    def __init__(self, vertex_type):
-        self._vertex_type = vertex_type
+    def __init__(self):
         self._ids = None
         self._coordinates = None
 
