@@ -24,7 +24,7 @@ jobs:
           apt-get -qq install --no-install-recommends fenicsx
           rm -rf /var/lib/apt/lists/*
       - name: Check FEniCSx version
-        run: python3 -c "import dolfinx; print(f'FEniCS-X version: {dolfinx.__version__}')"
+        run: python3 -c "import dolfinx; print('FEniCS-X version '+dolfinx.__version__)"
       - name: Install adapter
         run:  pip3 install --user .
       - name: Get tutorials
