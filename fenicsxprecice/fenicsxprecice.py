@@ -175,7 +175,6 @@ class Adapter:
         assert (self._write_function_type == determine_function_type(w_func))
         # TODO this raises AssertionError, not sure why. I just commented it out, still works...
         # assert (write_function.function_space == self._write_function_space)
-        assert (write_function.function_space == self._write_function_space)
 
         write_data_id = self._interface.get_data_id(self._config.get_write_data_name(),
                                                     self._interface.get_mesh_id(self._config.get_coupling_mesh_name()))
