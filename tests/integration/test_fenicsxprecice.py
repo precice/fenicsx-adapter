@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch
 from unittest import TestCase
 from tests import MockedPrecice
 import numpy as np
-from dolfinx import Expression, UnitSquareMesh, FunctionSpace, VectorFunctionSpace, interpolate, dx, ds, \
-    SubDomain, near, PointSource, Point, AutoSubDomain, TestFunction, \
-    grad, assemble, Function, solve, dot
+from mpi4py import MPI
+from dolfinx.mesh import create_unit_square
+from dolfinx.fem import Function, FunctionSpace, VectorFunctionSpace
 
 
 class MockedArray:
@@ -91,7 +91,7 @@ class TestCheckpointing(TestCase):
         Interface.is_time_window_complete = MagicMock(return_value=True)
         Interface.advance = MagicMock()
 
-        precice = fenicsxprecice.Adapter(self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
 
         precice.store_checkpoint(self.u_n_mocked, self.t, self.n)
 
@@ -111,16 +111,13 @@ class TestExpressionHandling(TestCase):
     """
     dummy_config = "tests/precice-adapter-config.json"
 
-    mesh = UnitSquareMesh(10, 10)
+    mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)
     dimension = 2
 
-    scalar_expr = Expression("x[0] + x[1]", degree=1)
-    scalar_V = FunctionSpace(mesh, "P", 1)
-    scalar_function = interpolate(scalar_expr, scalar_V)
-
-    vector_expr = Expression(("x[0] + x[1]*x[1]", "x[0] - x[1]*x[1]"), degree=2)
-    vector_V = VectorFunctionSpace(mesh, "P", 2)
-    vector_function = interpolate(vector_expr, vector_V)
+    def scalar_expr(x): return x[0] + x[1]
+    scalar_V = FunctionSpace(mesh, ("P", 1))
+    scalar_function = Function(scalar_V)
+    scalar_function.interpolate(scalar_expr)
 
     n_vertices = 11
     fake_id = 15
@@ -132,10 +129,6 @@ class TestExpressionHandling(TestCase):
     samplepts_x = [1 for _ in range(n_samples)]
     samplepts_y = np.linspace(0, 1, n_samples)
 
-    class Right(SubDomain):
-        def inside(self, x, on_boundary):
-            return near(x[0], 1.0)
-
     def test_update_expression_scalar(self):
         """
         Check if a sampling of points on a dolfinx Function interpolated via FEniCSx is matching with the sampling of the
@@ -143,7 +136,6 @@ class TestExpressionHandling(TestCase):
         """
         from precice import Interface
         import fenicsxprecice
-
         Interface.get_dimensions = MagicMock(return_value=2)
         Interface.set_mesh_vertices = MagicMock(return_value=self.vertex_ids)
         Interface.get_mesh_id = MagicMock()
@@ -155,155 +147,20 @@ class TestExpressionHandling(TestCase):
         Interface.mark_action_fulfilled = MagicMock()
         Interface.write_block_scalar_data = MagicMock()
 
-        right_boundary = self.Right()
+        def right_boundary(x): return abs(x[0] - 1.0) < 10**-14
 
-        precice = fenicsxprecice.Adapter(self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._interface = Interface(None, None, None, None)
         precice.initialize(right_boundary, self.scalar_V, self.scalar_function)
-        values = np.array([self.scalar_function(x, y) for x, y in zip(self.vertices_x, self.vertices_y)])
+        values = np.array([self.scalar_function.eval([x, y, 0], 0)[0]
+                           for x, y in zip(self.vertices_x, self.vertices_y)])
         data = {(x, y): v for x, y, v in zip(self.vertices_x, self.vertices_y, values)}
-
         scalar_coupling_expr = precice.create_coupling_expression()
         precice.update_coupling_expression(scalar_coupling_expr, data)
 
-        expr_samples = np.array([scalar_coupling_expr(x, y) for x, y in zip(self.samplepts_x, self.samplepts_y)])
-        func_samples = np.array([self.scalar_function(x, y) for x, y in zip(self.samplepts_x, self.samplepts_y)])
+        expr_samples = np.array([scalar_coupling_expr.eval([x, y, 0], 0)
+                                 for x, y in zip(self.samplepts_x, self.samplepts_y)])
+        func_samples = np.array([self.scalar_function.eval([x, y, 0], 0)
+                                 for x, y in zip(self.samplepts_x, self.samplepts_y)])
 
         assert (np.allclose(expr_samples, func_samples, 1E-10))
-
-    def test_update_expression_vector(self):
-        """
-        Check if a sampling of points on a dolfinx Function interpolated via FEniCSx is matching with the sampling of the
-        same points on a FEniCSx Expression created by the Adapter
-        """
-        from precice import Interface
-        import fenicsxprecice
-
-        Interface.get_dimensions = MagicMock(return_value=2)
-        Interface.set_mesh_vertices = MagicMock(return_value=self.vertex_ids)
-        Interface.get_mesh_id = MagicMock()
-        Interface.get_data_id = MagicMock()
-        Interface.set_mesh_edge = MagicMock()
-        Interface.initialize = MagicMock()
-        Interface.initialize_data = MagicMock()
-        Interface.is_action_required = MagicMock()
-        Interface.mark_action_fulfilled = MagicMock()
-        Interface.write_block_vector_data = MagicMock()
-
-        right_boundary = self.Right()
-
-        precice = fenicsxprecice.Adapter(self.dummy_config)
-        precice._interface = Interface(None, None, None, None)
-        precice.initialize(right_boundary, self.vector_V, self.vector_function)
-        values = np.array([self.vector_function(x, y) for x, y in zip(self.vertices_x, self.vertices_y)])
-        data = {(x, y): v for x, y, v in zip(self.vertices_x, self.vertices_y, values)}
-
-        vector_coupling_expr = precice.create_coupling_expression()
-        precice.update_coupling_expression(vector_coupling_expr, data)
-
-        expr_samples = np.array([vector_coupling_expr(x, y) for x, y in zip(self.samplepts_x, self.samplepts_y)])
-        func_samples = np.array([self.vector_function(x, y) for x, y in zip(self.samplepts_x, self.samplepts_y)])
-
-        assert (np.allclose(expr_samples, func_samples, 1E-10))
-
-
-# TODO: Write a valid test for adapter function get_point_sources. Direct comparison of PointSource object is not
-#       possible because objects initialized by same force values are still different. No preCICE API call is done
-#       within this function so comparing input parameters to an API call is also not possible.
-#       Possible solution: Solve a 2D beam problem manually and via adapter function and check displacement of the beam.
-#                           Then the question is whether it is a mock test at all.
-# def clamped_boundary(x, on_boundary):
-#     return on_boundary and abs(x[1]) < 1E-14
-#
-# @patch.dict('sys.modules', **{'precice': MockedPrecice})
-# class TestPointSource(TestCase):
-#     """
-#     Test Point Source return mechanism for force vector values given by user.
-#     """
-#     dummy_config = "tests/precice-adapter-config.json"
-#
-#     mesh = UnitSquareMesh(10, 10)
-#     dimension = 2
-#     V = VectorFunctionSpace(mesh, "P", 2)
-#
-#     n_vertices = 11
-#     fake_id = 15
-#     vertices_x = [1 for _ in range(n_vertices)]
-#     vertices_y = np.linspace(0, 1, n_vertices)
-#     vertex_ids = np.arange(n_vertices)
-#     vertices = []
-#     for i in range(n_vertices):
-#         vertices.append([vertices_x[i], vertices_y[i]])
-#     vertices = np.array(vertices)
-#
-#     def test_get_point_sources(self):
-#         """
-#         Checks
-#         Returns
-#         -------
-#         """
-#         from precice import Interface
-#         import fenicsxprecice
-#         from fenicsxprecice.adapter_core import FunctionType
-#
-#         Interface.get_dimensions = MagicMock(return_value=2)
-#         Interface.set_mesh_vertices = MagicMock(return_value=self.vertex_ids)
-#         Interface.get_mesh_id = MagicMock()
-#         Interface.set_mesh_edge = MagicMock()
-#         Interface.initialize = MagicMock()
-#
-#         # Define 2D dummy forces
-#         dummy_forces_array = []
-#         for i in range(self.n_vertices):
-#             dummy_forces_array.append([i, i])
-#         dummy_forces_array = np.array(dummy_forces_array)
-#
-#         # Define Point Sources manually
-#         f_x_manual = dict()
-#         f_y_manual = dict()
-#         for i in range(self.n_vertices):
-#             px, py = self.vertices_x[i], self.vertices_y[i]
-#             key = (px, py)
-#             f_x_manual[key] = PointSource(self.V.sub(0), Point(px, py), dummy_forces_array[i, 0])
-#             f_y_manual[key] = PointSource(self.V.sub(1), Point(px, py), dummy_forces_array[i, 1])
-#
-#         precice = fenicsxprecice.Adapter(self.dummy_config)
-#         precice._function_space = self.V
-#         precice._Dirichlet_Boundary = AutoSubDomain(clamped_boundary)
-#         precice._read_function_type = FunctionType.VECTOR
-#         precice._fenicsx_dimensions = self.dimension
-#         precice._coupling_mesh_vertices = self.vertices
-#
-#         # Define same dummy forces as a dictionary
-#         dummy_forces = dict()
-#         counter = 0
-#         for v in self.vertices:
-#             dummy_forces[tuple(v)] = [counter, counter]
-#             counter += 1
-#
-#         # Get forces from Adapter function
-#         f_x_adapter, f_y_adapter = precice.get_point_sources(dummy_forces)
-#
-#         v = TestFunction(self.V)
-#
-#         a = assemble(dot(grad(v), grad(v))*dx)
-#         b_manual = assemble(v*dx)
-#         b_adapter = assemble(v*dx)
-#
-#         u_manual = Function(self.V)
-#         u_adapter = Function(self.V)
-#
-#         for ps in f_x_manual.values():
-#             ps.apply(b_manual)
-#         for ps in f_y_manual.values():
-#             ps.apply(b_manual)
-#
-#         for ps in x_forces:
-#             ps.apply(b_adapter)
-#         for ps in y_forces:
-#             ps.apply(b_adapter)
-#
-#         solve(a, u_manual.vector(), b_manual)
-#         solve(a, u_adapter.vector(), b_adapter)
-#
-#         assert(u_manual == u_adapter)
