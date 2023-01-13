@@ -155,7 +155,7 @@ class Adapter:
 
         return copy.deepcopy(read_data)
 
-    def write_data(self, write_function):
+    def write_data(self, write_function, mask):
         """
         Writes data to preCICE. Depending on the dimensions of the simulation (2D-3D Coupling, 2D-2D coupling or
         Scalar/Vector write function) write_data is first converted into a format needed for preCICE.
@@ -181,7 +181,7 @@ class Adapter:
 
         write_function_type = determine_function_type(write_function)
         assert (write_function_type in list(FunctionType))
-        write_data = convert_fenicsx_to_precice(write_function, self._fenicsx_vertices.get_ids())
+        write_data = convert_fenicsx_to_precice(write_function, self._fenicsx_vertices.get_ids(), mask)
         if write_function_type is FunctionType.SCALAR:
             assert (write_function.function_space.num_sub_spaces == 0)
             write_data = np.squeeze(write_data)  # TODO dirty solution
@@ -192,7 +192,7 @@ class Adapter:
         else:
             raise Exception("write_function provided is neither VECTOR nor SCALAR type")
 
-    def initialize(self, coupling_subdomain, read_function_space=None, write_object=None):
+    def initialize(self, coupling_subdomain, mask, read_function_space=None, write_object=None):
         """
         Initializes the coupling and sets up the mesh where coupling happens in preCICE.
 
@@ -296,7 +296,8 @@ class Adapter:
         if self._interface.is_action_required(precice.action_write_initial_data()):
             if not write_function:
                 raise Exception("Non-standard initialization requires a write_function")
-            self.write_data(write_function)
+                print("hallo")
+            self.write_data(write_function, mask)
             self._interface.mark_action_fulfilled(precice.action_write_initial_data())
 
         self._interface.initialize_data()

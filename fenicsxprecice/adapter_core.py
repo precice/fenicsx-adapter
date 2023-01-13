@@ -85,7 +85,7 @@ def determine_function_type(input_obj):
         raise Exception("Error determining type of given dolfin FunctionSpace")
 
 
-def convert_fenicsx_to_precice(fenicsx_function, local_ids):
+def convert_fenicsx_to_precice(fenicsx_function, local_ids, mask):
     """
     Converts data of type dolfin.Function into Numpy array for all x and y coordinates on the boundary.
 
@@ -105,19 +105,8 @@ def convert_fenicsx_to_precice(fenicsx_function, local_ids):
     if not isinstance(fenicsx_function, Function):
         raise Exception("Cannot handle data type {}".format(type(fenicsx_function)))
 
-    precice_data = []
-    # sampled_data = fenicsx_function.x.array  # that works only for 1st order elements where dofs = grid points
-    # TODO begin dirty fix. See https://github.com/precice/fenicsx-adapter/issues/17 for details.
-    x_mesh = fenicsx_function.function_space.mesh.geometry.x
-    x_dofs = fenicsx_function.function_space.tabulate_dof_coordinates()
-    mask = []  # where dof coordinate == mesh coordinate
-    for i in range(x_dofs.shape[0]):
-        for j in range(x_mesh.shape[0]):
-            if np.allclose(x_dofs[i, :], x_mesh[j, :], 1e-15):
-                mask.append(i)
-                break
+    precice_data = []          
     sampled_data = fenicsx_function.x.array[mask]
-    # end dirty fix
 
     if len(local_ids):
         if fenicsx_function.function_space.num_sub_spaces > 0:  # function space is VectorFunctionSpace
