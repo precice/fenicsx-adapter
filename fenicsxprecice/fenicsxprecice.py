@@ -296,7 +296,6 @@ class Adapter:
         if self._interface.is_action_required(precice.action_write_initial_data()):
             if not write_function:
                 raise Exception("Non-standard initialization requires a write_function")
-                print("hallo")
             self.write_data(write_function, mask)
             self._interface.mark_action_fulfilled(precice.action_write_initial_data())
 
