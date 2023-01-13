@@ -154,7 +154,7 @@ def get_fenicsx_vertices(function_space, coupling_subdomain, dims):
             coords = mesh.geometry.x[ids][:, :2]
         else:
             coords = np.array([])
-    except Exception as e:  # fall back to old method  # TODO is that to general? Better use, e.g., IndexError here?
+    except Exception as e:  # fall back to old method  # TODO is that too general? Better use, e.g., IndexError here?
         print("Caught the following exception in the detection of the coupling subdomain:\n{e}")
         print("Falling back to old, point-wise method.")
         ids, coords = [], []
