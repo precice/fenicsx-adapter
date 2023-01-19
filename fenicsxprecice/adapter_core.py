@@ -85,7 +85,7 @@ def determine_function_type(input_obj):
         raise Exception("Error determining type of given dolfin FunctionSpace")
 
 
-def convert_fenicsx_to_precice(fenicsx_function, local_ids, mask):
+def convert_fenicsx_to_precice(fenicsx_function, mask, local_ids):
     """
     Converts data of type dolfin.Function into Numpy array for all x and y coordinates on the boundary.
 
@@ -105,7 +105,7 @@ def convert_fenicsx_to_precice(fenicsx_function, local_ids, mask):
     if not isinstance(fenicsx_function, Function):
         raise Exception("Cannot handle data type {}".format(type(fenicsx_function)))
 
-    precice_data = []          
+    precice_data = []
     sampled_data = fenicsx_function.x.array[mask]
 
     if len(local_ids):
@@ -167,3 +167,4 @@ def get_fenicsx_vertices(function_space, coupling_subdomain, dims):
         ids = np.array(ids)
         coords = np.array(coords)
     return ids, coords
+

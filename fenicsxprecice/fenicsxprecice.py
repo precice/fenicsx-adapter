@@ -64,6 +64,7 @@ class Adapter:
         # coupling mesh related quantities
         self._fenicsx_vertices = Vertices()
         self._precice_vertex_ids = None  # initialized later
+        self._mask = None # initialized later
 
         # read data related quantities (read data is read from preCICE and applied in FEniCSx)
         self._read_function_type = None  # stores whether read function is scalar or vector valued
@@ -155,7 +156,7 @@ class Adapter:
 
         return copy.deepcopy(read_data)
 
-    def write_data(self, write_function, mask):
+    def write_data(self, write_function):
         """
         Writes data to preCICE. Depending on the dimensions of the simulation (2D-3D Coupling, 2D-2D coupling or
         Scalar/Vector write function) write_data is first converted into a format needed for preCICE.
@@ -181,7 +182,17 @@ class Adapter:
 
         write_function_type = determine_function_type(write_function)
         assert (write_function_type in list(FunctionType))
-        write_data = convert_fenicsx_to_precice(write_function, self._fenicsx_vertices.get_ids(), mask)
+
+        x_mesh = write_function.function_space.mesh.geometry.x
+        x_dofs = write_function.function_space.tabulate_dof_coordinates()
+        if(self._mask == None):
+            self._mask = []  # where dof coordinate == mesh coordinate
+            for i in range(x_dofs.shape[0]):
+                for j in range(x_mesh.shape[0]):
+                    if np.allclose(x_dofs[i, :], x_mesh[j, :], 1e-15):
+                        self._mask.append(i)
+                        break
+        write_data = convert_fenicsx_to_precice(write_function, self._mask, self._fenicsx_vertices.get_ids())
         if write_function_type is FunctionType.SCALAR:
             assert (write_function.function_space.num_sub_spaces == 0)
             write_data = np.squeeze(write_data)  # TODO dirty solution
@@ -192,7 +203,7 @@ class Adapter:
         else:
             raise Exception("write_function provided is neither VECTOR nor SCALAR type")
 
-    def initialize(self, coupling_subdomain, mask, read_function_space=None, write_object=None):
+    def initialize(self, coupling_subdomain, read_function_space=None, write_object=None):
         """
         Initializes the coupling and sets up the mesh where coupling happens in preCICE.
 
@@ -218,6 +229,7 @@ class Adapter:
         if isinstance(write_object, Function):  # precice.initialize_data() will be called using this Function
             write_function_space = write_object.function_space
             write_function = write_object
+            
         elif isinstance(write_object, FunctionSpace):  # preCICE will use default zero values for initialization.
             write_function_space = write_object
             write_function = None
@@ -296,7 +308,7 @@ class Adapter:
         if self._interface.is_action_required(precice.action_write_initial_data()):
             if not write_function:
                 raise Exception("Non-standard initialization requires a write_function")
-            self.write_data(write_function, mask)
+            self.write_data(write_function)
             self._interface.mark_action_fulfilled(precice.action_write_initial_data())
 
         self._interface.initialize_data()
@@ -465,3 +477,4 @@ class Adapter:
             Name of action related to reading a checkpoint.
         """
         return precice.action_read_iteration_checkpoint()
+
