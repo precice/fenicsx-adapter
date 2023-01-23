@@ -36,7 +36,16 @@ class TestAdapterCore(TestCase):
             local_ids.append(i)
             manual_sampling.append([fun_lambda(v[0], v[1])])
         manual_sampling = np.array(manual_sampling).squeeze()
+        
+        x_mesh = fenicsx_function.function_space.mesh.geometry.x
+        x_dofs = fenicsx_function.function_space.tabulate_dof_coordinates()
+        mask = []  # where dof coordinate == mesh coordinate
+        for i in range(x_dofs.shape[0]):
+            for j in range(x_mesh.shape[0]):
+                if np.allclose(x_dofs[i, :], x_mesh[j, :], 1e-15):
+                    mask.append(i)
+                    break
 
-        data = convert_fenicsx_to_precice(fenicsx_function, local_ids)
+        data = convert_fenicsx_to_precice(fenicsx_function, mask, local_ids)
 
         np.testing.assert_allclose(data, manual_sampling, atol=10**-16)
