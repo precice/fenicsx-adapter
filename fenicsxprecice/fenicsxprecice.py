@@ -64,6 +64,7 @@ class Adapter:
         # coupling mesh related quantities
         self._fenicsx_vertices = Vertices()
         self._precice_vertex_ids = None  # initialized later
+        self._mask = None # initialized later
 
         # read data related quantities (read data is read from preCICE and applied in FEniCSx)
         self._read_function_type = None  # stores whether read function is scalar or vector valued
@@ -181,7 +182,17 @@ class Adapter:
 
         write_function_type = determine_function_type(write_function)
         assert (write_function_type in list(FunctionType))
-        write_data = convert_fenicsx_to_precice(write_function, self._fenicsx_vertices.get_ids())
+
+        x_mesh = write_function.function_space.mesh.geometry.x
+        x_dofs = write_function.function_space.tabulate_dof_coordinates()
+        if(self._mask == None):
+            self._mask = []  # where dof coordinate == mesh coordinate
+            for i in range(x_dofs.shape[0]):
+                for j in range(x_mesh.shape[0]):
+                    if np.allclose(x_dofs[i, :], x_mesh[j, :], 1e-15):
+                        self._mask.append(i)
+                        break
+        write_data = convert_fenicsx_to_precice(write_function, self._mask, self._fenicsx_vertices.get_ids())
         if write_function_type is FunctionType.SCALAR:
             assert (write_function.function_space.num_sub_spaces == 0)
             write_data = np.squeeze(write_data)  # TODO dirty solution
@@ -218,6 +229,7 @@ class Adapter:
         if isinstance(write_object, Function):  # precice.initialize_data() will be called using this Function
             write_function_space = write_object.function_space
             write_function = write_object
+            
         elif isinstance(write_object, FunctionSpace):  # preCICE will use default zero values for initialization.
             write_function_space = write_object
             write_function = None
@@ -465,3 +477,5 @@ class Adapter:
             Name of action related to reading a checkpoint.
         """
         return precice.action_read_iteration_checkpoint()
+
+
