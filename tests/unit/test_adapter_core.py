@@ -36,7 +36,7 @@ class TestAdapterCore(TestCase):
             local_ids.append(i)
             manual_sampling.append([fun_lambda(v[0], v[1])])
         manual_sampling = np.array(manual_sampling).squeeze()
-        
+
         x_mesh = fenicsx_function.function_space.mesh.geometry.x
         x_dofs = fenicsx_function.function_space.tabulate_dof_coordinates()
         mask = []  # where dof coordinate == mesh coordinate
