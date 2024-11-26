@@ -39,7 +39,7 @@ setup(name='fenicsxprecice',
       author_email='info@precice.org',
       license='LGPL-3.0',
       packages=['fenicsxprecice'],
-      install_requires=['pyprecice>=3.0.0', 'numpy'],
+      install_requires=['pyprecice~=3.0.0', 'numpy>=1.13.3'],
       tests_require=['sympy'],
       test_suite='tests',
       zip_safe=False)
