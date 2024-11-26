@@ -12,12 +12,12 @@
 """Git implementation of _version.py."""
 
 import errno
-import functools
 import os
 import re
 import subprocess
 import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple
+import functools
 
 
 def get_keywords() -> Dict[str, str]:
@@ -162,7 +162,7 @@ def git_get_keywords(versionfile_abs: str) -> Dict[str, str]:
     # _version.py.
     keywords: Dict[str, str] = {}
     try:
-        with open(versionfile_abs) as fobj:
+        with open(versionfile_abs, "r") as fobj:
             for line in fobj:
                 if line.strip().startswith("git_refnames ="):
                     mo = re.search(r'=\s*"(.*)"', line)
