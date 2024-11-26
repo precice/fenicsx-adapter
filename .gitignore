@@ -3,6 +3,3 @@ build
 dist
 .idea
 *.pyc
-.eggs/
-.vscode
-.venv

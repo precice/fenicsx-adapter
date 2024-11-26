@@ -71,7 +71,7 @@ class Adapter:
     def interpolation_points_in_vector_space(self):
         """Determine interpolation points in the vector space.
 
-        Returns:
+        Returns
         -------
         tuple
             Unrolled degrees of freedom and their coordinates.
@@ -97,7 +97,7 @@ class Adapter:
         For scalar problems, this will be a 1D array (vector), while for vector problems,
         it will be an Mx2 array (in 2D) or an Mx3 array (in 3D), where M is the number of interface nodes.
 
-        Returns:
+        Returns
         -------
         np.ndarray
             The incoming data containing nodal data ordered according to _fenicsx_vertices
@@ -143,7 +143,7 @@ class Adapter:
             by FEniCSx during each coupling iteration. If not provided then the adapter assumes that this participant is
             a read-only participant.
 
-        Returns:
+        Returns
         -------
         dt : double
             Recommended time step value from preCICE.
@@ -179,9 +179,10 @@ class Adapter:
         self._checkpoint = SolverState(states)
 
     def retrieve_checkpoint(self):
-        """Resets the FEniCSx participant state to the state of the stored checkpoint.
+        """
+        Resets the FEniCSx participant state to the state of the stored checkpoint.
 
-        Returns:
+        Returns
         -------
         tuple
             The stored checkpoint state (u, v, a, t).
@@ -198,11 +199,11 @@ class Adapter:
         dt : double
             Length of timestep used by the solver.
 
-        Notes:
+        Notes
         -----
         Refer advance() in https://github.com/precice/python-bindings/blob/develop/precice.pyx
 
-        Returns:
+        Returns
         -------
         max_dt : double
             Maximum length of timestep to be computed by solver.
@@ -212,16 +213,18 @@ class Adapter:
         return max_dt
 
     def finalize(self):
-        """Finalizes the coupling via preCICE and the adapter. To be called at the end of the simulation.
+        """
+        Finalizes the coupling via preCICE and the adapter. To be called at the end of the simulation.
 
-        Notes:
+        Notes
         -----
         Refer finalize() in https://github.com/precice/python-bindings/blob/develop/precice.pyx
         """
         self._interface.finalize()
 
     def get_participant_name(self):
-        """Returns:
+        """
+        Returns
         -------
         participant_name : string
             Name of the participant.
@@ -229,13 +232,14 @@ class Adapter:
         return self._config.get_participant_name()
 
     def is_coupling_ongoing(self):
-        """Checks if the coupled simulation is still ongoing.
+        """
+        Checks if the coupled simulation is still ongoing.
 
-        Notes:
+        Notes
         -----
         Refer is_coupling_ongoing() in https://github.com/precice/python-bindings/blob/develop/precice.pyx
 
-        Returns:
+        Returns
         -------
         tag : bool
             True if coupling is still going on and False if coupling has finished.

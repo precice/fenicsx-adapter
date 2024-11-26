@@ -25,7 +25,7 @@ Notes:
 
 ## Installing the package
 
-### 🚧 Using pip3 to install from PyPI (under construction) 🚧
+### :construction: Using pip3 to install from PyPI (under construction)
 
 It is recommended to install fenicsxprecice from PyPI (**TODO** link to `https://pypi.org/project/fenicsxprecice/` as soon as released) via
 
@@ -41,7 +41,7 @@ This should work out of the box, if all dependencies are installed correctly and
 
 Make sure to install the following dependencies:
 
-* [preCICE v3](https://github.com/precice/precice/wiki)
+* [preCICE](https://github.com/precice/precice/wiki)
 * python3 (this adapter **only supports python3**)
 * [the python language bindings for preCICE](https://github.com/precice/python-bindings)
 * :construction: [FEniCSx](https://fenicsproject.org/) (with python interface, installed by default) (under construction refer to notes on FEniCSx below) :construction:
@@ -83,7 +83,7 @@ If you are using FEniCSx, please also consider the information on [the official 
 
 ## Development history
 
-2018: The initial version of the [fenics-adapter](https://github.com/precice/fenics-adapter) was developed by [Benjamin Rodenberg](https://www.cs.cit.tum.de/sccs/personen/benjamin-rodenberg/) during his research stay at Lund University in the group for [Numerical Analysis](http://www.maths.lu.se/english/research/research-divisions/numerical-analysis/) in close collaboration with [Peter Meisrimel](https://portal.research.lu.se/en/persons/peter-meisrimel).
+2018: The initial version of the [fenics-adapter](https://github.com/precice/fenics-adapter) was developed by [Benjamin Rodenberg](https://www.cs.cit.tum.de/sccs/personen/benjamin-rodenberg/) during his research stay at Lund University in the group for [Numerical Analysis](http://www.maths.lu.se/english/research/research-divisions/numerical-analysis/) in close collaboration with [Peter Meisrimel](https://www.lunduniversity.lu.se/lucat/user/09d80f0367a060bcf2a22d7c22e5e504).
 
 2019: [Richard Hertrich](https://github.com/richahert) contributed the possibility to perform FSI simulations using the adapter in his [Bachelor thesis](https://mediatum.ub.tum.de/node?id=1520579).
 

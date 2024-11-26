@@ -1,4 +1,5 @@
-"""This is the configuration module of fenicsxadapter
+"""
+This is the configuration module of fenicsxadapter
 """
 
 import json
@@ -7,7 +8,8 @@ import sys
 
 
 class Config:
-    """Handles reading of config. parameters of the fenicsxadapter based on JSON
+    """
+    Handles reading of config. parameters of the fenicsxadapter based on JSON
     configuration file. Initializer calls read_json() method. Instance attributes
     can be accessed by provided getter functions.
     """
@@ -23,7 +25,8 @@ class Config:
         self.read_json(adapter_config_filename)
 
     def read_json(self, adapter_config_filename):
-        """Reads JSON adapter configuration file and saves the data to the respective instance attributes.
+        """
+        Reads JSON adapter configuration file and saves the data to the respective instance attributes.
 
         Parameters
         ----------
