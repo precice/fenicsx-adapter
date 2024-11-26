@@ -25,7 +25,7 @@ Notes:
 
 ## Installing the package
 
-### :construction: Using pip3 to install from PyPI (under construction)
+### 🚧 Using pip3 to install from PyPI (under construction) 🚧
 
 It is recommended to install fenicsxprecice from PyPI (**TODO** link to `https://pypi.org/project/fenicsxprecice/` as soon as released) via
 
