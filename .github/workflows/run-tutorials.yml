@@ -12,7 +12,7 @@ jobs:
   run_ht_simple:
     name: Run HT, simple
     runs-on: ubuntu-latest
-    container: benjaminrodenberg/precice:2.5.0
+    container: precice/precice:2.5.1
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2      
@@ -27,8 +27,9 @@ jobs:
         run: python3 -c "import dolfinx; print('FEniCS-X version '+dolfinx.__version__)"
       - name: Install adapter
         run:  pip3 install --user .
-      - name: Get tutorials
-        run: git clone -b master https://github.com/PhilipHildebrand/tutorials.git
+      # Tutorial is currently hosted under https://github.com/precice/fenicsx-adapter, should be moved to https://github.com/precice/tutorials when working. See https://github.com/precice/tutorials/issues/491
+      # - name: Get tutorials
+      #   run: git clone -b develop https://github.com/precice/tutorials.git
       - name: Run tutorial
         run: | 
           cd tutorials/partitioned-heat-conduction/fenicsx
