@@ -7,7 +7,8 @@ from petsc4py import PETSc
 import ufl
 from dolfinx import mesh, fem
 from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc, LinearProblem
-from ufl import TrialFunction, TestFunction, inner, dx, grad, ds
+from dolfinx.io import VTXWriter
+from ufl import TrialFunction, TestFunction, inner, dx, grad, ds, dot
 import basix
 
 import argparse
@@ -21,7 +22,6 @@ from errorcomputation import compute_errors
 from my_enums import ProblemType, DomainPart
 from problem_setup import get_geometry
 
-from dolfinx.io import VTXWriter
 
 def determine_gradient(V_g, u):
     """
@@ -33,8 +33,8 @@ def determine_gradient(V_g, u):
     w = TrialFunction(V_g)
     v = TestFunction(V_g)
 
-    a = inner(w, v) * ufl.dx
-    L = inner(grad(u), v) * ufl.dx
+    a = ufl.inner(w, v) * ufl.dx
+    L = ufl.inner(ufl.grad(u), v) * ufl.dx
     problem = LinearProblem(a, L)
     return problem.solve()
 
@@ -180,8 +180,9 @@ if problem is ProblemType.DIRICHLET:
 u_exact.t += dt
 u_D.interpolate(u_exact)
 
+f_err = fem.Function(V)
 # create writer for output files
-vtxwriter = VTXWriter(MPI.COMM_WORLD, f"output_{problem.name}.bp", [u_n])
+vtxwriter = VTXWriter(MPI.COMM_WORLD, f"output_{problem.name}.bp", [f_err])
 vtxwriter.write(t)
     
 while precice.is_coupling_ongoing():
@@ -202,8 +203,7 @@ while precice.is_coupling_ongoing():
     precice.update_coupling_expression(coupling_expression, read_data)
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)
-    # As far as I understood, the boundary condition bc is updated by
-    # u_D.interpolate above, since this function is wrapped into the bc object
+    # Boundary condition bc should be updated by u_D.interpolate above, since this function is wrapped into the bc object
     apply_lifting(b, [a], [bcs])
     set_bc(b, bcs)
 
@@ -217,7 +217,6 @@ while precice.is_coupling_ongoing():
         flux_x = fem.Function(W)
         flux_x.interpolate(flux.sub(0))
         precice.write_data(flux_x)
-        #precice.write_data(f_N)
     elif problem is ProblemType.NEUMANN:
         # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
         precice.write_data(uh)
@@ -233,6 +232,7 @@ while precice.is_coupling_ongoing():
     else:  # update solution
         # Update solution at previous time step (u_n)
         u_n.x.array[:] = uh.x.array
+        f_err.x.array[:] = np.abs(u_n.x.array-u_D.x.array)
         t += float(dt)
         vtxwriter.write(t)
 

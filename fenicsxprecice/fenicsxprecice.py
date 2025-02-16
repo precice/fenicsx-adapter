@@ -183,11 +183,7 @@ class Adapter:
 
         # Check that the function provided lives on the same function space provided during initialization
         assert (self._write_function_type == determine_function_type(w_func))
-        assert (write_function.function_space == self._write_function_space)
-
-        #write_data_id = self._participant.get_data_id(self._config.get_write_data_name(),
-        #                                            self._participant.get_mesh_id(self._config.get_coupling_mesh_name()))
-        
+        assert (write_function.function_space == self._write_function_space) 
 
         write_function_type = determine_function_type(write_function)
         assert (write_function_type in list(FunctionType))
