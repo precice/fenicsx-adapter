@@ -12,7 +12,7 @@ jobs:
   run_ht_simple:
     name: Run HT, simple
     runs-on: ubuntu-latest
-    container: precice/precice:2.5.1
+    container: precice/precice:latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2      
