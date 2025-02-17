@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e -u
 
+python3 -m venv --system-site-packages .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+
 while getopts ":dn" opt; do
   case ${opt} in
   d)
