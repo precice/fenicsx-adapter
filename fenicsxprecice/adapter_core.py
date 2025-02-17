@@ -2,7 +2,7 @@
 This module consists of helper functions used in the Adapter class. Names of the functions are self explanatory
 """
 
-#from dolfinx.fem import FunctionSpace, Function
+# from dolfinx.fem import FunctionSpace, Function
 from dolfinx import fem, geometry
 import numpy as np
 from enum import Enum
@@ -107,16 +107,17 @@ def convert_fenicsx_to_precice_coordinateBased(fenicsx_function, local_coords):
         raise Exception("Cannot handle data type {}".format(type(fenicsx_function)))
 
     mesh = fenicsx_function.function_space.mesh
-    
+
     # this evaluation is a bit annoying, see:
     # https://github.com/FEniCS/dolfinx/blob/main/python/test/unit/fem/test_function.py#L63
 
     # for fast function evaluation
-    bb_tree = geometry.bb_tree(mesh, mesh.geometry.dim) # TODO: as long as the domain didn't change, we could store that tree somewhere
-    
+    # TODO: as long as the domain didn't change, we could store that tree somewhere
+    bb_tree = geometry.bb_tree(mesh, mesh.geometry.dim)
+
     cells = []
     points = []
-    
+
     # Find cells whose bounding-box collide with the the points
     cell_candidates = geometry.compute_collisions_points(bb_tree, local_coords)
     # Choose one of the cells that contains the point
@@ -125,7 +126,7 @@ def convert_fenicsx_to_precice_coordinateBased(fenicsx_function, local_coords):
         if len(colliding_cells.links(i)) > 0:
             points.append(point)
             cells.append(colliding_cells.links(i)[0])
-    
+
     precice_data = fenicsx_function.eval(points, cells)
     return np.array(precice_data)
 
@@ -155,12 +156,12 @@ def get_fenicsx_vertices(function_space, coupling_subdomain, dims):
 
     # Get mesh from FEniCSx function space
     mesh = function_space.mesh
-    
+
     # Get coordinates and IDs of all vertices of the mesh which lie on the coupling boundary.
     try:
         ids = fem.locate_dofs_geometrical(function_space, coupling_subdomain)
         if dims == 2:
-            coords = function_space.tabulate_dof_coordinates()[ids] # we get 3d coordinates here
+            coords = function_space.tabulate_dof_coordinates()[ids]  # we get 3d coordinates here
         else:
             coords = np.array([])
     except Exception as e:  # fall back to old method  # TODO is that too general? Better use, e.g., IndexError here?
@@ -175,5 +176,5 @@ def get_fenicsx_vertices(function_space, coupling_subdomain, dims):
                     coords.append([v[0], v[1]])
         ids = np.array(ids)
         coords = np.array(coords)
-        
+
     return ids, coords

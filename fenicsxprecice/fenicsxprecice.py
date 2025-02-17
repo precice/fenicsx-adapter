@@ -52,14 +52,14 @@ class Adapter:
 
         # Setup up MPI communicator
         self._comm = mpi_comm
-        
+
         self._participant = precice.Participant(
             self._config.get_participant_name(),
             self._config.get_config_file_name(),
             self._comm.Get_rank(),
             self._comm.Get_size()
         )
-        
+
         # FEniCSx related quantities
         self._read_function_space = None  # initialized later
         self._write_function_space = None  # initialized later
@@ -87,8 +87,7 @@ class Adapter:
 
         # Problem dimension in FEniCSx
         self._fenicsx_dims = None
-        
-        
+
         self._empty_rank = True
 
     def create_coupling_expression(self):
@@ -148,8 +147,8 @@ class Adapter:
         assert (self._coupling_type is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or
                 CouplingMode.BI_DIRECTIONAL_COUPLING)
 
-        read_data=None
-        
+        read_data = None
+
         if not self._empty_rank:
             read_data = self._participant.read_data(
                 self._config.get_coupling_mesh_name(),
@@ -157,12 +156,12 @@ class Adapter:
                 self._precice_vertex_ids,
                 dt
             )
-            #TODO: MPI stuff
+            # TODO: MPI stuff
             read_data = {tuple(key): value for key, value in zip(self._fenicsx_vertices.get_coordinates(), read_data)}
 
         else:
             pass
-    
+
         return copy.deepcopy(read_data)
 
     def write_data(self, write_function):
@@ -183,11 +182,12 @@ class Adapter:
 
         # Check that the function provided lives on the same function space provided during initialization
         assert (self._write_function_type == determine_function_type(w_func))
-        assert (write_function.function_space == self._write_function_space) 
+        assert (write_function.function_space == self._write_function_space)
 
         write_function_type = determine_function_type(write_function)
         assert (write_function_type in list(FunctionType))
-        write_data = convert_fenicsx_to_precice_coordinateBased(write_function, self._fenicsx_vertices.get_coordinates())
+        write_data = convert_fenicsx_to_precice_coordinateBased(
+            write_function, self._fenicsx_vertices.get_coordinates())
         self._participant.write_data(
             self._config.get_coupling_mesh_name(),
             self._config.get_write_data_name(),
@@ -271,26 +271,25 @@ class Adapter:
             # Ensure that function spaces of read and write functions are defined using the same mesh
             self._write_function_type = determine_function_type(write_function_space)
             self._write_function_space = write_function_space
-        
-        
+
         # Set vertices on the coupling subdomain for this rank
         self._fenicsx_dims = function_space.mesh.geometry.dim
-        ids, coords = get_fenicsx_vertices(function_space, coupling_subdomain, self._fenicsx_dims)  # returns 3d coordinates (necessary later for writing the data!)
-                                                                                                    # this isnt a problem in update_coupling_expression, because in this function
-                                                                                                    # , the two first dimensions are extracted. Exactly what we want!
+        # returns 3d coordinates (necessary later for writing the data!)
+        ids, coords = get_fenicsx_vertices(function_space, coupling_subdomain, self._fenicsx_dims)
+        # this isnt a problem in update_coupling_expression, because in this function
+        # , the two first dimensions are extracted. Exactly what we want!
         self._fenicsx_vertices.set_ids(ids)
         self._fenicsx_vertices.set_coordinates(coords)
 
         # Set up mesh in preCICE
         self._precice_vertex_ids = self._participant.set_mesh_vertices(
-            self._config.get_coupling_mesh_name(), self._fenicsx_vertices.get_coordinates()[:, :2]) # give preCICE only 2D coordinates
+            self._config.get_coupling_mesh_name(), self._fenicsx_vertices.get_coordinates()[
+                :, :2])  # give preCICE only 2D coordinates
 
-            
         if self._fenicsx_vertices.get_ids().size > 0:
             self._empty_rank = False
         else:
             print("Rank {} has no part of coupling boundary.".format(self._comm.Get_rank()))
-
 
         # Ensure that function spaces of read and write functions use the same mesh
         if self._coupling_type is CouplingMode.BI_DIRECTIONAL_COUPLING:
@@ -305,7 +304,8 @@ class Adapter:
 
         if self._participant.requires_initial_data():
             if not write_function:
-                raise Exception("preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
+                raise Exception(
+                    "preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
             self.write_data(write_function)
 
         self._participant.initialize()
@@ -422,9 +422,9 @@ class Adapter:
 
     def get_max_time_step_size(self):
         return self._participant.get_max_time_step_size()
-    
+
     def requires_writing_checkpoint(self):
         return self._participant.requires_writing_checkpoint()
-    
+
     def requires_reading_checkpoint(self):
         return self._participant.requires_reading_checkpoint()
