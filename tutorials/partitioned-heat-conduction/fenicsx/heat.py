@@ -147,7 +147,7 @@ if problem is ProblemType.DIRICHLET:
 if problem is ProblemType.NEUMANN:
     # modify Neumann boundary condition on coupling interface, modify weak
     # form correspondingly
-    F += dt*coupling_expression * v * ufl.ds
+    F += dt * coupling_expression * v * ufl.ds
 
 a = fem.form(ufl.lhs(F))
 L = fem.form(ufl.rhs(F))
@@ -184,7 +184,7 @@ f_err = fem.Function(V)
 # create writer for output files
 vtxwriter = VTXWriter(MPI.COMM_WORLD, f"output_{problem.name}.bp", [f_err])
 vtxwriter.write(t)
-    
+
 while precice.is_coupling_ongoing():
 
     if precice.requires_writing_checkpoint():
@@ -199,11 +199,12 @@ while precice.is_coupling_ongoing():
     with b.localForm() as loc_b:
         loc_b.set(0)
     assemble_vector(b, L)
-    
+
     precice.update_coupling_expression(coupling_expression, read_data)
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)
-    # Boundary condition bc should be updated by u_D.interpolate above, since this function is wrapped into the bc object
+    # Boundary condition bc should be updated by u_D.interpolate above, since
+    # this function is wrapped into the bc object
     apply_lifting(b, [a], [bcs])
     set_bc(b, bcs)
 
@@ -232,7 +233,7 @@ while precice.is_coupling_ongoing():
     else:  # update solution
         # Update solution at previous time step (u_n)
         u_n.x.array[:] = uh.x.array
-        f_err.x.array[:] = np.abs(u_n.x.array-u_D.x.array)
+        f_err.x.array[:] = np.abs(u_n.x.array - u_D.x.array)
         t += float(dt)
         vtxwriter.write(t)
 
@@ -241,7 +242,7 @@ while precice.is_coupling_ongoing():
         u_ref.interpolate(u_D)
         error, error_pointwise = compute_errors(u_n, u_ref, total_error_tol=1)
         print("t = %.2f: L2 error on domain = %.3g" % (t, error))
-        
+
         # Update Dirichlet BC
         u_exact.t += dt
         u_D.interpolate(u_exact)

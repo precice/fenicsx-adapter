@@ -12,14 +12,14 @@ jobs:
   run_ht_simple:
     name: Run HT, simple
     runs-on: ubuntu-latest
-    container: precice/precice:2.5.1
+    container: precice/precice:develop
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2      
       - name: Install Dependencies & FEniCSx
         run: |
           apt-get -qq update
-          apt-get -qq install software-properties-common python3-dev python3-pip git apt-utils
+          apt-get -qq install software-properties-common python3-dev python3-pip python3-venv git apt-utils
           add-apt-repository -y ppa:fenics-packages/fenics
           apt-get -qq install --no-install-recommends fenicsx
           rm -rf /var/lib/apt/lists/*

@@ -27,7 +27,7 @@ def straight_boundary(x):
 
 
 def get_geometry(domain_part):
-    nx = 11 
+    nx = 11
     ny = 11
 
     if domain_part is DomainPart.LEFT:
