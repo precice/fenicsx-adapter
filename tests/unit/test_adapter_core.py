@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 from mpi4py import MPI
 from dolfinx.mesh import create_unit_square
-from dolfinx.fem import Function, FunctionSpace, VectorFunctionSpace
+from dolfinx import fem
 
 
 class TestAdapterCore(TestCase):
@@ -11,13 +11,13 @@ class TestAdapterCore(TestCase):
         """
         Test conversion from function to write_data for scalar
         """
-        from fenicsxprecice.adapter_core import convert_fenicsx_to_precice_coordinateBased
+        from fenicsxprecice.adapter_core import convert_fenicsx_to_precice
         from sympy import lambdify, symbols
 
         mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)  # create dummy mesh
 
         # scalar valued
-        V = FunctionSpace(mesh, ('P', 2))  # Create function space using mesh
+        V = fem.functionspace(mesh, ("P", 2))  # Create function space using mesh
         x, y = symbols('x[0], x[1]')
         fun_sym = y + x * x
         fun_lambda = lambdify([x, y], fun_sym)
@@ -26,17 +26,18 @@ class TestAdapterCore(TestCase):
             def __call__(self, x):
                 return fun_lambda(x[0], x[1])
 
-        fenicsx_function = Function(V)
+        fenicsx_function = fem.Function(V)
         fenicsx_function.interpolate(my_expression())
 
-        local_ids = []
+        local_coords = []
         manual_sampling = []
         for i in range(mesh.geometry.x.shape[0]):
             v = mesh.geometry.x[i]
-            local_ids.append(i)
+            # fenicsx adapter needs coordinates now, not dof ids
+            local_coords.append(v)
             manual_sampling.append([fun_lambda(v[0], v[1])])
         manual_sampling = np.array(manual_sampling).squeeze()
-
-        data = convert_fenicsx_to_precice_coordinateBased(fenicsx_function, local_ids)
+        
+        data = convert_fenicsx_to_precice(fenicsx_function, np.array(local_coords)).squeeze()
 
         np.testing.assert_allclose(data, manual_sampling, atol=10**-16)
