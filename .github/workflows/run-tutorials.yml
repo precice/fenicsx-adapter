@@ -32,5 +32,5 @@ jobs:
       #   run: git clone -b develop https://github.com/precice/tutorials.git
       - name: Run tutorial
         run: | 
-          cd tutorials/partitioned-heat-conduction/fenicsx
-          ./run.sh -d & ./run.sh -n
+          cd tutorials/partitioned-heat-conduction
+          cd dirichlet-fenicsx && ./run.sh & cd neumann-fenicsx && ./run.sh
