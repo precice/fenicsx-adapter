@@ -161,7 +161,7 @@ def get_fenicsx_vertices(function_space, coupling_subdomain, dims):
     try:
         ids = fem.locate_dofs_geometrical(function_space, coupling_subdomain)
         if dims == 2 or dims == 3:
-            coords = function_space.tabulate_dof_coordinates()[ids] # we get 3d coordinates here
+            coords = function_space.tabulate_dof_coordinates()[ids]  # we get 3d coordinates here
         else:
             coords = np.array([])
     except Exception as e:  # fall back to old method  # TODO is that too general? Better use, e.g., IndexError here?

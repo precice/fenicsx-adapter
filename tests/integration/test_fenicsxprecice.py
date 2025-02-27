@@ -132,7 +132,7 @@ class TestExpressionHandling(TestCase):
         Participant.requires_initial_data = MagicMock(return_value=False)
         Participant.initialize = MagicMock()
         Participant.write_data = MagicMock()
-        
+
         def right_boundary(x): return abs(x[0] - 1.0) < 10**-14
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
