@@ -86,7 +86,7 @@ def determine_function_type(input_obj):
         raise Exception("Error determining type of given dolfin FunctionSpace")
 
 
-def convert_fenicsx_to_precice_coordinateBased(fenicsx_function, local_coords):
+def convert_fenicsx_to_precice(fenicsx_function, local_coords):
     """
     Converts data of type dolfinx.Function into Numpy array for all x and y coordinates on the boundary.
 
@@ -110,8 +110,6 @@ def convert_fenicsx_to_precice_coordinateBased(fenicsx_function, local_coords):
     
     # this evaluation is a bit annoying, see:
     # https://github.com/FEniCS/dolfinx/blob/main/python/test/unit/fem/test_function.py#L63
-
-    # for fast function evaluation
     bb_tree = geometry.bb_tree(mesh, mesh.geometry.dim) # TODO: as long as the domain didn't change, we could store that tree somewhere
     
     cells = []
@@ -159,7 +157,7 @@ def get_fenicsx_vertices(function_space, coupling_subdomain, dims):
     # Get coordinates and IDs of all vertices of the mesh which lie on the coupling boundary.
     try:
         ids = fem.locate_dofs_geometrical(function_space, coupling_subdomain)
-        if dims == 2:
+        if dims == 2 or dims == 3:
             coords = function_space.tabulate_dof_coordinates()[ids] # we get 3d coordinates here
         else:
             coords = np.array([])

@@ -7,7 +7,7 @@ import numpy as np
 from .config import Config
 import logging
 import precice
-from .adapter_core import FunctionType, determine_function_type, get_fenicsx_vertices, CouplingMode, Vertices, convert_fenicsx_to_precice_coordinateBased
+from .adapter_core import FunctionType, determine_function_type, get_fenicsx_vertices, CouplingMode, Vertices, convert_fenicsx_to_precice
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
 from dolfinx.fem import Function, FunctionSpace
@@ -187,7 +187,7 @@ class Adapter:
 
         write_function_type = determine_function_type(write_function)
         assert (write_function_type in list(FunctionType))
-        write_data = convert_fenicsx_to_precice_coordinateBased(write_function, self._fenicsx_vertices.get_coordinates())
+        write_data = convert_fenicsx_to_precice(write_function, self._fenicsx_vertices.get_coordinates())
         self._participant.write_data(
             self._config.get_coupling_mesh_name(),
             self._config.get_write_data_name(),
