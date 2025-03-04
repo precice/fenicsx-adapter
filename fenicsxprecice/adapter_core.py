@@ -2,7 +2,6 @@
 This module consists of helper functions used in the Adapter class. Names of the functions are self explanatory
 """
 
-# from dolfinx.fem import FunctionSpace, Function
 from dolfinx import fem, geometry
 import numpy as np
 from enum import Enum
