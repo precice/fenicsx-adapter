@@ -38,6 +38,7 @@ jobs:
           echo "from setuptools import setup" >> precice/setup.py
           echo "setup(name='pyprecice', version='3.0.0')" >> precice/setup.py
           python3 -m pip install ./precice/
+          python3 -m pip install setuptools==75.0.0
       - name: Run unit tests
         run:  python3 setup.py test -s tests.unit
       - name: Run integration tests
