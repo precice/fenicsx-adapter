@@ -82,7 +82,7 @@ If you are using FEniCSx, please also consider the information on [the official 
 
 ## Development history
 
-2018: The initial version of the [fenics-adapter](https://github.com/precice/fenics-adapter) was developed by [Benjamin Rodenberg](https://www.cs.cit.tum.de/sccs/personen/benjamin-rodenberg/) during his research stay at Lund University in the group for [Numerical Analysis](http://www.maths.lu.se/english/research/research-divisions/numerical-analysis/) in close collaboration with Peter Meisrimel.
+2018: The initial version of the [fenics-adapter](https://github.com/precice/fenics-adapter) was developed by [Benjamin Rodenberg](https://www.cs.cit.tum.de/sccs/personen/benjamin-rodenberg/) during his research stay at Lund University in the group for [Numerical Analysis](https://www.maths.lu.se/english/research/research-groups/numerical-analysis/) in close collaboration with Peter Meisrimel.
 
 2019: [Richard Hertrich](https://github.com/richahert) contributed the possibility to perform FSI simulations using the adapter in his [Bachelor thesis](https://mediatum.ub.tum.de/node?id=1520579).
 
