@@ -2,7 +2,8 @@ from unittest.mock import MagicMock, patch
 from unittest import TestCase
 from tests import MockedPrecice
 from dolfinx.mesh import create_unit_square
-from dolfinx.fem import FunctionSpace, VectorFunctionSpace, Function
+from dolfinx import fem
+import basix
 from mpi4py import MPI
 import numpy as np
 
@@ -30,12 +31,13 @@ class TestWriteandReadData(TestCase):
     mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)
     dimension = 2
 
-    scalar_V = FunctionSpace(mesh, ("P", 2))
-    scalar_function = Function(scalar_V)
+    scalar_V = fem.functionspace(mesh, ("P", 2))
+    scalar_function = fem.Function(scalar_V)
     scalar_function.interpolate(scalar_expr)
 
-    vector_V = VectorFunctionSpace(mesh, ("P", 2))
-    vector_function = Function(vector_V)
+    vector_elem = basix.ufl.element("P", mesh.topology.cell_name(), 2, shape=(mesh.geometry.dim,))
+    vector_V = fem.functionspace(mesh, vector_elem)
+    vector_function = fem.Function(vector_V)
     vector_function.interpolate(vector_expr)
 
     n_vertices = 11
@@ -47,21 +49,21 @@ class TestWriteandReadData(TestCase):
         """
         Test to check if Adapter function write() passes correct parameters to the API function write_block_scalar_data()
         """
-        from precice import Interface
+        from precice import Participant
         import fenicsxprecice
 
-        Interface.write_block_scalar_data = MagicMock()
-        Interface.get_dimensions = MagicMock(return_value=2)
-        Interface.get_mesh_id = MagicMock()
-        Interface.get_data_id = MagicMock(return_value=self.fake_id)
-        Interface.set_mesh_vertices = MagicMock(return_value=np.arange(self.n_vertices))
-        Interface.set_mesh_edge = MagicMock()
-        Interface.initialize = MagicMock()
-        Interface.is_action_required = MagicMock(return_value=False)
-        Interface.initialize_data = MagicMock()
+        Participant.write_data = MagicMock()
+        Participant.get_dimensions = MagicMock(return_value=2)
+        Participant.get_mesh_id = MagicMock()
+        Participant.get_data_id = MagicMock(return_value=self.fake_id)
+        Participant.set_mesh_vertices = MagicMock(return_value=np.arange(self.n_vertices))
+        Participant.set_mesh_edge = MagicMock()
+        Participant.initialize = MagicMock()
+        Participant.is_action_required = MagicMock(return_value=False)
+        Participant.initialize_data = MagicMock()
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
-        precice._interface = Interface(None, None, None, None)
+        precice._participant = Participant(None, None, None, None)
         precice._write_data_id = self.fake_id
         precice.initialize(right_boundary, self.scalar_V, self.scalar_function)
 
@@ -72,7 +74,7 @@ class TestWriteandReadData(TestCase):
         expected_ids = np.arange(self.n_vertices)
         expected_args = [expected_data_id, expected_ids, expected_values]
 
-        for arg, expected_arg in zip(Interface.write_block_scalar_data.call_args[0], expected_args):
+        for arg, expected_arg in zip(Participant.write_data.call_args[1], expected_args):
             if isinstance(arg, int):
                 self.assertTrue(arg == expected_arg)
             elif isinstance(arg, np.ndarray):
@@ -84,35 +86,35 @@ class TestWriteandReadData(TestCase):
         Test to check if Adapter function read() passes correct parameters to the API function read_block_scalar_data()
         Test to check if data return by API function read_block_scalar_data() is also returned by Adapter function read()
         """
-        from precice import Interface
+        from precice import Participant
         import fenicsxprecice
 
         def return_dummy_data(n_points):
             data = np.arange(n_points)
             return data
 
-        Interface.read_block_scalar_data = MagicMock(return_value=return_dummy_data(self.n_vertices))
-        Interface.get_dimensions = MagicMock(return_value=self.dimension)
-        Interface.get_mesh_id = MagicMock()
-        Interface.get_data_id = MagicMock(return_value=self.fake_id)
-        Interface.set_mesh_vertices = MagicMock(return_value=np.arange(self.n_vertices))
-        Interface.set_mesh_edge = MagicMock()
-        Interface.initialize = MagicMock()
-        Interface.is_action_required = MagicMock(return_value=False)
-        Interface.initialize_data = MagicMock()
+        Participant.read_data = MagicMock(return_value=return_dummy_data(self.n_vertices))
+        Participant.get_dimensions = MagicMock(return_value=self.dimension)
+        Participant.get_mesh_id = MagicMock()
+        Participant.get_data_id = MagicMock(return_value=self.fake_id)
+        Participant.set_mesh_vertices = MagicMock(return_value=np.arange(self.n_vertices))
+        Participant.set_mesh_edge = MagicMock()
+        Participant.initialize = MagicMock()
+        Participant.is_action_required = MagicMock(return_value=False)
+        Participant.initialize_data = MagicMock()
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
-        precice._interface = Interface(None, None, None, None)
+        precice._participant = Participant(None, None, None, None)
         precice._read_data_id = self.fake_id
         precice.initialize(right_boundary, self.scalar_V)
 
-        read_data = precice.read_data()
+        read_data = precice.read_data(0)
 
         expected_data_id = self.fake_id
         expected_ids = np.arange(self.n_vertices)
         expected_args = [expected_data_id, expected_ids]
 
-        for arg, expected_arg in zip(Interface.read_block_scalar_data.call_args[0], expected_args):
+        for arg, expected_arg in zip(Participant.read_data.call_args[0], expected_args):
             if isinstance(arg, int):
                 self.assertTrue(arg == expected_arg)
             elif isinstance(arg, np.ndarray):
