@@ -26,14 +26,12 @@ Heat equation with mixed boundary conditions. (Neumann problem)
 import argparse
 import numpy as np
 from mpi4py import MPI
-
 import basix.ufl
 from petsc4py import PETSc
 import ufl
 from dolfinx import fem, io
 from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc, LinearProblem
 import basix
-
 from fenicsxprecice import Adapter
 from errorcomputation import compute_errors
 from my_enums import ProblemType, DomainPart
