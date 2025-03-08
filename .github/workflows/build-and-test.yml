@@ -34,6 +34,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Install fake precice
         run:  |
+          pip install setuptools==71.0.0
           mkdir -p precice
           echo "from setuptools import setup" >> precice/setup.py
           echo "setup(name='pyprecice', version='3.0.0')" >> precice/setup.py
