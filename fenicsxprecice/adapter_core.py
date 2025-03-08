@@ -175,5 +175,4 @@ def get_fenicsx_vertices(function_space, coupling_subdomain, dims):
                     coords.append([v[0], v[1]])
         ids = np.array(ids)
         coords = np.array(coords)
-
     return ids, coords

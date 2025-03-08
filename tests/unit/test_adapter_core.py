@@ -2,8 +2,7 @@ from unittest.mock import MagicMock
 from unittest import TestCase
 import numpy as np
 from mpi4py import MPI
-from dolfinx.mesh import create_unit_square
-from dolfinx import fem
+from dolfinx import fem, mesh as msh
 
 
 class TestAdapterCore(TestCase):
@@ -14,7 +13,7 @@ class TestAdapterCore(TestCase):
         from fenicsxprecice.adapter_core import convert_fenicsx_to_precice
         from sympy import lambdify, symbols
 
-        mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)  # create dummy mesh
+        mesh = msh.create_unit_square(MPI.COMM_WORLD, 10, 10)  # create dummy mesh
 
         # scalar valued
         V = fem.functionspace(mesh, ("P", 2))  # Create function space using mesh

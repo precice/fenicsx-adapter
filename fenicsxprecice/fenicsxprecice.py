@@ -2,7 +2,6 @@
 FEniCSx - preCICE Adapter. API to help users couple FEniCS with other solvers using the preCICE library.
 :raise ImportError: if PRECICE_ROOT is not defined
 """
-from os import write
 import numpy as np
 from .config import Config
 import logging
@@ -10,7 +9,7 @@ import precice
 from .adapter_core import FunctionType, determine_function_type, get_fenicsx_vertices, CouplingMode, Vertices, convert_fenicsx_to_precice
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
-from dolfinx.fem import Function, FunctionSpace
+from dolfinx import fem
 import copy
 
 logger = logging.getLogger(__name__)
@@ -87,7 +86,6 @@ class Adapter:
 
         # Problem dimension in FEniCSx
         self._fenicsx_dims = None
-
         self._empty_rank = True
 
     def create_coupling_expression(self):
@@ -156,7 +154,6 @@ class Adapter:
                 self._precice_vertex_ids,
                 dt
             )
-            # TODO: MPI stuff
             read_data = {tuple(key): value for key, value in zip(self._fenicsx_vertices.get_coordinates(), read_data)}
 
         else:
@@ -217,10 +214,10 @@ class Adapter:
         """
 
         write_function_space, write_function = None, None
-        if isinstance(write_object, Function):  # precice.initialize_data() will be called using this Function
+        if isinstance(write_object, fem.Function):  # precice.initialize_data() will be called using this Function
             write_function_space = write_object.function_space
             write_function = write_object
-        elif isinstance(write_object, FunctionSpace):  # preCICE will use default zero values for initialization.
+        elif isinstance(write_object, fem.FunctionSpace):  # preCICE will use default zero values for initialization.
             write_function_space = write_object
             write_function = None
         elif write_object is None:
@@ -229,7 +226,7 @@ class Adapter:
             raise Exception("Given write object is neither of type dolfinx.functions.function.Function or "
                             "dolfinx.functions.functionspace.FunctionSpace")
 
-        if isinstance(read_function_space, FunctionSpace):
+        if isinstance(read_function_space, fem.FunctionSpace):
             pass
         elif read_function_space is None:
             pass

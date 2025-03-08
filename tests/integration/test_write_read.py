@@ -1,8 +1,7 @@
 from unittest.mock import MagicMock, patch
 from unittest import TestCase
 from tests import MockedPrecice
-from dolfinx.mesh import create_unit_square
-from dolfinx import fem
+from dolfinx import fem, mesh as msh
 import basix
 from mpi4py import MPI
 import numpy as np
@@ -28,7 +27,7 @@ class TestWriteandReadData(TestCase):
     """
     dummy_config = "tests/precice-adapter-config.json"
 
-    mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)
+    mesh = msh.create_unit_square(MPI.COMM_WORLD, 10, 10)
     dimension = 2
 
     scalar_V = fem.functionspace(mesh, ("P", 2))

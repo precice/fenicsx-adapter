@@ -1,24 +1,41 @@
 """
-This code is mostly taken from: https://jsdokken.com/dolfinx-tutorial/chapter2/heat_equation.html
+The basic example is taken from "Langtangen, Hans Petter, and Anders Logg. Solving PDEs in Python: The FEniCS
+Tutorial I. Springer International Publishing, 2016."
+
+The example code has been extended with preCICE API calls and mixed boundary conditions to allow for a Dirichlet-Neumann
+coupling of two separate heat equations. It also has been adapted to be compatible with FEniCSx.
+
+The original source code can be found on https://jsdokken.com/dolfinx-tutorial/chapter2/heat_equation.html.
+
+Heat equation with Dirichlet conditions. (Dirichlet problem)
+  u'= Laplace(u) + f  in the unit square [0,1] x [0,1]
+  u = u_C             on the coupling boundary at x = 1
+  u = u_D             on the remaining boundary
+  u = u_0             at t = 0
+  u = 1 + x^2 + alpha*y^2 + \beta*t
+  f = beta - 2 - 2*alpha
+
+Heat equation with mixed boundary conditions. (Neumann problem)
+  u'= Laplace(u) + f  in the shifted unit square [1,2] x [0,1]
+  du/dn = f_N         on the coupling boundary at x = 1
+  u = u_D             on the remaining boundary
+  u = u_0             at t = 0
+  u = 1 + x^2 + alpha*y^2 + \beta*t
+  f = beta - 2 - 2*alpha
 """
+import argparse
+import numpy as np
+from mpi4py import MPI
 
 import basix.ufl
 from petsc4py import PETSc
 import ufl
-from dolfinx import mesh, fem
+from dolfinx import fem, io
 from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc, LinearProblem
-from dolfinx.io import VTXWriter
-from ufl import TrialFunction, TestFunction, inner, dx, grad, ds, dot
 import basix
-
-import argparse
-import numpy as np
-from mpi4py import MPI
-import sympy as sp
 
 from fenicsxprecice import Adapter
 from errorcomputation import compute_errors
-
 from my_enums import ProblemType, DomainPart
 from problem_setup import get_geometry
 
@@ -30,14 +47,13 @@ def determine_gradient(V_g, u):
     :param u: solution where gradient is to be determined
     """
 
-    w = TrialFunction(V_g)
-    v = TestFunction(V_g)
+    w = ufl.TrialFunction(V_g)
+    v = ufl.TestFunction(V_g)
 
     a = ufl.inner(w, v) * ufl.dx
     L = ufl.inner(ufl.grad(u), v) * ufl.dx
     problem = LinearProblem(a, L)
     return problem.solve()
-
 
 # Parse arguments
 parser = argparse.ArgumentParser(description="Solving heat equation for simple or complex interface case")
@@ -53,16 +69,13 @@ fenics_dt = 0.1
 alpha = 3
 beta = 1.2
 
-
 # define the domain
-
 if participant_name == ProblemType.DIRICHLET.value:
     problem = ProblemType.DIRICHLET
     domain_part = DomainPart.LEFT
 elif participant_name == ProblemType.NEUMANN.value:
     problem = ProblemType.NEUMANN
     domain_part = DomainPart.RIGHT
-
 
 # create domain and function space
 domain, coupling_boundary, remaining_boundary = get_geometry(domain_part)
@@ -72,18 +85,13 @@ V_g = fem.functionspace(domain, element)
 W, map_to_W = V_g.sub(0).collapse()
 
 # Define the exact solution
-
-
 class exact_solution():
     def __init__(self, alpha, beta, t):
         self.alpha = alpha
         self.beta = beta
         self.t = t
-
     def __call__(self, x):
         return 1 + x[0]**2 + self.alpha * x[1]**2 + self.beta * self.t
-
-
 u_exact = exact_solution(alpha, beta, t)
 
 # Define the boundary condition
@@ -100,12 +108,10 @@ dofs_remaining = fem.locate_dofs_geometrical(V, remaining_boundary)
 bc_D = fem.dirichletbc(u_D, dofs_remaining)
 bcs.append(bc_D)
 
-
 if problem is ProblemType.DIRICHLET:
     # Define flux in x direction
     f_N = fem.Function(W)
     f_N.interpolate(lambda x: 2 * x[0])
-
 
 u_n = fem.Function(V)  # IV and solution u for the n-th time step
 u_n.interpolate(u_exact)
@@ -116,7 +122,6 @@ if problem is ProblemType.DIRICHLET:
     precice = Adapter(adapter_config_filename="precice-adapter-config-D.json", mpi_comm=MPI.COMM_WORLD)
 else:
     precice = Adapter(adapter_config_filename="precice-adapter-config-N.json", mpi_comm=MPI.COMM_WORLD)
-
 
 if problem is ProblemType.DIRICHLET:
     precice.initialize(coupling_boundary, read_function_space=V, write_object=f_N)
@@ -129,15 +134,11 @@ dt = np.min([fenics_dt, precice_dt])
 
 
 # Define the variational formualation
-
 # As $f$ is a constant independent of $t$, we can define it as a constant.
 f = fem.Constant(domain, beta - 2 - 2 * alpha)
-
 # We can now create our variational formulation, with the bilinear form `a` and  linear form `L`.
-
 u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
 F = u * v * ufl.dx + dt * ufl.dot(ufl.grad(u), ufl.grad(v)) * ufl.dx - (u_n + dt * f) * v * ufl.dx
-
 # create a coupling expression for the coupling_boundary and modify variational problem accordingly
 coupling_expression = precice.create_coupling_expression()
 if problem is ProblemType.DIRICHLET:
@@ -148,7 +149,6 @@ if problem is ProblemType.NEUMANN:
     # modify Neumann boundary condition on coupling interface, modify weak
     # form correspondingly
     F += dt * coupling_expression * v * ufl.ds
-
 a = fem.form(ufl.lhs(F))
 L = fem.form(ufl.rhs(F))
 
@@ -157,7 +157,6 @@ L = fem.form(ufl.rhs(F))
 # will create several structures which can reuse data, such as matrix
 # sparisty patterns. Especially note as the bilinear form `a` is
 # independent of time, we only need to assemble the matrix once.
-
 A = assemble_matrix(a, bcs=bcs)
 A.assemble()
 b = create_vector(L)
@@ -167,7 +166,6 @@ uh = fem.Function(V)
 # We will use [PETSc](https://www.mcs.anl.gov/petsc/) to solve the
 # resulting linear algebra problem. We use the Python-API `petsc4py` to
 # define the solver. We will use a linear solver.
-
 solver = PETSc.KSP().create(domain.comm)
 solver.setOperators(A)
 solver.setType(PETSc.KSP.Type.PREONLY)
@@ -182,7 +180,7 @@ u_D.interpolate(u_exact)
 
 f_err = fem.Function(V)
 # create writer for output files
-vtxwriter = VTXWriter(MPI.COMM_WORLD, f"output_{problem.name}.bp", [f_err])
+vtxwriter = io.VTXWriter(MPI.COMM_WORLD, f"output_{problem.name}.bp", [f_err])
 vtxwriter.write(t)
 
 while precice.is_coupling_ongoing():
@@ -192,14 +190,13 @@ while precice.is_coupling_ongoing():
 
     precice_dt = precice.get_max_time_step_size()
     dt = np.min([fenics_dt, precice_dt])
-
+    
     read_data = precice.read_data(dt)
-
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
         loc_b.set(0)
     assemble_vector(b, L)
-
+    # Update the coupling expression with the new read data
     precice.update_coupling_expression(coupling_expression, read_data)
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)

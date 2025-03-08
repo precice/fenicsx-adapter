@@ -5,8 +5,7 @@ from unittest import TestCase
 from tests import MockedPrecice
 import numpy as np
 from mpi4py import MPI
-from dolfinx.mesh import create_unit_square
-from dolfinx import fem
+from dolfinx import fem, mesh as msh
 
 
 class MockedArray:
@@ -101,7 +100,7 @@ class TestExpressionHandling(TestCase):
     """
     dummy_config = "tests/precice-adapter-config.json"
 
-    mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)
+    mesh = msh.create_unit_square(MPI.COMM_WORLD, 10, 10)
     dimension = 2
 
     def scalar_expr(x): return x[0] + x[1]
