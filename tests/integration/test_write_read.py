@@ -52,13 +52,13 @@ class TestWriteandReadData(TestCase):
         import fenicsxprecice
 
         Participant.write_data = MagicMock()
-        Participant.get_dimensions = MagicMock(return_value=2)
+        Participant.get_mesh_dimensions = MagicMock(return_value=self.dimension)
         Participant.get_mesh_id = MagicMock()
         Participant.get_data_id = MagicMock(return_value=self.fake_id)
         Participant.set_mesh_vertices = MagicMock(return_value=np.arange(self.n_vertices))
         Participant.set_mesh_edge = MagicMock()
         Participant.initialize = MagicMock()
-        Participant.is_action_required = MagicMock(return_value=False)
+        Participant.requires_initial_data = MagicMock(return_value=False)
         Participant.initialize_data = MagicMock()
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
@@ -93,13 +93,13 @@ class TestWriteandReadData(TestCase):
             return data
 
         Participant.read_data = MagicMock(return_value=return_dummy_data(self.n_vertices))
-        Participant.get_dimensions = MagicMock(return_value=self.dimension)
+        Participant.get_mesh_dimensions = MagicMock(return_value=self.dimension)
         Participant.get_mesh_id = MagicMock()
         Participant.get_data_id = MagicMock(return_value=self.fake_id)
         Participant.set_mesh_vertices = MagicMock(return_value=np.arange(self.n_vertices))
         Participant.set_mesh_edge = MagicMock()
         Participant.initialize = MagicMock()
-        Participant.is_action_required = MagicMock(return_value=False)
+        Participant.requires_initial_data = MagicMock(return_value=False)
         Participant.initialize_data = MagicMock()
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
