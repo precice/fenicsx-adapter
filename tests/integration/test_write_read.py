@@ -46,7 +46,7 @@ class TestWriteandReadData(TestCase):
 
     def test_scalar_write(self):
         """
-        Test to check if Adapter function write() passes correct parameters to the API function write_block_scalar_data()
+        Test to check if Adapter function write() passes correct parameters to the API function write_data()
         """
         from precice import Participant
         import fenicsxprecice
@@ -79,8 +79,8 @@ class TestWriteandReadData(TestCase):
 
     def test_scalar_read(self):
         """
-        Test to check if Adapter function read() passes correct parameters to the API function read_block_scalar_data()
-        Test to check if data return by API function read_block_scalar_data() is also returned by Adapter function read()
+        Test to check if Adapter function read() passes correct parameters to the API function read_data()
+        Test to check if data return by API function read_data() is also returned by Adapter function read()
         """
         from precice import Participant
         import fenicsxprecice
