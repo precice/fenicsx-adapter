@@ -53,6 +53,7 @@ def determine_gradient(V_g, u):
     problem = LinearProblem(a, L)
     return problem.solve()
 
+
 # Parse arguments
 parser = argparse.ArgumentParser(description="Solving heat equation for simple or complex interface case")
 parser.add_argument("participantName", help="Name of the solver.", type=str, choices=[p.value for p in ProblemType])
@@ -83,13 +84,18 @@ V_g = fem.functionspace(domain, element)
 W, map_to_W = V_g.sub(0).collapse()
 
 # Define the exact solution
+
+
 class exact_solution():
     def __init__(self, alpha, beta, t):
         self.alpha = alpha
         self.beta = beta
         self.t = t
+
     def __call__(self, x):
         return 1 + x[0]**2 + self.alpha * x[1]**2 + self.beta * self.t
+
+
 u_exact = exact_solution(alpha, beta, t)
 
 # Define the boundary condition
@@ -188,7 +194,7 @@ while precice.is_coupling_ongoing():
 
     precice_dt = precice.get_max_time_step_size()
     dt = np.min([fenics_dt, precice_dt])
-    
+
     read_data = precice.read_data(dt)
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
