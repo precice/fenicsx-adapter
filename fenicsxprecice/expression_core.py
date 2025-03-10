@@ -136,6 +136,7 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
         # add RBF for error
 
         # TODO Add at a later point RBFInterpolator, because Rbf is deprecated
+        # see https://github.com/precice/fenicsx-adapter/issues/29
         # rbf_interp = RBFInterpolator(np.column_stack((coords_x, coords_y)), res)
         # return lambda x, y: rbf_interp(np.array([x, y]).T) + lstsq_interp(x, y, w)
         rbf_interp = Rbf(coords_x, coords_y, res)
