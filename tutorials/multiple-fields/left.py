@@ -7,41 +7,47 @@ import ufl
 from dolfinx import default_scalar_type
 from dolfinx.fem.petsc import LinearProblem
 
-domain = mesh.create_unit_square(MPI.COMM_WORLD, 8, 8, mesh.CellType.quadrilateral)
+import fenicsxprecice
+
+domain = mesh.create_rectangle(MPI.COMM_WORLD, [numpy.asarray((0,0)), numpy.asarray((1,1))], [10,10], mesh.CellType.quadrilateral)
+domain2 = mesh.create_rectangle(MPI.COMM_WORLD, [numpy.asarray((0,0)), numpy.asarray((1,1))], [11,11], mesh.CellType.quadrilateral)
 V = functionspace(domain, ("Lagrange", 1))
+V2 = functionspace(domain2, ("Lagrange", 1))
 uD = fem.Function(V)
 uD.interpolate(lambda x: 1 + x[0]**2 + 2 * x[1]**2)
+uD2 = fem.Function(V2)
+uD2.interpolate(lambda x: 1 + x[0]**2 + 3 * x[1]**2)
 
-# Create facet to cell connectivity required to determine boundary facets
-tdim = domain.topology.dim
-fdim = tdim - 1
-domain.topology.create_connectivity(fdim, tdim)
-boundary_facets = mesh.exterior_facet_indices(domain.topology)
+def coupling_bc(x):
+    tol = 1E-14
+    return numpy.isclose(x[0], 1, tol)
 
-boundary_dofs = fem.locate_dofs_topological(V, fdim, boundary_facets)
-bc = fem.dirichletbc(uD, boundary_dofs)
+precice = fenicsxprecice.Adapter(adapter_config_filename="precice-adapter-config-L.json", mpi_comm=MPI.COMM_SELF)
+precice.initialize({precice.Meshes.Left1:[coupling_bc, V, uD], 
+                    precice.Meshes.Left2:[coupling_bc, V2, uD2]})
 
-u = ufl.TrialFunction(V)
-v = ufl.TestFunction(V)
+coupling_expression1 = precice.create_coupling_expression(precice.Meshes.Left1)
+coupling_expression2 = precice.create_coupling_expression(precice.Meshes.Left2)
 
-f = fem.Constant(domain, default_scalar_type(-6))
+while precice.is_coupling_ongoing():
 
-a = ufl.dot(ufl.grad(u), ufl.grad(v)) * ufl.dx
-L = f * v * ufl.dx
+    if precice.requires_writing_checkpoint():
+        precice.store_checkpoint(uD, 0, 0)
 
-problem = LinearProblem(a, L, bcs=[bc], petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
-uh = problem.solve()
+    read_data1 = precice.read_data(0, precice.Meshes.Left1)
+    read_data2 = precice.read_data(0, precice.Meshes.Left2)
 
-V2 = fem.functionspace(domain, ("Lagrange", 2))
-uex = fem.Function(V2)
-uex.interpolate(lambda x: 1 + x[0]**2 + 2 * x[1]**2)
+    precice.write_data(uD, precice.Meshes.Left1)
+    precice.write_data(uD2, precice.Meshes.Left2)
+    
+    precice.advance(1)
+    
+    if precice.requires_reading_checkpoint():
+        pass
+        
 
-L2_error = fem.form(ufl.inner(uh - uex, uh - uex) * ufl.dx)
-error_local = fem.assemble_scalar(L2_error)
-error_L2 = numpy.sqrt(domain.comm.allreduce(error_local, op=MPI.SUM))
 
-error_max = numpy.max(numpy.abs(uD.x.array-uh.x.array))
-# Only print the error on one process
-if domain.comm.rank == 0:
-    print(f"Error_L2 : {error_L2:.2e}")
-    print(f"Error_max : {error_max:.2e}")
+precice.finalize()
+
+print(read_data1)
+print(read_data2)

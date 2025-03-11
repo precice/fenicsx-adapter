@@ -36,19 +36,19 @@
   <participant name="Left">
     <provide-mesh name="Left1" />
     <receive-mesh name="Right1" from="Right" />
+    <provide-mesh name="Left2" />
+    <receive-mesh name="Right2" from="Right" />
+
     <write-data name="LeftOut" mesh="Left1" />
+    <write-data name="RightIn" mesh="Left2" />
+
     <read-data name="LeftIn" mesh="Left1" />
     <mapping:nearest-neighbor
       direction="read"
       from="Right1"
       to="Left1"
       constraint="consistent" />
-  </participant>
 
-    <participant name="Left">
-    <provide-mesh name="Left2" />
-    <receive-mesh name="Right2" from="Right" />
-    <write-data name="RightIn" mesh="Left2" />
     <read-data name="RightOut" mesh="Left2" />
     <mapping:nearest-neighbor
       direction="read"
@@ -67,9 +67,6 @@
       from="Left1"
       to="Right1"
       constraint="consistent" />
-  </participant>
-
-    <participant name="Right">
     <provide-mesh name="Right2" />
     <receive-mesh name="Left2" from="Left" />
     <write-data name="RightOut" mesh="Right2" />
@@ -86,7 +83,7 @@
   <coupling-scheme:serial-implicit>
     <participants first="Left" second="Right" />
     <max-time value="1.0" />
-    <time-window-size value="0.1" />
+    <time-window-size value="1.0" />
     <max-iterations value="100" />
     <exchange
       data="LeftOut"
