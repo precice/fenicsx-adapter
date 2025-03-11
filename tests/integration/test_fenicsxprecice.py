@@ -5,8 +5,7 @@ from unittest import TestCase
 from tests import MockedPrecice
 import numpy as np
 from mpi4py import MPI
-from dolfinx.mesh import create_unit_square
-from dolfinx.fem import Function, FunctionSpace, VectorFunctionSpace
+from dolfinx import fem, mesh as msh
 
 
 class MockedArray:
@@ -74,22 +73,12 @@ class TestCheckpointing(TestCase):
         Test correct checkpoint storing
         """
         import fenicsxprecice
-        from precice import Interface, action_write_iteration_checkpoint
+        from precice import Participant
 
-        def is_action_required_behavior(py_action):
-            if py_action == action_write_iteration_checkpoint():
-                return True
-            else:
-                return False
-
-        Interface.initialize = MagicMock(return_value=self.dt)
-        Interface.is_action_required = MagicMock(side_effect=is_action_required_behavior)
-        Interface.get_dimensions = MagicMock()
-        Interface.get_mesh_id = MagicMock()
-        Interface.get_data_id = MagicMock()
-        Interface.mark_action_fulfilled = MagicMock()
-        Interface.is_time_window_complete = MagicMock(return_value=True)
-        Interface.advance = MagicMock()
+        Participant.initialize = MagicMock(return_value=self.dt)
+        Participant.get_mesh_dimensions = MagicMock()
+        Participant.is_time_window_complete = MagicMock(return_value=True)
+        Participant.advance = MagicMock()
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
 
@@ -98,7 +87,7 @@ class TestCheckpointing(TestCase):
         # Replicating control flow where implicit iteration has not converged and solver state needs to be restored
         # to a checkpoint
         precice.advance(self.dt)
-        Interface.is_time_window_complete = MagicMock(return_value=False)
+        Participant.is_time_window_complete = MagicMock(return_value=False)
 
         # Check if the checkpoint is stored correctly in the adapter
         self.assertEqual(precice.retrieve_checkpoint() == self.u_n_mocked, self.t, self.n)
@@ -111,12 +100,12 @@ class TestExpressionHandling(TestCase):
     """
     dummy_config = "tests/precice-adapter-config.json"
 
-    mesh = create_unit_square(MPI.COMM_WORLD, 10, 10)
+    mesh = msh.create_unit_square(MPI.COMM_WORLD, 10, 10)
     dimension = 2
 
     def scalar_expr(x): return x[0] + x[1]
-    scalar_V = FunctionSpace(mesh, ("P", 1))
-    scalar_function = Function(scalar_V)
+    scalar_V = fem.functionspace(mesh, ("P", 1))
+    scalar_function = fem.Function(scalar_V)
     scalar_function.interpolate(scalar_expr)
 
     n_vertices = 11
@@ -134,23 +123,19 @@ class TestExpressionHandling(TestCase):
         Check if a sampling of points on a dolfinx Function interpolated via FEniCSx is matching with the sampling of the
         same points on a FEniCSx Expression created by the Adapter
         """
-        from precice import Interface
+        from precice import Participant
         import fenicsxprecice
-        Interface.get_dimensions = MagicMock(return_value=2)
-        Interface.set_mesh_vertices = MagicMock(return_value=self.vertex_ids)
-        Interface.get_mesh_id = MagicMock()
-        Interface.get_data_id = MagicMock()
-        Interface.set_mesh_edge = MagicMock()
-        Interface.initialize = MagicMock()
-        Interface.initialize_data = MagicMock()
-        Interface.is_action_required = MagicMock()
-        Interface.mark_action_fulfilled = MagicMock()
-        Interface.write_block_scalar_data = MagicMock()
+        Participant.get_mesh_dimensions = MagicMock(return_value=2)
+        Participant.set_mesh_vertices = MagicMock(return_value=self.vertex_ids)
+        Participant.requires_mesh_connectivity_for = MagicMock(return_value=False)
+        Participant.requires_initial_data = MagicMock(return_value=False)
+        Participant.initialize = MagicMock()
+        Participant.write_data = MagicMock()
 
         def right_boundary(x): return abs(x[0] - 1.0) < 10**-14
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
-        precice._interface = Interface(None, None, None, None)
+        precice._participant = Participant(None, None, None, None)
         precice.initialize(right_boundary, self.scalar_V, self.scalar_function)
         values = np.array([self.scalar_function.eval([x, y, 0], 0)[0]
                            for x, y in zip(self.vertices_x, self.vertices_y)])

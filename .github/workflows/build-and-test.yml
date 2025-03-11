@@ -28,15 +28,16 @@ jobs:
   test:
     name: Run mock unit tests
     runs-on: ubuntu-latest
-    container: dolfinx/dolfinx:v0.5.2
+    container: dolfinx/dolfinx:v0.9.0
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
       - name: Install fake precice
         run:  |
+          pip install setuptools==71.0.0
           mkdir -p precice
           echo "from setuptools import setup" >> precice/setup.py
-          echo "setup(name='pyprecice', version='2.0.2.1')" >> precice/setup.py
+          echo "setup(name='pyprecice', version='3.0.0')" >> precice/setup.py
           python3 -m pip install ./precice/
       - name: Run unit tests
         run:  python3 setup.py test -s tests.unit
