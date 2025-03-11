@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<precice-configuration>
+  <log>
+    <sink
+      filter="%Severity% > debug and %Rank% = 0"
+      format="---[precice] %ColorizedSeverity% %Message%"
+      enabled="true" />
+  </log>
+
+  <data:scalar name="LeftIn" waveform-degree="1" />
+  <data:scalar name="LeftOut" waveform-degree="1" />
+  <data:scalar name="RightIn" waveform-degree="1" />
+  <data:scalar name="RightOut" waveform-degree="1" />
+
+
+  <mesh name="Left1" dimensions="2">
+    <use-data name="LeftIn" />
+    <use-data name="LeftOut" />
+  </mesh>
+
+  <mesh name="Left2" dimensions="2">
+    <use-data name="RightIn" />
+    <use-data name="RightOut" />
+  </mesh>
+
+  <mesh name="Right1" dimensions="2">
+    <use-data name="LeftIn" />
+    <use-data name="LeftOut" />
+  </mesh>
+
+  <mesh name="Right2" dimensions="2">
+    <use-data name="RightIn" />
+    <use-data name="RightOut" />
+  </mesh>
+
+  <participant name="Left">
+    <provide-mesh name="Left1" />
+    <receive-mesh name="Right1" from="Right" />
+    <write-data name="LeftOut" mesh="Left1" />
+    <read-data name="LeftIn" mesh="Left1" />
+    <mapping:nearest-neighbor
+      direction="read"
+      from="Right1"
+      to="Left1"
+      constraint="consistent" />
+  </participant>
+
+    <participant name="Left">
+    <provide-mesh name="Left2" />
+    <receive-mesh name="Right2" from="Right" />
+    <write-data name="RightIn" mesh="Left2" />
+    <read-data name="RightOut" mesh="Left2" />
+    <mapping:nearest-neighbor
+      direction="read"
+      from="Right2"
+      to="Left2"
+      constraint="consistent" />
+  </participant>
+
+  <participant name="Right">
+    <provide-mesh name="Right1" />
+    <receive-mesh name="Left1" from="Left" />
+    <write-data name="LeftIn" mesh="Right1" />
+    <read-data name="LeftOut" mesh="Right1" />
+    <mapping:nearest-neighbor
+      direction="read"
+      from="Left1"
+      to="Right1"
+      constraint="consistent" />
+  </participant>
+
+    <participant name="Right">
+    <provide-mesh name="Right2" />
+    <receive-mesh name="Left2" from="Left" />
+    <write-data name="RightOut" mesh="Right2" />
+    <read-data name="RightIn" mesh="Right2" />
+    <mapping:nearest-neighbor
+      direction="read"
+      from="Left2"
+      to="Right2"
+      constraint="consistent" />
+  </participant>
+
+  <m2n:sockets acceptor="Left" connector="Right" exchange-directory=".." />
+
+  <coupling-scheme:serial-implicit>
+    <participants first="Left" second="Right" />
+    <max-time value="1.0" />
+    <time-window-size value="0.1" />
+    <max-iterations value="100" />
+    <exchange
+      data="LeftOut"
+      mesh="Left1"
+      from="Left"
+      to="Right"
+      initialize="true"
+      substeps="true" />
+    <exchange
+      data="LeftIn"
+      mesh="Right1"
+      from="Right"
+      to="Left"
+      initialize="true"
+      substeps="true" />
+    <exchange
+      data="RightOut"
+      mesh="Right2"
+      from="Right"
+      to="Left"
+      initialize="true"
+      substeps="true" />
+    <exchange
+      data="RightIn"
+      mesh="Left2"
+      from="Left"
+      to="Right"
+      initialize="true"
+      substeps="true" />
+    <relative-convergence-measure data="LeftOut" mesh="Left1" limit="1e-10" />
+    <relative-convergence-measure data="RightIn" mesh="Left2" limit="1e-10" />
+    <relative-convergence-measure data="LeftIn" mesh="Right1" limit="1e-10" />
+    <relative-convergence-measure data="RightOut" mesh="Right2" limit="1e-10" />
+    <acceleration:constant>
+      <relaxation value="0.5" />
+    </acceleration:constant>
+  </coupling-scheme:serial-implicit>
+</precice-configuration>
