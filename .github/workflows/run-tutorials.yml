@@ -37,6 +37,9 @@ jobs:
           python3 -m venv .venv
           . .venv/bin/activate
           pip3 install ../../..
+      - name: Remove fenicsxadapter from requirements to avoid overwriting develop version
+        run: |
+          sed -i '/fenicsxprecice/d' tutorials/partitioned-heat-conduction/solver-fenicsx/requirements.txt
       # Tutorial is currently hosted under https://github.com/precice/fenicsx-adapter, should be moved to https://github.com/precice/tutorials when working. See https://github.com/precice/tutorials/issues/491
       # - name: Get tutorials
       #   run: git clone -b develop https://github.com/precice/tutorials.git
