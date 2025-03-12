@@ -14,9 +14,9 @@ domain2 = mesh.create_rectangle(MPI.COMM_WORLD, [numpy.asarray((0,0)), numpy.asa
 V = functionspace(domain, ("Lagrange", 1))
 V2 = functionspace(domain2, ("Lagrange", 1))
 uD = fem.Function(V)
-uD.interpolate(lambda x: 1 + x[0]**2 + 2 * x[1]**2)
+uD.interpolate(lambda x: 1+x[0])
 uD2 = fem.Function(V2)
-uD2.interpolate(lambda x: 1 + x[0]**2 + 3 * x[1]**2)
+uD2.interpolate(lambda x: 2+x[0])
 
 def coupling_bc(x):
     tol = 1E-14
@@ -49,5 +49,5 @@ while precice.is_coupling_ongoing():
 
 precice.finalize()
 
-print(read_data1)
-print(read_data2)
+print(read_data1) # expected: x[0]+3
+print(read_data2) # expected: x[0]+4
