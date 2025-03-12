@@ -25,8 +25,18 @@ jobs:
           rm -rf /var/lib/apt/lists/*
       - name: Check FEniCSx version
         run: python3 -c "import dolfinx; print('FEniCS-X version '+dolfinx.__version__)"
-      - name: Install adapter
-        run:  pip3 install --user .
+      - name: Create venv for Dirichlet participants and install adapter
+        run: |
+          cd tutorials/partitioned-heat-conduction/dirichlet-fenics
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip3 install ../../..
+      - name: Create venv for Neumann participants and install adapter
+        run: |
+          cd tutorials/partitioned-heat-conduction/neumann-fenics
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip3 install ../../..
       # Tutorial is currently hosted under https://github.com/precice/fenicsx-adapter, should be moved to https://github.com/precice/tutorials when working. See https://github.com/precice/tutorials/issues/491
       # - name: Get tutorials
       #   run: git clone -b develop https://github.com/precice/tutorials.git
