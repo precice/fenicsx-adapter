@@ -49,7 +49,7 @@ class Adapter:
         """
 
         self._config = Config(adapter_config_filename)
-        
+
         self.Meshes = Enum('Meshes', self._config.get_coupling_mesh_names())
 
         # Setup up MPI communicator
@@ -95,7 +95,7 @@ class Adapter:
         """
         Creates a FEniCSx Expression in the form of an object of class GeneralInterpolationExpression or
         ExactInterpolationExpression. The adapter will hold this object till the coupling is on going.
-        
+
         Parameters
         ----------
         mesh_name: member of fenicsxprecice.Meshes
@@ -107,10 +107,13 @@ class Adapter:
             Reference to object of class GeneralInterpolationExpression or ExactInterpolationExpression.
         """
 
-        if not (self._read_function_types[mesh_name] is FunctionType.SCALAR or self._read_function_types[mesh_name] is FunctionType.VECTOR):
+        if not (self._read_function_types[mesh_name]
+                is FunctionType.SCALAR or self._read_function_types[mesh_name] is FunctionType.VECTOR):
             raise Exception("No valid read_function is provided in initialization. Cannot create coupling expression")
 
-        coupling_expression = self._my_expression(self._read_function_spaces[mesh_name], self._read_function_types[mesh_name])
+        coupling_expression = self._my_expression(
+            self._read_function_spaces[mesh_name],
+            self._read_function_types[mesh_name])
 
         return coupling_expression
 
@@ -162,7 +165,11 @@ class Adapter:
                 self._precice_vertex_ids[mesh_name],
                 dt
             )
-            read_data = {tuple(key): value for key, value in zip(self._fenicsx_vertices[mesh_name].get_coordinates(), read_data)}
+            read_data = {
+                tuple(key): value for key,
+                value in zip(
+                    self._fenicsx_vertices[mesh_name].get_coordinates(),
+                    read_data)}
 
         else:
             pass
@@ -230,7 +237,8 @@ class Adapter:
             if isinstance(write_object, fem.Function):  # precice.initialize_data() will be called using this Function
                 write_function_space = write_object.function_space
                 write_function = write_object
-            elif isinstance(write_object, fem.FunctionSpace):  # preCICE will use default zero values for initialization.
+            # preCICE will use default zero values for initialization.
+            elif isinstance(write_object, fem.FunctionSpace):
                 write_function_space = write_object
                 write_function = None
             elif write_object is None:
@@ -246,7 +254,8 @@ class Adapter:
             elif read_function_space is None:
                 pass
             else:
-                raise Exception(f"Given read_function_space of {c_mesh} is not of type dolfinx.functions.functionspace.FunctionSpace")
+                raise Exception(f"Given read_function_space of {
+                                c_mesh} is not of type dolfinx.functions.functionspace.FunctionSpace")
 
             if read_function_space is None and write_function_space:
                 self._coupling_types[c_mesh] = CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING
@@ -269,8 +278,8 @@ class Adapter:
                                 "only reads data. If two-way coupling is implemented then both read_function_space"
                                 " and write_object need to be provided.")
             else:
-                raise Exception(f"Incorrect read and write function space combination provided for {c_mesh}. Please check input "
-                                "parameters in initialization")
+                raise Exception(f"Incorrect read and write function space combination provided for {
+                                c_mesh}. Please check input " "parameters in initialization")
 
             coupling_type = self._coupling_types[c_mesh]
             if coupling_type is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or \
@@ -284,7 +293,8 @@ class Adapter:
                 self._write_function_types[c_mesh] = determine_function_type(write_function_space)
                 self._write_function_spaces[c_mesh] = write_function_space
 
-            # Set vertices on the coupling subdomain for this rank (assumed to be equal across all fields that will be coupled)
+            # Set vertices on the coupling subdomain for this rank (assumed to be
+            # equal across all fields that will be coupled)
             self._fenicsx_dims = function_space.mesh.geometry.dim
             # returns 3d coordinates (necessary later for writing the data!)
             # coupling subdomain is at [0] !
@@ -322,7 +332,6 @@ class Adapter:
                         "preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
                 self.write_data(write_function, c_mesh)
 
-        
         self._participant.initialize()
 
     def store_checkpoint(self, payload, t, n):

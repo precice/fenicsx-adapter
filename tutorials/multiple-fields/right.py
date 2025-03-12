@@ -6,22 +6,34 @@ import numpy
 
 import fenicsxprecice
 
-domain = mesh.create_rectangle(MPI.COMM_WORLD, [numpy.asarray((1,0)), numpy.asarray((2,1))], [10,10], mesh.CellType.quadrilateral)
-domain2 = mesh.create_rectangle(MPI.COMM_WORLD, [numpy.asarray((1,0)), numpy.asarray((2,1))], [11,11], mesh.CellType.quadrilateral)
+domain = mesh.create_rectangle(
+    MPI.COMM_WORLD, [
+        numpy.asarray(
+            (1, 0)), numpy.asarray(
+                (2, 1))], [
+                    10, 10], mesh.CellType.quadrilateral)
+domain2 = mesh.create_rectangle(
+    MPI.COMM_WORLD, [
+        numpy.asarray(
+            (1, 0)), numpy.asarray(
+                (2, 1))], [
+                    11, 11], mesh.CellType.quadrilateral)
 V = functionspace(domain, ("Lagrange", 1))
 V2 = functionspace(domain2, ("Lagrange", 1))
 uD = fem.Function(V)
-uD.interpolate(lambda x: 3+x[0])
+uD.interpolate(lambda x: 3 + x[0])
 uD2 = fem.Function(V2)
-uD2.interpolate(lambda x: 4+x[0])
+uD2.interpolate(lambda x: 4 + x[0])
+
 
 def coupling_bc(x):
     tol = 1E-14
     return numpy.isclose(x[0], 1, tol)
 
+
 precice = fenicsxprecice.Adapter(adapter_config_filename="precice-adapter-config-R.json", mpi_comm=MPI.COMM_WORLD)
-precice.initialize({precice.Meshes.Right1:[coupling_bc, V, uD], 
-                    precice.Meshes.Right2:[coupling_bc, V2, uD2]})
+precice.initialize({precice.Meshes.Right1: [coupling_bc, V, uD],
+                    precice.Meshes.Right2: [coupling_bc, V2, uD2]})
 
 coupling_expression1 = precice.create_coupling_expression(precice.Meshes.Right1)
 coupling_expression2 = precice.create_coupling_expression(precice.Meshes.Right2)
@@ -38,11 +50,11 @@ while precice.is_coupling_ongoing():
     precice.write_data(uD2, precice.Meshes.Right2)
 
     precice.advance(1)
-    
+
     if precice.requires_reading_checkpoint():
         pass
 
 precice.finalize()
 
-print(read_data1) # expected: x[0]+1
-print(read_data2) # expected: x[0]+2
+print(read_data1)  # expected: x[0]+1
+print(read_data2)  # expected: x[0]+2

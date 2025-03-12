@@ -41,16 +41,18 @@ class Config:
         self._participant_name = data["participant_name"]
         self._coupling_mesh_names = list(data["interfaces"].keys())
 
-        for mesh_name in self._coupling_mesh_names:    
+        for mesh_name in self._coupling_mesh_names:
             try:
                 self._write_data_names[mesh_name] = data["interfaces"][mesh_name]["write_data_name"]
             except KeyError:
-                self._write_data_names[mesh_name] = None  # not required for one-way coupling, if this participant reads data
+                # not required for one-way coupling, if this participant reads data
+                self._write_data_names[mesh_name] = None
 
             try:
                 self._read_data_names[mesh_name] = data["interfaces"][mesh_name]["read_data_name"]
             except KeyError:
-                self._read_data_names[mesh_name] = None  # not required for one-way coupling, if this participant writes data
+                # not required for one-way coupling, if this participant writes data
+                self._read_data_names[mesh_name] = None
 
         read_file.close()
 
@@ -63,14 +65,13 @@ class Config:
     def get_coupling_mesh_names(self):
         return self._coupling_mesh_names
 
-
     def get_read_data_name(self, mesh_name):
         """
         Parameters
         ----------
         mesh_name : fenicsxprecice.Meshes member
             Member of the enum fenicsxprecoce.Meshes
-    
+
         """
         return self._read_data_names[mesh_name.name]
 
@@ -80,7 +81,6 @@ class Config:
         ----------
         mesh_name : fenicsxprecice.Meshes member
             Member of the enum fenicsxprecoce.Meshes
-    
+
         """
         return self._write_data_names[mesh_name.name]
-    
