@@ -147,6 +147,12 @@ class Adapter:
         Note: For quasi 2D-3D coupled simulation (FEniCSx participant is 2D) the Z-component of the data and vertices
         is deleted.
 
+        Parameters
+        ----------
+        dt : offset within time window
+        mesh_name: member of fenicsxprecice.Meshes
+            Specifies for which mesh the data shall be read
+
         Returns
         -------
         data : dict_like
@@ -185,6 +191,8 @@ class Adapter:
         ----------
         write_function : Object of class dolfinx.functions.function.Function
             A FEniCSx function consisting of the data which this participant will write to preCICE in every time step.
+        mesh_name : member of fenicsxprecice.Meshes
+            Specifies the mesh from which the data is written
         """
 
         assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING or
