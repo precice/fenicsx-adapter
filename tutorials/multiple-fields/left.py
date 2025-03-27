@@ -35,22 +35,22 @@ def coupling_bc(x):
 
 
 precice = fenicsxprecice.Adapter(adapter_config_filename="precice-adapter-config-L.json", mpi_comm=MPI.COMM_SELF)
-precice.initialize({precice.Meshes.Left1: [coupling_bc, V, uD],
-                    precice.Meshes.Left2: [coupling_bc, V2, uD2]})
+precice.initialize({"LeftOne": [coupling_bc, V, uD],
+                    "LeftTwo": [coupling_bc, V2, uD2]})
 
-coupling_expression1 = precice.create_coupling_expression(precice.Meshes.Left1)
-coupling_expression2 = precice.create_coupling_expression(precice.Meshes.Left2)
+coupling_expression1 = precice.create_coupling_expression("LeftOne")
+coupling_expression2 = precice.create_coupling_expression("LeftTwo")
 
 while precice.is_coupling_ongoing():
 
     if precice.requires_writing_checkpoint():
         precice.store_checkpoint(uD, 0, 0)
 
-    read_data1 = precice.read_data(0, precice.Meshes.Left1)
-    read_data2 = precice.read_data(0, precice.Meshes.Left2)
+    read_data1 = precice.read_data(0, "LeftOne")
+    read_data2 = precice.read_data(0, "LeftTwo")
 
-    precice.write_data(uD, precice.Meshes.Left1)
-    precice.write_data(uD2, precice.Meshes.Left2)
+    precice.write_data(uD, "LeftOne")
+    precice.write_data(uD2, "LeftTwo")
 
     precice.advance(1)
 

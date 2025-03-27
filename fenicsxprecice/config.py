@@ -70,17 +70,17 @@ class Config:
         Parameters
         ----------
         mesh_name : fenicsxprecice.Meshes member
-            Member of the enum fenicsxprecoce.Meshes
+            Member of the enum fenicsxprecice.Meshes
 
         """
-        return self._read_data_names[mesh_name.name]
+        return self._read_data_names[mesh_name]
 
     def get_write_data_name(self, mesh_name):
         """
         Parameters
         ----------
         mesh_name : fenicsxprecice.Meshes member
-            Member of the enum fenicsxprecoce.Meshes
+            Member of the enum fenicsxprecice.Meshes
 
         """
-        return self._write_data_names[mesh_name.name]
+        return self._write_data_names[mesh_name]

@@ -2,11 +2,11 @@
   "participant_name": "Left",
   "config_file_name": "precice-config.xml",
   "interfaces": {
-    "Left1": {
+    "LeftOne": {
       "write_data_name": "LeftOut",
       "read_data_name": "LeftIn"
       },
-    "Left2": {
+    "LeftTwo": {
       "write_data_name": "RightIn",
       "read_data_name": "RightOut"
     }

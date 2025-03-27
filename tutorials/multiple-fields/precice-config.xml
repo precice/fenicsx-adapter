@@ -13,68 +13,68 @@
   <data:scalar name="RightOut" waveform-degree="1" />
 
 
-  <mesh name="Left1" dimensions="2">
+  <mesh name="LeftOne" dimensions="2">
     <use-data name="LeftIn" />
     <use-data name="LeftOut" />
   </mesh>
 
-  <mesh name="Left2" dimensions="2">
+  <mesh name="LeftTwo" dimensions="2">
     <use-data name="RightIn" />
     <use-data name="RightOut" />
   </mesh>
 
-  <mesh name="Right1" dimensions="2">
+  <mesh name="RightOne" dimensions="2">
     <use-data name="LeftIn" />
     <use-data name="LeftOut" />
   </mesh>
 
-  <mesh name="Right2" dimensions="2">
+  <mesh name="RightTwo" dimensions="2">
     <use-data name="RightIn" />
     <use-data name="RightOut" />
   </mesh>
 
   <participant name="Left">
-    <provide-mesh name="Left1" />
-    <receive-mesh name="Right1" from="Right" />
-    <provide-mesh name="Left2" />
-    <receive-mesh name="Right2" from="Right" />
+    <provide-mesh name="LeftOne" />
+    <receive-mesh name="RightOne" from="Right" />
+    <provide-mesh name="LeftTwo" />
+    <receive-mesh name="RightTwo" from="Right" />
 
-    <write-data name="LeftOut" mesh="Left1" />
-    <write-data name="RightIn" mesh="Left2" />
+    <write-data name="LeftOut" mesh="LeftOne" />
+    <write-data name="RightIn" mesh="LeftTwo" />
 
-    <read-data name="LeftIn" mesh="Left1" />
+    <read-data name="LeftIn" mesh="LeftOne" />
     <mapping:nearest-neighbor
       direction="read"
-      from="Right1"
-      to="Left1"
+      from="RightOne"
+      to="LeftOne"
       constraint="consistent" />
 
-    <read-data name="RightOut" mesh="Left2" />
+    <read-data name="RightOut" mesh="LeftTwo" />
     <mapping:nearest-neighbor
       direction="read"
-      from="Right2"
-      to="Left2"
+      from="RightTwo"
+      to="LeftTwo"
       constraint="consistent" />
   </participant>
 
   <participant name="Right">
-    <provide-mesh name="Right1" />
-    <receive-mesh name="Left1" from="Left" />
-    <write-data name="LeftIn" mesh="Right1" />
-    <read-data name="LeftOut" mesh="Right1" />
+    <provide-mesh name="RightOne" />
+    <receive-mesh name="LeftOne" from="Left" />
+    <write-data name="LeftIn" mesh="RightOne" />
+    <read-data name="LeftOut" mesh="RightOne" />
     <mapping:nearest-neighbor
       direction="read"
-      from="Left1"
-      to="Right1"
+      from="LeftOne"
+      to="RightOne"
       constraint="consistent" />
-    <provide-mesh name="Right2" />
-    <receive-mesh name="Left2" from="Left" />
-    <write-data name="RightOut" mesh="Right2" />
-    <read-data name="RightIn" mesh="Right2" />
+    <provide-mesh name="RightTwo" />
+    <receive-mesh name="LeftTwo" from="Left" />
+    <write-data name="RightOut" mesh="RightTwo" />
+    <read-data name="RightIn" mesh="RightTwo" />
     <mapping:nearest-neighbor
       direction="read"
-      from="Left2"
-      to="Right2"
+      from="LeftTwo"
+      to="RightTwo"
       constraint="consistent" />
   </participant>
 
@@ -87,36 +87,36 @@
     <max-iterations value="100" />
     <exchange
       data="LeftOut"
-      mesh="Left1"
+      mesh="LeftOne"
       from="Left"
       to="Right"
       initialize="true"
       substeps="true" />
     <exchange
       data="LeftIn"
-      mesh="Right1"
+      mesh="RightOne"
       from="Right"
       to="Left"
       initialize="true"
       substeps="true" />
     <exchange
       data="RightOut"
-      mesh="Right2"
+      mesh="RightTwo"
       from="Right"
       to="Left"
       initialize="true"
       substeps="true" />
     <exchange
       data="RightIn"
-      mesh="Left2"
+      mesh="LeftTwo"
       from="Left"
       to="Right"
       initialize="true"
       substeps="true" />
-    <relative-convergence-measure data="LeftOut" mesh="Left1" limit="1e-10" />
-    <relative-convergence-measure data="RightIn" mesh="Left2" limit="1e-10" />
-    <relative-convergence-measure data="LeftIn" mesh="Right1" limit="1e-10" />
-    <relative-convergence-measure data="RightOut" mesh="Right2" limit="1e-10" />
+    <relative-convergence-measure data="LeftOut" mesh="LeftOne" limit="1e-10" />
+    <relative-convergence-measure data="RightIn" mesh="LeftTwo" limit="1e-10" />
+    <relative-convergence-measure data="LeftIn" mesh="RightOne" limit="1e-10" />
+    <relative-convergence-measure data="RightOut" mesh="RightTwo" limit="1e-10" />
     <acceleration:constant>
       <relaxation value="0.5" />
     </acceleration:constant>

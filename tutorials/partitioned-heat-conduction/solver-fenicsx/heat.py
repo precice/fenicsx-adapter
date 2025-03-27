@@ -128,9 +128,9 @@ else:
     precice = Adapter(adapter_config_filename="precice-adapter-config-N.json", mpi_comm=MPI.COMM_WORLD)
 
 if problem is ProblemType.DIRICHLET:
-    precice.initialize({precice.Meshes.Dirichlet_Mesh: [coupling_boundary, V, f_N]})
+    precice.initialize({"Dirichlet-Mesh": [coupling_boundary, V, f_N]})
 elif problem is ProblemType.NEUMANN:
-    precice.initialize({precice.Meshes.Neumann_Mesh: [coupling_boundary, W, u_D]})
+    precice.initialize({"Neumann-Mesh": [coupling_boundary, W, u_D]})
 
 # get precice's dt
 precice_dt = precice.get_max_time_step_size()
@@ -145,9 +145,9 @@ u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
 F = u * v * ufl.dx + dt * ufl.dot(ufl.grad(u), ufl.grad(v)) * ufl.dx - (u_n + dt * f) * v * ufl.dx
 # create a coupling expression for the coupling_boundary and modify variational problem accordingly
 if problem is ProblemType.DIRICHLET:
-    coupling_expression = precice.create_coupling_expression(precice.Meshes.Dirichlet_Mesh)
+    coupling_expression = precice.create_coupling_expression("Dirichlet-Mesh")
 else:
-    coupling_expression = precice.create_coupling_expression(precice.Meshes.Neumann_Mesh)
+    coupling_expression = precice.create_coupling_expression("Neumann-Mesh")
 
 if problem is ProblemType.DIRICHLET:
     # modify Dirichlet boundary condition on coupling interface
@@ -200,9 +200,9 @@ while precice.is_coupling_ongoing():
     dt = np.min([fenics_dt, precice_dt])
 
     if problem is ProblemType.DIRICHLET:
-        read_data = precice.read_data(dt, precice.Meshes.Dirichlet_Mesh)
+        read_data = precice.read_data(dt, "Dirichlet-Mesh")
     else:
-        read_data = precice.read_data(dt, precice.Meshes.Neumann_Mesh)
+        read_data = precice.read_data(dt, "Neumann-Mesh")
 
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
@@ -226,10 +226,10 @@ while precice.is_coupling_ongoing():
         flux = determine_gradient(V_g, uh)
         flux_x = fem.Function(W)
         flux_x.interpolate(flux.sub(0))
-        precice.write_data(flux_x, precice.Meshes.Dirichlet_Mesh)
+        precice.write_data(flux_x, "Dirichlet-Mesh")
     elif problem is ProblemType.NEUMANN:
         # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
-        precice.write_data(uh, precice.Meshes.Neumann_Mesh)
+        precice.write_data(uh, "Neumann-Mesh")
 
     precice.advance(dt)
     precice_dt = precice.get_max_time_step_size()

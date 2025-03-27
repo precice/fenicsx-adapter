@@ -11,7 +11,6 @@ from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
 from dolfinx import fem
 import copy
-from enum import Enum
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
@@ -49,8 +48,6 @@ class Adapter:
         """
 
         self._config = Config(adapter_config_filename)
-
-        self.Meshes = Enum('Meshes', self._config.get_coupling_mesh_names())
 
         # Setup up MPI communicator
         self._comm = mpi_comm
@@ -98,7 +95,7 @@ class Adapter:
 
         Parameters
         ----------
-        mesh_name: member of fenicsxprecice.Meshes
+        mesh_name: 
             Specifies for which field a coupling expression shall be created
 
         Returns
@@ -150,7 +147,7 @@ class Adapter:
         Parameters
         ----------
         dt : offset within time window
-        mesh_name: member of fenicsxprecice.Meshes
+        mesh_name: 
             Specifies for which mesh the data shall be read
 
         Returns
@@ -166,7 +163,7 @@ class Adapter:
 
         if not self._empty_rank:
             read_data = self._participant.read_data(
-                mesh_name.name,
+                mesh_name,
                 self._config.get_read_data_name(mesh_name),
                 self._precice_vertex_ids[mesh_name],
                 dt
@@ -191,7 +188,7 @@ class Adapter:
         ----------
         write_function : Object of class dolfinx.functions.function.Function
             A FEniCSx function consisting of the data which this participant will write to preCICE in every time step.
-        mesh_name : member of fenicsxprecice.Meshes
+        mesh_name :
             Specifies the mesh from which the data is written
         """
 
@@ -208,7 +205,7 @@ class Adapter:
         assert (write_function_type in list(FunctionType))
         write_data = convert_fenicsx_to_precice(write_function, self._fenicsx_vertices[mesh_name].get_coordinates())
         self._participant.write_data(
-            mesh_name.name,
+            mesh_name,
             self._config.get_write_data_name(mesh_name),
             self._precice_vertex_ids[mesh_name],
             write_data
@@ -315,7 +312,7 @@ class Adapter:
 
             # Set up mesh in preCICE
             self._precice_vertex_ids[c_mesh] = self._participant.set_mesh_vertices(
-                c_mesh.name, self._fenicsx_vertices[c_mesh].get_coordinates()[
+                c_mesh, self._fenicsx_vertices[c_mesh].get_coordinates()[
                     :, :2])  # give preCICE only 2D coordinates
 
             if self._fenicsx_vertices[c_mesh].get_ids().size > 0:
@@ -331,7 +328,7 @@ class Adapter:
             if self._fenicsx_dims != 2:
                 raise Exception("Currently the fenicsx-adapter only supports 2D cases")
 
-            if self._fenicsx_dims != self._participant.get_mesh_dimensions(c_mesh.name):
+            if self._fenicsx_dims != self._participant.get_mesh_dimensions(c_mesh):
                 raise Exception("Dimension of preCICE setup and FEniCSx do not match")
 
             if self._participant.requires_initial_data():

@@ -2,7 +2,7 @@
   "participant_name": "Neumann",
   "config_file_name": "../precice-config.xml",
   "interfaces": {
-    "Neumann_Mesh": {
+    "Neumann-Mesh": {
       "write_data_name": "Temperature",
       "read_data_name": "Heat-Flux"
       }
