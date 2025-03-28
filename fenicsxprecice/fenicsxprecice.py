@@ -134,7 +134,7 @@ class Adapter:
     def get_point_sources(self, data):
         raise Exception("PointSources are not implemented for the FEniCSx adapter.")
 
-    def read_data(self, dt, mesh_name):
+    def read_data(self, mesh_name, dt):
         """
         Read data from preCICE. Data is generated depending on the type of the read function (Scalar or Vector).
         For a scalar read function the data is a numpy array with shape (N) where N = number of coupling vertices
@@ -179,7 +179,7 @@ class Adapter:
 
         return copy.deepcopy(read_data)
 
-    def write_data(self, write_function, mesh_name):
+    def write_data(self, mesh_name, write_function):
         """
         Writes data to preCICE. Depending on the dimensions of the simulation (2D-3D Coupling, 2D-2D coupling or
         Scalar/Vector write function) write_data is first converted into a format needed for preCICE.
@@ -335,7 +335,7 @@ class Adapter:
                 if not write_function:
                     raise Exception(
                         "preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
-                self.write_data(write_function, c_mesh)
+                self.write_data(c_mesh, write_function)
 
         self._participant.initialize()
 

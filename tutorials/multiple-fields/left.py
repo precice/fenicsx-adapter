@@ -46,11 +46,11 @@ while precice.is_coupling_ongoing():
     if precice.requires_writing_checkpoint():
         precice.store_checkpoint(uD, 0, 0)
 
-    read_data1 = precice.read_data(0, "LeftOne")
-    read_data2 = precice.read_data(0, "LeftTwo")
+    read_data1 = precice.read_data("LeftOne", 0)
+    read_data2 = precice.read_data("LeftTwo", 0)
 
-    precice.write_data(uD, "LeftOne")
-    precice.write_data(uD2, "LeftTwo")
+    precice.write_data("LeftOne", uD)
+    precice.write_data("LeftTwo", uD2)
 
     precice.advance(1)
 

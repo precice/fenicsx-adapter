@@ -200,9 +200,9 @@ while precice.is_coupling_ongoing():
     dt = np.min([fenics_dt, precice_dt])
 
     if problem is ProblemType.DIRICHLET:
-        read_data = precice.read_data(dt, "Dirichlet-Mesh")
+        read_data = precice.read_data("Dirichlet-Mesh", dt)
     else:
-        read_data = precice.read_data(dt, "Neumann-Mesh")
+        read_data = precice.read_data("Neumann-Mesh", dt)
 
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
@@ -226,10 +226,10 @@ while precice.is_coupling_ongoing():
         flux = determine_gradient(V_g, uh)
         flux_x = fem.Function(W)
         flux_x.interpolate(flux.sub(0))
-        precice.write_data(flux_x, "Dirichlet-Mesh")
+        precice.write_data("Dirichlet-Mesh", flux_x)
     elif problem is ProblemType.NEUMANN:
         # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
-        precice.write_data(uh, "Neumann-Mesh")
+        precice.write_data("Neumann-Mesh", uh)
 
     precice.advance(dt)
     precice_dt = precice.get_max_time_step_size()
