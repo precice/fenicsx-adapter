@@ -19,8 +19,7 @@ class Config:
         self._config_file_name = None
         self._participant_name = None
         self._coupling_mesh_names = None
-        self._read_data_names = {}
-        self._write_data_names = {}
+        self._meshes = {}
 
         self.read_json(adapter_config_filename)
 
@@ -40,23 +39,22 @@ class Config:
         self._config_file_name = os.path.join(folder, data["config_file_name"])
         self._participant_name = data["participant_name"]
         self._coupling_mesh_names = list(data["interfaces"].keys())
-
+        
         for mesh_name in self._coupling_mesh_names:
+            self._meshes[mesh_name] = {}
             try:
-                self._write_data_names[mesh_name] = data["interfaces"][mesh_name]["write_data_name"]
+                self._meshes[mesh_name]["write_data_name"] = data["interfaces"][mesh_name]["write_data_name"]
             except KeyError:
                 # not required for one-way coupling, if this participant reads data
-                self._write_data_names[mesh_name] = None
+                self._meshes[mesh_name]["write_data_name"] = None
 
             try:
-                self._read_data_names[mesh_name] = data["interfaces"][mesh_name]["read_data_name"]
+                self._meshes[mesh_name]["read_data_name"] = data["interfaces"][mesh_name]["read_data_name"]
             except KeyError:
                 # not required for one-way coupling, if this participant writes data
-                self._read_data_names[mesh_name] = None
+                self._meshes[mesh_name]["read_data_name"] = None
 
         read_file.close()
-        print(mesh_name)
-        print(self._write_data_names)
 
     def get_config_file_name(self):
         return self._config_file_name
@@ -71,18 +69,16 @@ class Config:
         """
         Parameters
         ----------
-        mesh_name : fenicsxprecice.Meshes member
-            Member of the enum fenicsxprecice.Meshes
+        mesh_name : Name of mesh
 
         """
-        return self._read_data_names[mesh_name]
+        return self._meshes[mesh_name]["read_data_name"]
 
     def get_write_data_name(self, mesh_name):
         """
         Parameters
         ----------
-        mesh_name : fenicsxprecice.Meshes member
-            Member of the enum fenicsxprecice.Meshes
+        mesh_name : Name of mesh
 
         """
-        return self._write_data_names[mesh_name]
+        return self._meshes[mesh_name]["write_data_name"]
