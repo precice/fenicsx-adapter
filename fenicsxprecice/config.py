@@ -39,7 +39,7 @@ class Config:
         self._config_file_name = os.path.join(folder, data["config_file_name"])
         self._participant_name = data["participant_name"]
         self._coupling_mesh_names = list(data["interfaces"].keys())
-        
+
         for mesh_name in self._coupling_mesh_names:
             self._meshes[mesh_name] = {}
             try:

@@ -95,7 +95,7 @@ class Adapter:
 
         Parameters
         ----------
-        mesh_name: 
+        mesh_name:
             Specifies for which field a coupling expression shall be created
 
         Returns
@@ -147,7 +147,7 @@ class Adapter:
         Parameters
         ----------
         dt : offset within time window
-        mesh_name: 
+        mesh_name:
             Specifies for which mesh the data shall be read
 
         Returns

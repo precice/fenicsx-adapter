@@ -136,11 +136,11 @@ class TestExpressionHandling(TestCase):
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._participant = Participant(None, None, None, None)
-        precice.initialize(right_boundary, self.scalar_V, self.scalar_function)
+        precice.initialize({"Dummy-Mesh": [right_boundary, self.scalar_V, self.scalar_function]})
         values = np.array([self.scalar_function.eval([x, y, 0], 0)[0]
                            for x, y in zip(self.vertices_x, self.vertices_y)])
         data = {(x, y): v for x, y, v in zip(self.vertices_x, self.vertices_y, values)}
-        scalar_coupling_expr = precice.create_coupling_expression()
+        scalar_coupling_expr = precice.create_coupling_expression("Dummy-Mesh")
         precice.update_coupling_expression(scalar_coupling_expr, data)
 
         expr_samples = np.array([scalar_coupling_expr.eval([x, y, 0], 0)
