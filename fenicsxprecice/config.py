@@ -33,7 +33,7 @@ class Config:
         adapter_config_filename : string
             Name of the JSON configuration file
         """
-        folder = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), adapter_config_filename))
+        folder = os.path.dirname(os.path.join(os.getcwd(), adapter_config_filename))
         path = os.path.join(folder, os.path.basename(adapter_config_filename))
         read_file = open(path, "r")
         data = json.load(read_file)
