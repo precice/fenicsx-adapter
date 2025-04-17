@@ -1,0 +1,14 @@
+{
+  "participant_name": "Right",
+  "config_file_name": "precice-config.xml",
+  "interfaces": {
+    "RightOne": {
+      "write_data_name": "LeftIn",
+      "read_data_name": "LeftOut"
+      },
+    "RightTwo": {
+      "write_data_name": "RightOut",
+      "read_data_name": "RightIn"
+    }
+    }
+}

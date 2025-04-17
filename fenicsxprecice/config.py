@@ -4,7 +4,6 @@ This is the configuration module of fenicsxadapter
 
 import json
 import os
-import sys
 
 
 class Config:
@@ -18,9 +17,7 @@ class Config:
 
         self._config_file_name = None
         self._participant_name = None
-        self._coupling_mesh_name = None
-        self._read_data_name = None
-        self._write_data_name = None
+        self._meshes = {}
 
         self.read_json(adapter_config_filename)
 
@@ -39,17 +36,20 @@ class Config:
         data = json.load(read_file)
         self._config_file_name = os.path.join(folder, data["config_file_name"])
         self._participant_name = data["participant_name"]
-        self._coupling_mesh_name = data["interface"]["coupling_mesh_name"]
 
-        try:
-            self._write_data_name = data["interface"]["write_data_name"]
-        except KeyError:
-            self._write_data_name = None  # not required for one-way coupling, if this participant reads data
+        for mesh_name in data["interfaces"].keys():
+            self._meshes[mesh_name] = {}
+            try:
+                self._meshes[mesh_name]["write_data_name"] = data["interfaces"][mesh_name]["write_data_name"]
+            except KeyError:
+                # not required for one-way coupling, if this participant reads data
+                self._meshes[mesh_name]["write_data_name"] = None
 
-        try:
-            self._read_data_name = data["interface"]["read_data_name"]
-        except KeyError:
-            self._read_data_name = None  # not required for one-way coupling, if this participant writes data
+            try:
+                self._meshes[mesh_name]["read_data_name"] = data["interfaces"][mesh_name]["read_data_name"]
+            except KeyError:
+                # not required for one-way coupling, if this participant writes data
+                self._meshes[mesh_name]["read_data_name"] = None
 
         read_file.close()
 
@@ -59,11 +59,20 @@ class Config:
     def get_participant_name(self):
         return self._participant_name
 
-    def get_coupling_mesh_name(self):
-        return self._coupling_mesh_name
+    def get_read_data_name(self, mesh_name):
+        """
+        Parameters
+        ----------
+        mesh_name : Name of mesh
 
-    def get_read_data_name(self):
-        return self._read_data_name
+        """
+        return self._meshes[mesh_name]["read_data_name"]
 
-    def get_write_data_name(self):
-        return self._write_data_name
+    def get_write_data_name(self, mesh_name):
+        """
+        Parameters
+        ----------
+        mesh_name : Name of mesh
+
+        """
+        return self._meshes[mesh_name]["write_data_name"]
