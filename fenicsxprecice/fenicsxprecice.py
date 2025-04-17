@@ -249,8 +249,8 @@ class Adapter:
             elif write_object is None:
                 pass
             else:
-                raise Exception(f"Given write object of {
-                    c_mesh} is neither of type dolfinx.functions.function.Function or dolfinx.functions.functionspace.FunctionSpace")
+                raise Exception("Given write object of {} is neither of type dolfinx.functions.function.Function"
+                                "or dolfinx.functions.functionspace.FunctionSpace".format(c_mesh))
 
             # [1]: read_function_space
             read_function_space = coupling_meshes[c_mesh][1]
@@ -259,7 +259,8 @@ class Adapter:
             elif read_function_space is None:
                 pass
             else:
-                raise Exception(f"Given read_function_space of {c_mesh} is not of type dolfinx.functions.functionspace.FunctionSpace")
+                raise Exception(
+                    "Given read_function_space of {} is not of type dolfinx.functions.functionspace.FunctionSpace".format(c_mesh))
 
             if read_function_space is None and write_function_space:
                 self._coupling_types[c_mesh] = CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING
@@ -277,10 +278,15 @@ class Adapter:
                 function_space = read_function_space
             elif read_function_space is None and write_function_space is None:
                 raise Exception(
-                    f"Neither read_function_space nor write_function_space for {c_mesh} is provided. Please provide a write_object if this participant is used in one-way coupling and only writes data. Please provide a read_function_space if this participant is used in one-way coupling and only reads data. If two-way coupling is implemented then both read_function_space and write_object need to be provided.")
+                    "Neither read_function_space nor write_function_space for {} is provided."
+                    "Please provide a write_object if this participant is used in one-way coupling"
+                    "and only writes data. Please provide a read_function_space if this participant"
+                    "is used in one-way coupling and only reads data. If two-way coupling is"
+                    "implemented then both read_function_space and write_object need to be provided.".format(c_mesh))
             else:
                 raise Exception(
-                    f"Incorrect read and write function space combination provided for {c_mesh}. Please check input " "parameters in initialization")
+                    "Incorrect read and write function space combination provided for {}. Please check input "
+                    "parameters in initialization".format(c_mesh))
 
             coupling_type = self._coupling_types[c_mesh]
             if coupling_type is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or \
