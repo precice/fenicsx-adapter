@@ -249,8 +249,8 @@ class Adapter:
             elif write_object is None:
                 pass
             else:
-                raise Exception(
-                    f"Given write object of {c_mesh} is neither of type dolfinx.functions.function.Function or dolfinx.functions.functionspace.FunctionSpace")
+                raise Exception(f"Given write object of {
+                    c_mesh} is neither of type dolfinx.functions.function.Function or dolfinx.functions.functionspace.FunctionSpace")
 
             # [1]: read_function_space
             read_function_space = coupling_meshes[c_mesh][1]
@@ -277,8 +277,8 @@ class Adapter:
                 assert (self._config.get_read_data_name(c_mesh) and self._config.get_write_data_name(c_mesh))
                 function_space = read_function_space
             elif read_function_space is None and write_function_space is None:
-                raise Exception(
-                    f"Neither read_function_space nor write_function_space for {c_mesh} is provided. Please provide a write_object if this participant is used in one-way coupling and only writes data. Please provide a read_function_space if this participant is used in one-way coupling and only reads data. If two-way coupling is implemented then both read_function_space and write_object need to be provided.")
+                raise Exception(f"Neither read_function_space nor write_function_space for {
+                    c_mesh} is provided. Please provide a write_object if this participant is used in one-way coupling and only writes data. Please provide a read_function_space if this participant is used in one-way coupling and only reads data. If two-way coupling is implemented then both read_function_space and write_object need to be provided.")
             else:
                 raise Exception(f"Incorrect read and write function space combination provided for {
                                 c_mesh}. Please check input " "parameters in initialization")

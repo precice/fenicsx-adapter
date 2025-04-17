@@ -4,7 +4,6 @@ This is the configuration module of fenicsxadapter
 
 import json
 import os
-import sys
 
 
 class Config:
@@ -18,7 +17,6 @@ class Config:
 
         self._config_file_name = None
         self._participant_name = None
-        self._coupling_mesh_names = None
         self._meshes = {}
 
         self.read_json(adapter_config_filename)
@@ -38,9 +36,8 @@ class Config:
         data = json.load(read_file)
         self._config_file_name = os.path.join(folder, data["config_file_name"])
         self._participant_name = data["participant_name"]
-        self._coupling_mesh_names = list(data["interfaces"].keys())
 
-        for mesh_name in self._coupling_mesh_names:
+        for mesh_name in data["interfaces"].keys():
             self._meshes[mesh_name] = {}
             try:
                 self._meshes[mesh_name]["write_data_name"] = data["interfaces"][mesh_name]["write_data_name"]
@@ -61,9 +58,6 @@ class Config:
 
     def get_participant_name(self):
         return self._participant_name
-
-    def get_coupling_mesh_names(self):
-        return self._coupling_mesh_names
 
     def get_read_data_name(self, mesh_name):
         """
