@@ -40,16 +40,16 @@ class Config:
         for mesh_name in data["interfaces"].keys():
             self._meshes[mesh_name] = {}
             try:
-                self._meshes[mesh_name]["write_data_name"] = data["interfaces"][mesh_name]["write_data_name"]
+                self._meshes[mesh_name]["write_data_names"] = data["interfaces"][mesh_name]["write_data_names"]
             except KeyError:
                 # not required for one-way coupling, if this participant reads data
-                self._meshes[mesh_name]["write_data_name"] = None
+                self._meshes[mesh_name]["write_data_names"] = None
 
             try:
-                self._meshes[mesh_name]["read_data_name"] = data["interfaces"][mesh_name]["read_data_name"]
+                self._meshes[mesh_name]["read_data_names"] = data["interfaces"][mesh_name]["read_data_names"]
             except KeyError:
                 # not required for one-way coupling, if this participant writes data
-                self._meshes[mesh_name]["read_data_name"] = None
+                self._meshes[mesh_name]["read_data_names"] = None
 
         read_file.close()
 
@@ -59,20 +59,20 @@ class Config:
     def get_participant_name(self):
         return self._participant_name
 
-    def get_read_data_name(self, mesh_name):
+    def get_read_data_names(self, mesh_name):
         """
         Parameters
         ----------
         mesh_name : Name of mesh
 
         """
-        return self._meshes[mesh_name]["read_data_name"]
+        return self._meshes[mesh_name]["read_data_names"]
 
-    def get_write_data_name(self, mesh_name):
+    def get_write_data_names(self, mesh_name):
         """
         Parameters
         ----------
         mesh_name : Name of mesh
 
         """
-        return self._meshes[mesh_name]["write_data_name"]
+        return self._meshes[mesh_name]["write_data_names"]

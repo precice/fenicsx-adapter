@@ -3,12 +3,12 @@
   "config_file_name": "precice-config.xml",
   "interfaces": {
     "RightOne": {
-      "write_data_name": "LeftIn",
-      "read_data_name": "LeftOut"
+      "write_data_names": ["LeftInOne"],
+      "read_data_names": ["LeftOutOne", "LeftOutTwo"]
       },
     "RightTwo": {
-      "write_data_name": "RightOut",
-      "read_data_name": "RightIn"
+      "write_data_names": ["LeftInTwo"],
+      "read_data_names": ["LeftOutThree"]
     }
     }
 }

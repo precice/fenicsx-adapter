@@ -23,6 +23,8 @@ V1 = functionspace(domain1, ("Lagrange", 1))
 V2 = functionspace(domain2, ("Lagrange", 1))
 uD1 = fem.Function(V1)
 uD1.interpolate(lambda x: 1 + x[0])
+uDD1 = fem.Function(V1)
+uDD1.interpolate(lambda x: 100 + x[0])
 uD2 = fem.Function(V2)
 uD2.interpolate(lambda x: 2 + x[0])
 
@@ -33,22 +35,23 @@ def coupling_bc(x):
 
 
 precice = fenicsxprecice.Adapter(adapter_config_filename="precice-adapter-config-L.json", mpi_comm=MPI.COMM_SELF)
-precice.initialize({"LeftOne": [coupling_bc, V1, uD1],
-                    "LeftTwo": [coupling_bc, V2, uD2]})
+leftOne = fenicsxprecice.CouplingMesh("LeftOne", coupling_bc, {"LeftInOne": V1}, {"LeftOutOne":uD1, "LeftOutTwo":uDD1})
+leftTwo = fenicsxprecice.CouplingMesh("LeftTwo", coupling_bc, {"LeftInTwo": V2}, {"LeftOutThree": uD2})
+precice.initialize([leftOne, leftTwo])
 
-coupling_expression1 = precice.create_coupling_expression("LeftOne")
-coupling_expression2 = precice.create_coupling_expression("LeftTwo")
+coupling_expression1 = precice.create_coupling_expression(leftOne.get_name())
+coupling_expression2 = precice.create_coupling_expression(leftTwo.get_name())
 
 while precice.is_coupling_ongoing():
 
     if precice.requires_writing_checkpoint():
         precice.store_checkpoint(uD1, 0, 0)
 
-    read_data1 = precice.read_data("LeftOne", 0)
-    read_data2 = precice.read_data("LeftTwo", 0)
+    read_data1 = precice.read_data(leftOne.get_name(), "LeftInOne",0)
+    read_data2 = precice.read_data(leftTwo.get_name(), "LeftInTwo",0)
 
-    precice.write_data("LeftOne", uD1)
-    precice.write_data("LeftTwo", uD2)
+    precice.write_data(leftOne.get_name(), "LeftOutOne",uD1)
+    precice.write_data(leftOne.get_name(), "LeftOutTwo", uDD1)
 
     precice.advance(1)
 
