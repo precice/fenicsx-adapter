@@ -222,20 +222,23 @@ class Adapter:
         
         # get first and extract function space
         function_space = None
-        f = list(function_objects.values())[0]
-        if checkIfFunction and isinstance(f, fem.Function):
-            function_space = f.function_space
-        # preCICE will use default zero values for initialization.
-        elif isinstance(f, fem.FunctionSpace):
-            function_space = f
-        elif f is None:
-            pass
+        if function_objects is None:
+            return None
         else:
-            if checkIfFunction:
-                raise Exception(f"A given object in {mesh_name} is neither of type dolfinx.functions.function.Function or "
-                    "dolfinx.functions.functionspace.FunctionSpace")
+            f = list(function_objects.values())[0]
+            if checkIfFunction and isinstance(f, fem.Function):
+                function_space = f.function_space
+            # preCICE will use default zero values for initialization.
+            elif isinstance(f, fem.FunctionSpace):
+                function_space = f
+            elif f is None:
+                pass
             else:
-                raise Exception(f"A given object of {mesh_name} is not of type dolfinx.functions.functionspace.FunctionSpace")
+                if checkIfFunction:
+                    raise Exception(f"A given object in {mesh_name} is neither of type dolfinx.functions.function.Function or "
+                        "dolfinx.functions.functionspace.FunctionSpace")
+                else:
+                    raise Exception(f"A given object of {mesh_name} is not of type dolfinx.functions.functionspace.FunctionSpace")
         
         if function_space is None and len(function_objects) > 1:
             raise Exception(f"Invalid argument provided: At least one write function space is defined as None, but the number of given write functions was {len(function_objects)}. If no write function want to be used on mesh {mesh_name}, set the write function object array to None instead!")
