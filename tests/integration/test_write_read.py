@@ -61,7 +61,10 @@ class TestWriteandReadData(TestCase):
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._participant = Participant(None, None, None, None)
-        c_mesh = fenicsxprecice.CouplingMesh("Dummy-Mesh", right_boundary, {"Dummy-Read": self.scalar_V}, {"Dummy-Write": self.scalar_function})
+        c_mesh = fenicsxprecice.CouplingMesh("Dummy-Mesh",
+                                             right_boundary,
+                                             {"Dummy-Read": self.scalar_V},
+                                             {"Dummy-Write": self.scalar_function})
         precice.initialize([c_mesh])
 
         precice.write_data(c_mesh.get_name(), "Dummy-Write", self.scalar_function)

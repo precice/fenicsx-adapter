@@ -35,7 +35,9 @@ def coupling_bc(x):
 
 
 precice = fenicsxprecice.Adapter(adapter_config_filename="precice-adapter-config-L.json", mpi_comm=MPI.COMM_SELF)
-leftOne = fenicsxprecice.CouplingMesh("LeftOne", coupling_bc, {"LeftInOne": V1}, {"LeftOutOne":uD1, "LeftOutTwo":uDD1})
+leftOne = fenicsxprecice.CouplingMesh("LeftOne", coupling_bc,
+                                      {"LeftInOne": V1},
+                                      {"LeftOutOne": uD1, "LeftOutTwo": uDD1})
 leftTwo = fenicsxprecice.CouplingMesh("LeftTwo", coupling_bc, {"LeftInTwo": V2}, {"LeftOutThree": uD2})
 precice.initialize([leftOne, leftTwo])
 
@@ -47,10 +49,10 @@ while precice.is_coupling_ongoing():
     if precice.requires_writing_checkpoint():
         precice.store_checkpoint(uD1, 0, 0)
 
-    read_data1 = precice.read_data(leftOne.get_name(), "LeftInOne",0)
-    read_data2 = precice.read_data(leftTwo.get_name(), "LeftInTwo",0)
+    read_data1 = precice.read_data(leftOne.get_name(), "LeftInOne", 0)
+    read_data2 = precice.read_data(leftTwo.get_name(), "LeftInTwo", 0)
 
-    precice.write_data(leftOne.get_name(), "LeftOutOne",uD1)
+    precice.write_data(leftOne.get_name(), "LeftOutOne", uD1)
     precice.write_data(leftOne.get_name(), "LeftOutTwo", uDD1)
 
     precice.advance(1)

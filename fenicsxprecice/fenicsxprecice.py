@@ -210,7 +210,7 @@ class Adapter:
             self._precice_vertex_ids[mesh_name],
             write_data
         )
-        
+
     def validate_function_space(self, function_objects, mesh_name, checkIfFunction):
         """_summary_
 
@@ -219,7 +219,7 @@ class Adapter:
         ------
         Returns: a bool if all function spaces are equal in given dict
         """
-        
+
         # get first and extract function space
         function_space = None
         if function_objects is None:
@@ -235,15 +235,18 @@ class Adapter:
                 pass
             else:
                 if checkIfFunction:
-                    raise Exception(f"A given object in {mesh_name} is neither of type dolfinx.functions.function.Function or "
-                        "dolfinx.functions.functionspace.FunctionSpace")
+                    raise Exception("A given object in {} is neither of type dolfinx.functions.function.Function or "
+                                    "dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
                 else:
-                    raise Exception(f"A given object of {mesh_name} is not of type dolfinx.functions.functionspace.FunctionSpace")
-        
+                    raise Exception(
+                        "A given object of {} is not of type dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
+
         if function_space is None and len(function_objects) > 1:
-            raise Exception(f"Invalid argument provided: At least one write function space is defined as None, but the number of given write functions was {len(function_objects)}. If no write function want to be used on mesh {mesh_name}, set the write function object array to None instead!")
-            
-        
+            raise Exception("Invalid argument provided: At least one write function space is defined as None,"
+                            "but the number of given write functions was {}."
+                            "If no write function want to be used on mesh {}, set"
+                            "the write function object array to None instead!".format(len(function_objects, mesh_name)))
+
         for fun in function_objects:
             func = function_objects[fun]
             if checkIfFunction and isinstance(func, fem.Function):
@@ -252,11 +255,12 @@ class Adapter:
                 assert func == function_space
             else:
                 if checkIfFunction:
-                    raise Exception(f"A given object in {mesh_name} is neither of type dolfinx.functions.function.Function or "
-                        "dolfinx.functions.functionspace.FunctionSpace")
+                    raise Exception("A given object in {} is neither of type dolfinx.functions.function.Function or "
+                                    "dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
                 else:
-                    raise Exception(f"A given object of {mesh_name} is not of type dolfinx.functions.functionspace.FunctionSpace")
-                
+                    raise Exception(
+                        "A given object of {} is not of type dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
+
         return function_space
 
     def initialize(self, coupling_meshes):
@@ -266,7 +270,7 @@ class Adapter:
         Parameters
         ----------
         coupling_meshes: A list of coupling meshes of the class Mesh.
-        
+
         Returns
         -------
         dt : double
@@ -276,17 +280,19 @@ class Adapter:
         for c_mesh in coupling_meshes:
             mesh_name = c_mesh.get_name()
             # check if all function spaces (read amd write are equal each) and get the function space
-            write_function_space = self.validate_function_space(c_mesh.get_write_fields(), mesh_name, checkIfFunction=True)
-            read_function_space = self.validate_function_space(c_mesh.get_read_fields(), mesh_name, checkIfFunction=False)
-    
+            write_function_space = self.validate_function_space(
+                c_mesh.get_write_fields(), mesh_name, checkIfFunction=True)
+            read_function_space = self.validate_function_space(
+                c_mesh.get_read_fields(), mesh_name, checkIfFunction=False)
+
             if read_function_space is None and write_function_space:
                 self._coupling_types[mesh_name] = CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING
-                assert self._config.get_write_data_names(mesh_name) # error if empty array or None
+                assert self._config.get_write_data_names(mesh_name)  # error if empty array or None
                 print("Participant {} is write-only participant".format(self._config.get_participant_name()))
                 function_space = write_function_space
             elif read_function_space and write_function_space is None:
                 self._coupling_types[mesh_name] = CouplingMode.UNI_DIRECTIONAL_READ_COUPLING
-                assert self._config.get_read_data_names(mesh_name) # error if empty array or None
+                assert self._config.get_read_data_names(mesh_name)  # error if empty array or None
                 print("Participant {} is read-only participant".format(self._config.get_participant_name()))
                 function_space = read_function_space
             elif read_function_space and write_function_space:

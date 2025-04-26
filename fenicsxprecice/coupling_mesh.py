@@ -1,6 +1,6 @@
 class CouplingMesh:
-    
-    def __init__(self, mesh_name, coupling_boundary, read_fields = None, write_fields = None):
+
+    def __init__(self, mesh_name, coupling_boundary, read_fields=None, write_fields=None):
         """
 
         Args:
@@ -13,15 +13,15 @@ class CouplingMesh:
         self._coupling_boundary = coupling_boundary
         self._read_fields = read_fields
         self._write_fields = write_fields
-        
+
     def get_name(self):
         return self._mesh_name
-    
+
     def get_coupling_boundary(self):
         return self._coupling_boundary
-    
+
     def get_read_fields(self):
         return self._read_fields
-    
+
     def get_write_fields(self):
         return self._write_fields
