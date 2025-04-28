@@ -129,7 +129,10 @@ class Adapter:
         """
         vertices = np.array(list(data.keys()))
         nodal_data = np.array(list(data.values()))
-        coupling_expression.update_boundary_data(nodal_data, vertices[:, 0], vertices[:, 1])
+        if self._fenicsx_dims == 2:
+            coupling_expression.update_boundary_data(nodal_data, vertices[:, 0], vertices[:, 1])
+        else:
+            coupling_expression.update_boundary_data(nodal_data, vertices[:, 0], vertices[:, 1], vertices[:, 2])
 
     def get_point_sources(self, data):
         raise Exception("PointSources are not implemented for the FEniCSx adapter.")
@@ -313,9 +316,13 @@ class Adapter:
             self._fenicsx_vertices[c_mesh].set_coordinates(coords)
 
             # Set up mesh in preCICE
-            self._precice_vertex_ids[c_mesh] = self._participant.set_mesh_vertices(
-                c_mesh, self._fenicsx_vertices[c_mesh].get_coordinates()[
-                    :, :2])  # give preCICE only 2D coordinates
+            if self._fenicsx_dims == 2:
+                self._precice_vertex_ids[c_mesh] = self._participant.set_mesh_vertices(
+                    c_mesh, self._fenicsx_vertices[c_mesh].get_coordinates()[
+                        :, :2])  # give preCICE only 2D coordinates
+            else:
+                self._precice_vertex_ids[c_mesh] = self._participant.set_mesh_vertices(
+                    c_mesh, self._fenicsx_vertices[c_mesh].get_coordinates())  # 3d coords
 
             if self._fenicsx_vertices[c_mesh].get_ids().size > 0:
                 self._empty_rank = False
@@ -327,8 +334,8 @@ class Adapter:
                 assert (self._read_function_spaces[c_mesh].mesh is write_function_space.mesh
                         ), "read_function_space and write_object need to be defined using the same mesh"
 
-            if self._fenicsx_dims != 2:
-                raise Exception("Currently the fenicsx-adapter only supports 2D cases")
+            #if self._fenicsx_dims != 2:
+            #    raise Exception("Currently the fenicsx-adapter only supports 2D cases")
 
             if self._fenicsx_dims != self._participant.get_mesh_dimensions(c_mesh):
                 raise Exception("Dimension of preCICE setup and FEniCSx do not match")
