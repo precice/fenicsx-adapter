@@ -9,6 +9,7 @@ import precice
 from .adapter_core import FunctionType, determine_function_type, get_fenicsx_vertices, CouplingMode, Vertices, convert_fenicsx_to_precice
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
+from .coupling_mesh import CouplingMesh
 from dolfinx import fem
 import copy
 
@@ -134,7 +135,7 @@ class Adapter:
     def get_point_sources(self, data):
         raise Exception("PointSources are not implemented for the FEniCSx adapter.")
 
-    def read_data(self, mesh_name, dt):
+    def read_data(self, mesh_name, read_data_name, dt):
         """
         Read data from preCICE. Data is generated depending on the type of the read function (Scalar or Vector).
         For a scalar read function the data is a numpy array with shape (N) where N = number of coupling vertices
@@ -164,7 +165,7 @@ class Adapter:
         if not self._empty_rank:
             read_data = self._participant.read_data(
                 mesh_name,
-                self._config.get_read_data_name(mesh_name),
+                read_data_name,
                 self._precice_vertex_ids[mesh_name],
                 dt
             )
@@ -179,7 +180,7 @@ class Adapter:
 
         return copy.deepcopy(read_data)
 
-    def write_data(self, mesh_name, write_function):
+    def write_data(self, mesh_name, write_data_name, write_function):
         """
         Writes data to preCICE. Depending on the dimensions of the simulation (2D-3D Coupling, 2D-2D coupling or
         Scalar/Vector write function) write_data is first converted into a format needed for preCICE.
@@ -198,36 +199,78 @@ class Adapter:
         w_func = write_function.copy()
 
         # Check that the function provided lives on the same function space provided during initialization
-        assert (self._write_function_types[mesh_name] == determine_function_type(w_func))
-        assert (write_function.function_space == self._write_function_spaces[mesh_name])
+        assert self._write_function_types[mesh_name] == determine_function_type(w_func)
+        assert write_function.function_space == self._write_function_spaces[mesh_name]
 
         write_function_type = determine_function_type(write_function)
-        assert (write_function_type in list(FunctionType))
+        assert write_function_type in list(FunctionType)
         write_data = convert_fenicsx_to_precice(write_function, self._fenicsx_vertices[mesh_name].get_coordinates())
         self._participant.write_data(
             mesh_name,
-            self._config.get_write_data_name(mesh_name),
+            write_data_name,
             self._precice_vertex_ids[mesh_name],
             write_data
         )
 
-    def initialize(self, coupling_meshes):
+    def validate_function_space(self, function_objects, mesh_name, checkIfFunction):
+        """_summary_
+
+        Args:
+            functions: a dict of Function and FunctionSpace
+        ------
+        Returns: the function space that is equal for all function_objects or raises an exception
+        """
+
+        # get first and extract function space
+        function_space = None
+        if function_objects is None:
+            return None
+        else:
+            f = list(function_objects.values())[0]
+            if checkIfFunction and isinstance(f, fem.Function):
+                function_space = f.function_space
+            # preCICE will use default zero values for initialization.
+            elif isinstance(f, fem.FunctionSpace):
+                function_space = f
+            elif f is None:
+                pass
+            else:
+                if checkIfFunction:
+                    raise Exception("A given object in {} is neither of type dolfinx.functions.function.Function or "
+                                    "dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
+                else:
+                    raise Exception(
+                        "A given object of {} is not of type dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
+
+        if function_space is None and len(function_objects) > 1:
+            raise Exception("Invalid argument provided: At least one write function space is defined as None,"
+                            "but the number of given write functions was {}."
+                            "If no write function want to be used on mesh {}, set"
+                            "the write function object array to None instead!".format(len(function_objects, mesh_name)))
+
+        for fun in function_objects:
+            func = function_objects[fun]
+            if checkIfFunction and isinstance(func, fem.Function):
+                assert func.function_space == function_space
+            elif isinstance(func, fem.FunctionSpace):
+                assert func == function_space
+            else:
+                if checkIfFunction:
+                    raise Exception("A given object in {} is neither of type dolfinx.functions.function.Function or "
+                                    "dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
+                else:
+                    raise Exception(
+                        "A given object of {} is not of type dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
+
+        return function_space
+
+    def initialize(self, coupling_meshes: list[CouplingMesh]):
         """
         Initializes the coupling and sets up the mesh where coupling happens in preCICE.
 
         Parameters
         ----------
-        coupling_meshes: A dictionary.
-            The key defines the name of the coupling mesh, the value is a list of the form [coupling_subdomain, read_function_space, write_object].\n
-            coupling_subdomain: Object of class dolfinx.cpp.mesh.SubDomain.
-                It is the subdomain of the mesh which is the physical coupling boundary.\n
-            read_function_space: Object of class dolfinx.functions.functionspace.FunctionSpace.
-                The function space on which the read function lives. If set to None then the adapter assumes that this
-                participant is a write-only participant.\n
-            write_object: Object of class dolfinx.functions.functionspace.FunctionSpace / dolfinx.functions.function.Function.
-                The Function space on which the write function lives or FEniCSx function related to the quantity to be written
-                by FEniCSx during each coupling iteration. If set to None then the adapter assumes that this participant is
-                a read-only participant.
+        coupling_meshes: A list of coupling meshes of the class CouplingMesh.
 
         Returns
         -------
@@ -236,45 +279,26 @@ class Adapter:
         """
 
         for c_mesh in coupling_meshes:
-            write_function_space, write_function = None, None
-            # [2]: write object!
-            write_object = coupling_meshes[c_mesh][2]
-            if isinstance(write_object, fem.Function):  # precice.initialize_data() will be called using this Function
-                write_function_space = write_object.function_space
-                write_function = write_object
-            # preCICE will use default zero values for initialization.
-            elif isinstance(write_object, fem.FunctionSpace):
-                write_function_space = write_object
-                write_function = None
-            elif write_object is None:
-                pass
-            else:
-                raise Exception("Given write object of {} is neither of type dolfinx.functions.function.Function"
-                                "or dolfinx.functions.functionspace.FunctionSpace".format(c_mesh))
-
-            # [1]: read_function_space
-            read_function_space = coupling_meshes[c_mesh][1]
-            if isinstance(read_function_space, fem.FunctionSpace):
-                pass
-            elif read_function_space is None:
-                pass
-            else:
-                raise Exception(
-                    "Given read_function_space of {} is not of type dolfinx.functions.functionspace.FunctionSpace".format(c_mesh))
+            mesh_name = c_mesh.get_name()
+            # check if all function spaces (read amd write are equal each) and get the function space
+            write_function_space = self.validate_function_space(
+                c_mesh.get_write_fields(), mesh_name, checkIfFunction=True)
+            read_function_space = self.validate_function_space(
+                c_mesh.get_read_fields(), mesh_name, checkIfFunction=False)
 
             if read_function_space is None and write_function_space:
-                self._coupling_types[c_mesh] = CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING
-                assert (self._config.get_write_data_name(c_mesh))
+                self._coupling_types[mesh_name] = CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING
+                assert self._config.get_write_data_names(mesh_name)  # error if empty array or None
                 print("Participant {} is write-only participant".format(self._config.get_participant_name()))
                 function_space = write_function_space
             elif read_function_space and write_function_space is None:
-                self._coupling_types[c_mesh] = CouplingMode.UNI_DIRECTIONAL_READ_COUPLING
-                assert (self._config.get_read_data_name(c_mesh))
+                self._coupling_types[mesh_name] = CouplingMode.UNI_DIRECTIONAL_READ_COUPLING
+                assert self._config.get_read_data_names(mesh_name)  # error if empty array or None
                 print("Participant {} is read-only participant".format(self._config.get_participant_name()))
                 function_space = read_function_space
             elif read_function_space and write_function_space:
-                self._coupling_types[c_mesh] = CouplingMode.BI_DIRECTIONAL_COUPLING
-                assert (self._config.get_read_data_name(c_mesh) and self._config.get_write_data_name(c_mesh))
+                self._coupling_types[mesh_name] = CouplingMode.BI_DIRECTIONAL_COUPLING
+                assert self._config.get_read_data_names(mesh_name) and self._config.get_write_data_names(mesh_name)
                 function_space = read_function_space
             elif read_function_space is None and write_function_space is None:
                 raise Exception(
@@ -282,62 +306,63 @@ class Adapter:
                     "Please provide a write_object if this participant is used in one-way coupling"
                     "and only writes data. Please provide a read_function_space if this participant"
                     "is used in one-way coupling and only reads data. If two-way coupling is"
-                    "implemented then both read_function_space and write_object need to be provided.".format(c_mesh))
+                    "implemented then both read_function_space and write_object need to be provided.".format(mesh_name))
             else:
                 raise Exception(
                     "Incorrect read and write function space combination provided for {}. Please check input "
-                    "parameters in initialization".format(c_mesh))
+                    "parameters in initialization".format(mesh_name))
 
-            coupling_type = self._coupling_types[c_mesh]
+            coupling_type = self._coupling_types[mesh_name]
             if coupling_type is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or \
                     coupling_type is CouplingMode.BI_DIRECTIONAL_COUPLING:
-                self._read_function_types[c_mesh] = determine_function_type(read_function_space)
-                self._read_function_spaces[c_mesh] = read_function_space
+                self._read_function_types[mesh_name] = determine_function_type(read_function_space)
+                self._read_function_spaces[mesh_name] = read_function_space
 
             if coupling_type is CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING or \
                     coupling_type is CouplingMode.BI_DIRECTIONAL_COUPLING:
                 # Ensure that function spaces of read and write functions are defined using the same mesh
-                self._write_function_types[c_mesh] = determine_function_type(write_function_space)
-                self._write_function_spaces[c_mesh] = write_function_space
+                self._write_function_types[mesh_name] = determine_function_type(write_function_space)
+                self._write_function_spaces[mesh_name] = write_function_space
 
             # Set vertices on the coupling subdomain for this rank (assumed to be
-            # equal across all fields that will be coupled)
+            # equal across all fields and meshes that will be coupled)
             self._fenicsx_dims = function_space.mesh.geometry.dim
             # returns 3d coordinates (necessary later for writing the data!)
-            # coupling subdomain is at [0] !
-            ids, coords = get_fenicsx_vertices(function_space, coupling_meshes[c_mesh][0], self._fenicsx_dims)
+            ids, coords = get_fenicsx_vertices(function_space, c_mesh.get_coupling_boundary(), self._fenicsx_dims)
             # this isnt a problem in update_coupling_expression, because in this function
             # , the two first dimensions are extracted. Exactly what we want!
-            self._fenicsx_vertices[c_mesh] = Vertices()
-            self._fenicsx_vertices[c_mesh].set_ids(ids)
-            self._fenicsx_vertices[c_mesh].set_coordinates(coords)
+            self._fenicsx_vertices[mesh_name] = Vertices()
+            self._fenicsx_vertices[mesh_name].set_ids(ids)
+            self._fenicsx_vertices[mesh_name].set_coordinates(coords)
 
             # Set up mesh in preCICE
-            self._precice_vertex_ids[c_mesh] = self._participant.set_mesh_vertices(
-                c_mesh, self._fenicsx_vertices[c_mesh].get_coordinates()[
+            self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
+                mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates()[
                     :, :2])  # give preCICE only 2D coordinates
 
-            if self._fenicsx_vertices[c_mesh].get_ids().size > 0:
+            if self._fenicsx_vertices[mesh_name].get_ids().size > 0:
                 self._empty_rank = False
             else:
                 print("Rank {} has no part of coupling boundary.".format(self._comm.Get_rank()))
 
             # Ensure that function spaces of read and write functions use the same mesh
             if coupling_type is CouplingMode.BI_DIRECTIONAL_COUPLING:
-                assert (self._read_function_spaces[c_mesh].mesh is write_function_space.mesh
+                assert (self._read_function_spaces[mesh_name].mesh is write_function_space.mesh
                         ), "read_function_space and write_object need to be defined using the same mesh"
 
             if self._fenicsx_dims != 2:
                 raise Exception("Currently the fenicsx-adapter only supports 2D cases")
 
-            if self._fenicsx_dims != self._participant.get_mesh_dimensions(c_mesh):
+            if self._fenicsx_dims != self._participant.get_mesh_dimensions(mesh_name):
                 raise Exception("Dimension of preCICE setup and FEniCSx do not match")
 
             if self._participant.requires_initial_data():
-                if not write_function:
-                    raise Exception(
-                        "preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
-                self.write_data(c_mesh, write_function)
+                for write_data_name in c_mesh.get_write_fields():
+                    write_function = c_mesh.get_write_fields()[write_data_name]
+                    if not isinstance(write_function, fem.Function):
+                        raise Exception(
+                            "preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
+                    self.write_data(mesh_name, write_data_name, write_function)
 
         self._participant.initialize()
 

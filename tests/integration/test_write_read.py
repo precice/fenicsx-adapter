@@ -61,9 +61,13 @@ class TestWriteandReadData(TestCase):
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._participant = Participant(None, None, None, None)
-        precice.initialize({"Dummy-Mesh": [right_boundary, self.scalar_V, self.scalar_function]})
+        c_mesh = fenicsxprecice.CouplingMesh("Dummy-Mesh",
+                                             right_boundary,
+                                             {"Dummy-Read": self.scalar_V},
+                                             {"Dummy-Write": self.scalar_function})
+        precice.initialize([c_mesh])
 
-        precice.write_data("Dummy-Mesh", self.scalar_function)
+        precice.write_data(c_mesh.get_name(), "Dummy-Write", self.scalar_function)
 
         expected_data_name = self.fake_data_name
         expected_values = np.array([[scalar_expr([x_right, y])] for y in self.vertices_y])
@@ -100,9 +104,10 @@ class TestWriteandReadData(TestCase):
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._participant = Participant(None, None, None, None)
         precice._read_data_name = self.fake_data_name
-        precice.initialize({"Dummy-Mesh": [right_boundary, self.scalar_V, None]})
+        c_mesh = fenicsxprecice.CouplingMesh("Dummy-Mesh", right_boundary, {"Dummy-Read": self.scalar_V})
+        precice.initialize([c_mesh])
 
-        read_data = precice.read_data("Dummy-Mesh", 0)
+        read_data = precice.read_data("Dummy-Mesh", "Dummy-Read", 0)
 
         expected_data_name = self.fake_data_name
         expected_vertex_ids = np.arange(self.n_vertices)

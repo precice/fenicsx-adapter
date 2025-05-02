@@ -3,8 +3,8 @@
   "config_file_name": "dummy.xml",
   "interfaces": {
     "Dummy-Mesh": {
-      "write_data_name": "Dummy-Write",
-      "read_data_name": "Dummy-Read",
+      "write_data_names": ["Dummy-Write"],
+      "read_data_names": ["Dummy-Read"],
       "interpolation_type": "rbf_segregated"
       }
     }

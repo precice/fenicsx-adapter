@@ -133,10 +133,11 @@ class TestExpressionHandling(TestCase):
         Participant.write_data = MagicMock()
 
         def right_boundary(x): return abs(x[0] - 1.0) < 10**-14
-
+        c_mesh = fenicsxprecice.CouplingMesh("Dummy-Mesh", right_boundary,
+                                             {"Dummy-Read": self.scalar_V}, {"Dummy-Write": self.scalar_function})
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
         precice._participant = Participant(None, None, None, None)
-        precice.initialize({"Dummy-Mesh": [right_boundary, self.scalar_V, self.scalar_function]})
+        precice.initialize([c_mesh])
         values = np.array([self.scalar_function.eval([x, y, 0], 0)[0]
                            for x, y in zip(self.vertices_x, self.vertices_y)])
         data = {(x, y): v for x, y, v in zip(self.vertices_x, self.vertices_y, values)}
