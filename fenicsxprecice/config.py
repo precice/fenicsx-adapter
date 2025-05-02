@@ -30,6 +30,20 @@ class Config:
         adapter_config_filename : string
             Name of the JSON configuration file
         """
+
+        def has_duplicate_name(l: list):
+            """Checks if the given list has duplicates
+
+            Returns:
+                bool: True, if the list has a duplicate
+            """
+            visited_names = set()
+            for name in l:
+                if name in visited_names:
+                    return True
+                visited_names.add(name)
+            return False
+
         folder = os.path.dirname(os.path.join(os.getcwd(), adapter_config_filename))
         path = os.path.join(folder, os.path.basename(adapter_config_filename))
         read_file = open(path, "r")
@@ -41,12 +55,18 @@ class Config:
             self._meshes[mesh_name] = {}
             try:
                 self._meshes[mesh_name]["write_data_names"] = data["interfaces"][mesh_name]["write_data_names"]
+                # check for duplicates
+                assert not has_duplicate_name(self._meshes[mesh_name]["write_data_names"]), \
+                    "Invalid config file: Multiple write data fields have the same name"
             except KeyError:
                 # not required for one-way coupling, if this participant reads data
                 self._meshes[mesh_name]["write_data_names"] = None
 
             try:
                 self._meshes[mesh_name]["read_data_names"] = data["interfaces"][mesh_name]["read_data_names"]
+                # check for duplicates
+                assert not has_duplicate_name(self._meshes[mesh_name]["read_data_names"]), \
+                    "Invalid config file: Multiple read data fields have the same name"
             except KeyError:
                 # not required for one-way coupling, if this participant writes data
                 self._meshes[mesh_name]["read_data_names"] = None

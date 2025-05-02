@@ -9,6 +9,7 @@ import precice
 from .adapter_core import FunctionType, determine_function_type, get_fenicsx_vertices, CouplingMode, Vertices, convert_fenicsx_to_precice
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
+from .coupling_mesh import CouplingMesh
 from dolfinx import fem
 import copy
 
@@ -215,9 +216,9 @@ class Adapter:
         """_summary_
 
         Args:
-            functions (_type_): a dict of Function and FunctionSpace
+            functions: a dict of Function and FunctionSpace
         ------
-        Returns: a bool if all function spaces are equal in given dict
+        Returns: the function space that is equal for all function_objects or raises an exception
         """
 
         # get first and extract function space
@@ -263,13 +264,13 @@ class Adapter:
 
         return function_space
 
-    def initialize(self, coupling_meshes):
+    def initialize(self, coupling_meshes: list[CouplingMesh]):
         """
         Initializes the coupling and sets up the mesh where coupling happens in preCICE.
 
         Parameters
         ----------
-        coupling_meshes: A list of coupling meshes of the class Mesh.
+        coupling_meshes: A list of coupling meshes of the class CouplingMesh.
 
         Returns
         -------
