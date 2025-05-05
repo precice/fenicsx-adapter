@@ -200,9 +200,19 @@ while precice.is_coupling_ongoing():
     dt = np.min([fenics_dt, precice_dt])
 
     if problem is ProblemType.DIRICHLET:
-        read_data = precice.read_data(coupling_mesh.get_name(), "Temperature", dt)
+        ids = fem.locate_dofs_geometrical(V, coupling_boundary)
+        coords = V.tabulate_dof_coordinates()[ids][:, :2]
+        coords = np.array([tuple(row) for row in coords])
+        a = []
+        for c in coords:
+            a.append((c[0], c[1]))
+        print(a)
+        read_data = precice.read_data_at_coordinates(coupling_mesh.get_name(), "Temperature",  a, dt)
     else:
-        read_data = precice.read_data(coupling_mesh.get_name(), "Heat-Flux", dt)
+        ids = fem.locate_dofs_geometrical(V, coupling_boundary)
+        coords = V.tabulate_dof_coordinates()[ids][:, :2]
+        read_data = precice.read_data_at_coordinates(coupling_mesh.get_name(), "Heat-Flux", coords, dt)
+        #read_data = precice.read_data(coupling_mesh.get_name(), "Heat-Flux", dt)
 
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:

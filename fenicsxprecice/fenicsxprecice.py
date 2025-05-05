@@ -179,6 +179,29 @@ class Adapter:
             pass
 
         return copy.deepcopy(read_data)
+    
+    def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
+        assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or
+                CouplingMode.BI_DIRECTIONAL_COUPLING)
+
+        read_data = None
+
+        if not self._empty_rank:
+            read_data = self._participant.map_and_read_data(
+                mesh_name,
+                read_data_name,
+                coordinates,
+                dt
+            )
+            
+            read_data = {
+                tuple(key): value for key, value in zip(coordinates,read_data)
+                }
+
+        else:
+            pass
+
+        return copy.deepcopy(read_data)
 
     def write_data(self, mesh_name, write_data_name, write_function):
         """

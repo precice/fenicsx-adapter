@@ -149,4 +149,6 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
         """
         assert (self._is_scalar_valued())  # this implementation only supports scalar valued functions
         assert (self._dimension == 2)  # this implementation only supports two dimensions
-        return lambda x: self._segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals)(x[0], x[1])
+        #return lambda x: self._segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals)(x[0], x[1])
+        rbf = Rbf(self._coords_x, self._coords_y, self._vals)
+        return lambda x:rbf(x[0], x[1])
