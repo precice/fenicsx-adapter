@@ -180,9 +180,15 @@ class Adapter:
 
         return copy.deepcopy(read_data)
     
+    def read_data_at(self, mesh_name, read_data_name, x, dt):
+        #assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or
+        #        CouplingMode.BI_DIRECTIONAL_COUPLING)
+        #print(x)
+        return self._participant.map_and_read_data(mesh_name, read_data_name, x, dt)
+    
     def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
-        assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or
-                CouplingMode.BI_DIRECTIONAL_COUPLING)
+        #assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or
+        #        CouplingMode.BI_DIRECTIONAL_COUPLING)
 
         read_data = None
 
@@ -507,3 +513,20 @@ class Adapter:
 
     def requires_reading_checkpoint(self):
         return self._participant.requires_reading_checkpoint()
+    
+    def set_mesh_access_region(self, mesh_name, access_region):
+        """_summary_
+
+        Args:
+            mesh_name (_type_): _description_
+            access_region (list, optional): A list of tuples defining the access region. Expects a list of 2 points.
+        """
+        assert len(access_region) == 2
+        assert len(access_region[0]) == len(access_region[1])
+        ar = [0] * (len(access_region)*2)
+        for v, idx in zip(access_region[0], range(len(access_region[0]))):
+            ar[idx*2] = v
+        for v, idx in zip(access_region[1], range(len(access_region[1]))):
+            ar[1 + idx*2] = v
+        
+        self._participant.set_mesh_access_region(mesh_name, ar)

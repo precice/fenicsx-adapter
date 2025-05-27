@@ -8,11 +8,13 @@ class CouplingMesh:
             coupling_boundary (function): function describing the coupling boundary
             read_fields (dict, optional): A dict mapping a read data field name to a function space. Defaults to None.
             write_fields (dict, optional): A dict mapping a write data field name to a function or function space. Defaults to None.
+            access_region (list, optional): A list of tuples defining the access region. Expects a list of 2 points. Defaults to None.
         """
         self._mesh_name = mesh_name
         self._coupling_boundary = coupling_boundary
         self._read_fields = read_fields
-        self._write_fields = write_fields
+        self._write_fields = write_fields        
+                    
 
     def get_name(self):
         return self._mesh_name
