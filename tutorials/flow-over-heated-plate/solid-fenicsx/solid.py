@@ -21,7 +21,6 @@ x_left = 0
 x_right = x_left + 1
 
 fenics_dt = 0.01  # time step size
-dt_out = 0.2  # interval for writing VTK files
 
 def top_boundary(x):
     tol = 1E-14
