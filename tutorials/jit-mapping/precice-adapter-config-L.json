@@ -1,0 +1,10 @@
+{
+  "participant_name": "Left",
+  "config_file_name": "precice-config.xml",
+  "interfaces": {
+    "LeftMesh": {
+      "write_data_names": ["LeftValue"],
+      "read_data_names": ["RightValue"]
+      }
+    }
+}
