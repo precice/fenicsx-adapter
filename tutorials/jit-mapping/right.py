@@ -33,7 +33,7 @@ V1 = functionspace(domain1, ("Lagrange", 2))
 uD = fem.Function(V1)
 uD.interpolate(lambda x: x[0]+x[1]-10)
 
-V_boundary = functionspace(domain1, ("Lagrange", 1)) # or V1
+V_boundary = functionspace(domain1, ("Lagrange", 2)) # or V1
 u_boundary = fem.Function(V_boundary)
 tdim = domain1.topology.dim
 coupling_cells = mesh.locate_entities(domain1, tdim, lambda x: numpy.isclose(x[0], 1, 1/14))
@@ -49,6 +49,7 @@ coupling_expression = precice.create_coupling_expression(cmesh.get_name())
 
 dofs_coupling = fem.locate_dofs_geometrical(V_boundary, coupling_bc)
 dofs_coupling_coordinates = V_boundary.tabulate_dof_coordinates()[dofs_coupling]
+
 
 coords = dofs_coupling_coordinates[:,:2]
 for c, i in zip(coords, range(len(coords))):
