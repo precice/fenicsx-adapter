@@ -29,7 +29,7 @@ from mpi4py import MPI
 import basix.ufl
 from petsc4py import PETSc
 import ufl
-from dolfinx import fem, io
+from dolfinx import fem, io, mesh as msh
 from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc, LinearProblem
 import basix
 from fenicsxprecice import Adapter, CouplingMesh
@@ -37,6 +37,9 @@ from errorcomputation import compute_errors
 from my_enums import ProblemType, DomainPart
 from problem_setup import get_geometry
 
+
+def interface(x):
+    return np.isclose(x[0], 1)
 
 def determine_gradient(V_g, u):
     """
@@ -109,6 +112,7 @@ fdim = tdim - 1
 domain.topology.create_connectivity(fdim, tdim)
 # dofs for the coupling boundary
 dofs_coupling = fem.locate_dofs_geometrical(V, coupling_boundary)
+dofs_coupling_coordinates = V.tabulate_dof_coordinates()[dofs_coupling]
 # dofs for the remaining boundary. Can be directly set to u_D
 dofs_remaining = fem.locate_dofs_geometrical(V, remaining_boundary)
 bc_D = fem.dirichletbc(u_D, dofs_remaining)
@@ -163,7 +167,9 @@ else:
 def test(x):
     tmp = np.transpose(x)[:, :2]
     lst =  list(precice.read_data_at_coordinates(read_mesh, name_read, tmp, dt).values())
-    #print(lst)
+    for value, coord in zip(lst, tmp):
+        if coord[0] > 0.8:
+            print(np.abs(value-u_exact(coord)))
     return lst
 
 coupling_function = fem.Function(V_coup)
@@ -172,6 +178,8 @@ if problem is ProblemType.DIRICHLET:
     # modify Dirichlet boundary condition on coupling interface
     bc_coup = fem.dirichletbc(coupling_function, dofs_coupling)
     bcs.append(bc_coup)
+    print(bc_coup.dof_indices())
+    #exit()
 if problem is ProblemType.NEUMANN:
     # modify Neumann boundary condition on coupling interface, modify weak
     # form correspondingly
@@ -210,6 +218,13 @@ f_err = fem.Function(V)
 vtxwriter = io.VTXWriter(MPI.COMM_WORLD, f"output_{problem.name}.bp", [f_err])
 vtxwriter.write(t)
 
+
+# get boundary cells that get values from precice
+#boundary_entities = msh.locate_entities_boundary(domain, domain.topology.dim - 1, interface)
+#adjacent_cells = msh.compute_incident_entities(domain.topology, boundary_entities, domain.topology.dim - 1, domain.topology.dim).astype(np.int32)
+#interpolation_data = fem.create_nonmatching_meshes_interpolation_data(mesh_2.geometry, V_2.element, mesh_1, adjacent_cells, padding=1.0e-6)
+#fem.create_interpolation_data()
+
 while precice.is_coupling_ongoing():
 
     if precice.requires_writing_checkpoint():
@@ -225,6 +240,14 @@ while precice.is_coupling_ongoing():
     assemble_vector(b, L)
     # Update the coupling expression with the new read data
     #precice.update_coupling_expression(coupling_expression, read_data)
+    #print(dofs_coupling_coordinates)
+    #read_values = precice.read_data_at_coordinates(read_mesh, name_read, dofs_coupling_coordinates, dt)
+    #print(read_values)
+    #exit()
+    
+    ##### kann ich nicht machen wegen 2. Ordnung elementen!!!!!
+    #coupling_function.x[dofs_coupling] = read_values
+    
     coupling_function.interpolate(test)
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)
@@ -269,7 +292,6 @@ while precice.is_coupling_ongoing():
         u_ref.interpolate(u_D)
         error, error_pointwise = compute_errors(u_n, u_ref, total_error_tol=1)
         print("t = %.2f: L2 error on domain = %.3g" % (t, error))
-
         # Update Dirichlet BC
         u_exact.t += dt
         u_D.interpolate(u_exact)

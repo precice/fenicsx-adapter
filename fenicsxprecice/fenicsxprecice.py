@@ -180,11 +180,10 @@ class Adapter:
 
         return copy.deepcopy(read_data)
     
-    def read_data_at(self, mesh_name, read_data_name, x, dt):
-        #assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or
-        #        CouplingMode.BI_DIRECTIONAL_COUPLING)
-        #print(x)
-        return self._participant.map_and_read_data(mesh_name, read_data_name, x, dt)
+    #def read_data_at(self, mesh_name, read_data_name, x, dt):
+    #    assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or
+    #            CouplingMode.BI_DIRECTIONAL_COUPLING)
+    #    return self._participant.map_and_read_data(mesh_name, read_data_name, x, dt)
     
     def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
         #assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or
