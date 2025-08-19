@@ -180,15 +180,7 @@ class Adapter:
 
         return copy.deepcopy(read_data)
     
-    #def read_data_at(self, mesh_name, read_data_name, x, dt):
-    #    assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or
-    #            CouplingMode.BI_DIRECTIONAL_COUPLING)
-    #    return self._participant.map_and_read_data(mesh_name, read_data_name, x, dt)
-    
     def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
-        #assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or
-        #        CouplingMode.BI_DIRECTIONAL_COUPLING)
-
         read_data = None
 
         if not self._empty_rank:
@@ -239,6 +231,10 @@ class Adapter:
             self._precice_vertex_ids[mesh_name],
             write_data
         )
+        
+    def write_data_at_coordinates(self, mesh_name, write_data_name, coordinates, write_function):
+        write_data = convert_fenicsx_to_precice(write_function, coordinates)
+        self._participant.write_and_map_data(mesh_name, write_data_name, write_data)
 
     def validate_function_space(self, function_objects, mesh_name, checkIfFunction):
         """_summary_
