@@ -1,10 +1,14 @@
 from mpi4py import MPI
 from dolfinx import mesh
 from dolfinx.fem import functionspace
-from dolfinx import fem
+from dolfinx import fem, geometry
 import numpy
 
 import fenicsxprecice
+
+def coupling_bc(x):
+    tol = 1E-14
+    return numpy.isclose(x[0], 1, tol)
 
 domain1 = mesh.create_rectangle(
     MPI.COMM_WORLD, [
@@ -15,21 +19,20 @@ V1 = functionspace(domain1, ("Lagrange", 2))
 uD = fem.Function(V1)
 uD.interpolate(lambda x: x[0]+x[1]-10)
 
-def coupling_bc(x):
-    tol = 1E-14
-    return numpy.isclose(x[0], 1, tol)
+Vb = functionspace(domain1, ("Lagrange", 1))
+u_boundary = fem.Function(Vb)
+
+u_tmp = fem.Function(V1)
 
 
 precice = fenicsxprecice.Adapter(adapter_config_filename="precice-adapter-config-R.json", mpi_comm=MPI.COMM_SELF)
 cmesh = fenicsxprecice.CouplingMesh("RightMesh", coupling_bc, {"LeftValue": V1}, {"RightValue": uD})
-precice.set_mesh_access_region("LeftMesh", [(1,0), (1.2,1)])
+precice.set_mesh_access_region("LeftMesh", [(1,0), (2,1)])
 precice.initialize([cmesh])
 
-coupling_expression = precice.create_coupling_expression(cmesh.get_name())
+dofs_coupling = fem.locate_dofs_geometrical(Vb, coupling_bc)
+dofs_coupling_coordinates = Vb.tabulate_dof_coordinates()[dofs_coupling]
 
-
-dofs_coupling = fem.locate_dofs_geometrical(V1, coupling_bc)
-dofs_coupling_coordinates = V1.tabulate_dof_coordinates()[dofs_coupling]
 
 coords = dofs_coupling_coordinates[:,:2]
 for c, i in zip(coords, range(len(coords))):
@@ -50,6 +53,9 @@ while precice.is_coupling_ongoing():
     read_data = precice.read_data_at_coordinates("LeftMesh", "LeftValue", coords, 0)
     precice.write_data(cmesh.get_name(), "RightValue", uD)
     
+    u_boundary.x.array[dofs_coupling] = list(read_data.values())
+    u_tmp.interpolate(u_boundary)
+    
     precice.advance(0.25)
 
     if precice.requires_reading_checkpoint():
@@ -58,7 +64,7 @@ while precice.is_coupling_ongoing():
 
 precice.finalize()
 # check correctness (error expected to be relatively high because the other participant has a different mesh ;) )
-# expected: x[0]+x[1]+1
+# expected: x[0]+x[1]**2+1
 max_diff = 0
 for key in read_data.keys():
     diff = key[0]+key[1]**2+1 - read_data[key]
@@ -67,3 +73,16 @@ for key in read_data.keys():
         max_diff = diff
     
 print(max_diff)
+
+# check difference between boundary function values and values from preCICE
+bb_tree = geometry.bb_tree(domain1, domain1.geometry.dim)
+cells = []
+points = []
+cell_candidates = geometry.compute_collisions_points(bb_tree, dofs_coupling_coordinates)
+colliding_cells = geometry.compute_colliding_cells(domain1, cell_candidates, dofs_coupling_coordinates)
+for i, point in enumerate(dofs_coupling_coordinates):
+    if len(colliding_cells.links(i)) > 0:
+        points.append(point)
+        cells.append(colliding_cells.links(i)[0])
+precice_data = u_boundary.eval(points, cells)
+print(numpy.max(precice_data.T-list(read_data.values())))

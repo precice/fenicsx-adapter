@@ -29,7 +29,7 @@ from mpi4py import MPI
 import basix.ufl
 from petsc4py import PETSc
 import ufl
-from dolfinx import fem, io
+from dolfinx import fem, io, mesh as msh
 from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc, LinearProblem
 import basix
 from fenicsxprecice import Adapter, CouplingMesh
@@ -37,6 +37,9 @@ from errorcomputation import compute_errors
 from my_enums import ProblemType, DomainPart
 from problem_setup import get_geometry
 
+
+def interface(x):
+    return np.isclose(x[0], 1)
 
 def determine_gradient(V_g, u):
     """
@@ -108,11 +111,15 @@ tdim = domain.topology.dim
 fdim = tdim - 1
 domain.topology.create_connectivity(fdim, tdim)
 # dofs for the coupling boundary
-dofs_coupling = fem.locate_dofs_geometrical(V, coupling_boundary)
+dofs_boundary = fem.locate_dofs_geometrical(V, coupling_boundary)
 # dofs for the remaining boundary. Can be directly set to u_D
 dofs_remaining = fem.locate_dofs_geometrical(V, remaining_boundary)
 bc_D = fem.dirichletbc(u_D, dofs_remaining)
 bcs.append(bc_D)
+
+# dofs for the coupling boundary (coupling function space)
+dofs_coupling = fem.locate_dofs_geometrical(V_coup, coupling_boundary)
+dofs_coupling_coordinates = V_coup.tabulate_dof_coordinates()[dofs_coupling]
 
 if problem is ProblemType.DIRICHLET:
     # Define flux in x direction
@@ -159,18 +166,12 @@ if problem is ProblemType.DIRICHLET:
 else:
     name_read = "Heat-Flux"
     read_mesh = "Dirichlet-Mesh"
-    
-def test(x):
-    tmp = np.transpose(x)[:, :2]
-    lst =  list(precice.read_data_at_coordinates(read_mesh, name_read, tmp, dt).values())
-    #print(lst)
-    return lst
 
 coupling_function = fem.Function(V_coup)
 
 if problem is ProblemType.DIRICHLET:
     # modify Dirichlet boundary condition on coupling interface
-    bc_coup = fem.dirichletbc(coupling_function, dofs_coupling)
+    bc_coup = fem.dirichletbc(coupling_function, dofs_boundary)
     bcs.append(bc_coup)
 if problem is ProblemType.NEUMANN:
     # modify Neumann boundary condition on coupling interface, modify weak
@@ -210,6 +211,8 @@ f_err = fem.Function(V)
 vtxwriter = io.VTXWriter(MPI.COMM_WORLD, f"output_{problem.name}.bp", [f_err])
 vtxwriter.write(t)
 
+read_coords = dofs_coupling_coordinates[:,:2]
+
 while precice.is_coupling_ongoing():
 
     if precice.requires_writing_checkpoint():
@@ -224,8 +227,8 @@ while precice.is_coupling_ongoing():
         loc_b.set(0)
     assemble_vector(b, L)
     # Update the coupling expression with the new read data
-    #precice.update_coupling_expression(coupling_expression, read_data)
-    coupling_function.interpolate(test)
+    read_values = list(precice.read_data_at_coordinates(read_mesh, name_read, read_coords, dt).values())
+    coupling_function.x.array[dofs_coupling] = read_values
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)
     # Boundary condition bc should be updated by u_D.interpolate above, since
@@ -242,12 +245,10 @@ while precice.is_coupling_ongoing():
         flux = determine_gradient(V_g, uh)
         flux_x = fem.Function(W)
         flux_x.interpolate(flux.sub(0))
-        #precice.write_data(coupling_mesh.get_name(), "Heat-Flux", flux_x)
-        precice.write_data(coupling_mesh.get_name(), "Heat-Flux", f_N)
+        precice.write_data(coupling_mesh.get_name(), "Heat-Flux", flux_x)
     elif problem is ProblemType.NEUMANN:
         # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
-        #precice.write_data(coupling_mesh.get_name(), "Temperature", uh)
-        precice.write_data(coupling_mesh.get_name(), "Temperature", u_D)
+        precice.write_data(coupling_mesh.get_name(), "Temperature", uh)
 
     precice.advance(dt)
     precice_dt = precice.get_max_time_step_size()
@@ -269,7 +270,6 @@ while precice.is_coupling_ongoing():
         u_ref.interpolate(u_D)
         error, error_pointwise = compute_errors(u_n, u_ref, total_error_tol=1)
         print("t = %.2f: L2 error on domain = %.3g" % (t, error))
-
         # Update Dirichlet BC
         u_exact.t += dt
         u_D.interpolate(u_exact)

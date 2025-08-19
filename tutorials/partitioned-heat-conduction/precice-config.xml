@@ -26,17 +26,13 @@
     <!-- read-data von Neumann mesh und mapping zu einer jit kompatiblen mapping ändern-->
     <write-data name="Heat-Flux" mesh="Dirichlet-Mesh" />
     <read-data name="Temperature" mesh="Neumann-Mesh" />
-    <!--mapping:nearest-neighbor
-      direction="read"
-      from="Neumann-Mesh"
-      constraint="consistent" /-->
     <mapping:rbf-pum-direct
       direction="read"
       from="Neumann-Mesh"
       constraint="consistent"
-      project-to-input="on"
+      project-to-input="off"
       polynomial="separate">
-      <basis-function:compact-polynomial-c6 support-radius="1" />
+      <basis-function:thin-plate-splines />
     </mapping:rbf-pum-direct>
   </participant>
 
@@ -45,10 +41,14 @@
     <receive-mesh name="Dirichlet-Mesh" from="Dirichlet" api-access="true"/>
     <write-data name="Temperature" mesh="Neumann-Mesh" />
     <read-data name="Heat-Flux" mesh="Dirichlet-Mesh" />
-    <mapping:nearest-neighbor
+    <mapping:rbf-pum-direct
       direction="read"
       from="Dirichlet-Mesh"
-      constraint="consistent" />
+      constraint="consistent"
+      project-to-input="off"
+      polynomial="separate">
+      <basis-function:thin-plate-splines />
+    </mapping:rbf-pum-direct>
   </participant>
 
   <m2n:sockets acceptor="Dirichlet" connector="Neumann" exchange-directory=".." />

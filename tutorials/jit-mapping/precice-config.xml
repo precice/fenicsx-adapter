@@ -29,7 +29,7 @@
       direction="read"
       from="RightMesh"
       constraint="consistent"
-      project-to-input="on"
+      project-to-input="off"
       polynomial="separate">
       <basis-function:compact-polynomial-c2 support-radius="0.1" />
     </mapping:rbf-pum-direct>
