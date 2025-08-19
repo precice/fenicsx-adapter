@@ -86,7 +86,6 @@ element = basix.ufl.element("Lagrange", domain.topology.cell_name(), 1, shape=(d
 V_g = fem.functionspace(domain, element)
 W, map_to_W = V_g.sub(0).collapse()
 V_coup = None
-
 if problem is ProblemType.DIRICHLET:
     V_coup = V
 else:
