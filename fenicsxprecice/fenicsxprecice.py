@@ -254,6 +254,8 @@ class Adapter:
             coordinates: A list of coordinates that defines where write_function is evaluated
             write_function: The function whose values at the given coordinates will be written
         """
+        write_function_type = determine_function_type(write_function)
+        assert write_function_type in list(FunctionType)
         write_data = convert_fenicsx_to_precice(write_function, coordinates)
         self._participant.write_and_map_data(mesh_name, write_data_name, write_data)
 
