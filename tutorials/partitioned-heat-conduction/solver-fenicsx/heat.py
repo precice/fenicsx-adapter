@@ -117,7 +117,8 @@ dofs_remaining = fem.locate_dofs_geometrical(V, remaining_boundary)
 bc_D = fem.dirichletbc(u_D, dofs_remaining)
 bcs.append(bc_D)
 
-# dofs for the coupling boundary (coupling function space)
+# dofs (and the corresponding coordinates) for the coupling boundary (coupling function space)
+# this is later used to read data from preCICE and update boundary condition
 dofs_coupling = fem.locate_dofs_geometrical(V_coup, coupling_boundary)
 dofs_coupling_coordinates = V_coup.tabulate_dof_coordinates()[dofs_coupling]
 

@@ -10,30 +10,28 @@ def coupling_bc(x):
     tol = 1E-14
     return numpy.isclose(x[0], 1, tol)
 
-domain1 = mesh.create_rectangle(
+domain = mesh.create_rectangle(
     MPI.COMM_WORLD, [
         numpy.asarray((1, 0)),
         numpy.asarray((2, 1))],
     [14, 14], mesh.CellType.quadrilateral)
-V1 = functionspace(domain1, ("Lagrange", 2))
-uD = fem.Function(V1)
+V = functionspace(domain, ("Lagrange", 2))
+uD = fem.Function(V)
 uD.interpolate(lambda x: x[0]+x[1]-10)
 
-Vb = functionspace(domain1, ("Lagrange", 1))
-u_boundary = fem.Function(Vb)
-
-u_tmp = fem.Function(V1)
-
+u_boundary = fem.Function(V)
 
 precice = fenicsxprecice.Adapter(adapter_config_filename="precice-adapter-config-R.json", mpi_comm=MPI.COMM_SELF)
-cmesh = fenicsxprecice.CouplingMesh("RightMesh", coupling_bc, {"LeftValue": V1}, {"RightValue": uD})
+cmesh = fenicsxprecice.CouplingMesh("RightMesh", coupling_bc, {"LeftValue": V}, {"RightValue": uD})
+# set access region for jit-mapping before initialize()
 precice.set_mesh_access_region("LeftMesh", [(1,0), (2,1)])
 precice.initialize([cmesh])
 
-dofs_coupling = fem.locate_dofs_geometrical(Vb, coupling_bc)
-dofs_coupling_coordinates = Vb.tabulate_dof_coordinates()[dofs_coupling]
+dofs_coupling = fem.locate_dofs_geometrical(V, coupling_bc)
+dofs_coupling_coordinates = V.tabulate_dof_coordinates()[dofs_coupling]
 
-
+# In this example, some dof coordinates are not within the defined domain
+# To avoid errors, the code below is necessary
 coords = dofs_coupling_coordinates[:,:2]
 for c, i in zip(coords, range(len(coords))):
     if c[1] < 0:
@@ -50,11 +48,11 @@ while precice.is_coupling_ongoing():
     if precice.requires_writing_checkpoint():
         precice.store_checkpoint(uD, 0, 0)
 
+    # here the jit-mapping features are used: since in l.54, the dofs are directly set as the read data,
+    # the coords list, has only coordinates of the dofs
     read_data = precice.read_data_at_coordinates("LeftMesh", "LeftValue", coords, 0)
     precice.write_data(cmesh.get_name(), "RightValue", uD)
-    
     u_boundary.x.array[dofs_coupling] = list(read_data.values())
-    u_tmp.interpolate(u_boundary)
     
     precice.advance(0.25)
 
@@ -75,11 +73,11 @@ for key in read_data.keys():
 print(max_diff)
 
 # check difference between boundary function values and values from preCICE
-bb_tree = geometry.bb_tree(domain1, domain1.geometry.dim)
+bb_tree = geometry.bb_tree(domain, domain.geometry.dim)
 cells = []
 points = []
 cell_candidates = geometry.compute_collisions_points(bb_tree, dofs_coupling_coordinates)
-colliding_cells = geometry.compute_colliding_cells(domain1, cell_candidates, dofs_coupling_coordinates)
+colliding_cells = geometry.compute_colliding_cells(domain, cell_candidates, dofs_coupling_coordinates)
 for i, point in enumerate(dofs_coupling_coordinates):
     if len(colliding_cells.links(i)) > 0:
         points.append(point)
