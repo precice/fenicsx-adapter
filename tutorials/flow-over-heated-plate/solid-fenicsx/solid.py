@@ -3,7 +3,7 @@ from mpi4py import MPI
 import basix.ufl
 from petsc4py import PETSc
 import ufl
-from dolfinx import fem, io, mesh as msh
+from dolfinx import fem, io, mesh as msh, default_scalar_type
 from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc, LinearProblem
 from dolfinx.mesh import create_rectangle
 import basix
@@ -30,12 +30,12 @@ def bottom_boundary(x):
     tol = 1E-14
     return np.isclose(x[1], y_bottom, tol)
     
-class boundary_condition():
+class initial_value():
     def __init__(self, constant):
         self.constant = constant
         
     def __call__(self, x):
-        return self.constant+ 0*x[0]
+        return np.full(x[0].shape, self.constant)
 
 def determine_heat_flux(V_g, u, k):
     """
@@ -57,7 +57,7 @@ p0 = (x_left, y_bottom)
 p1 = (x_right, y_top)
 
 mesh = create_rectangle(MPI.COMM_WORLD, [np.asarray(p0), np.asarray(p1)], [nx, ny], msh.CellType.triangle)
-V = fem.functionspace(mesh, ('P', 1))
+V = fem.functionspace(mesh, ('P', 2))
 # for the vector function space
 element = basix.ufl.element("Lagrange", mesh.topology.cell_name(), 1, shape=(mesh.geometry.dim,))
 V_g = fem.functionspace(mesh, element)
@@ -66,16 +66,12 @@ W, map_to_W = V_g.sub(1).collapse()
 alpha = 1  # m^2/s, https://en.wikipedia.org/wiki/Thermal_diffusivity
 k = 100  # kg * m / s^3 / K, https://en.wikipedia.org/wiki/Thermal_conductivity
 
-# Define boundary condition
-boundary_function = boundary_condition(310)
-u_D = fem.Function(V)
-u_D.interpolate(boundary_function)
 # We will only exchange flux in y direction on coupling interface. No initialization necessary.
 flux_y = fem.Function(W)
 
 # Define initial value
 u_n = fem.Function(V)
-u_n.interpolate(u_D)
+u_n.interpolate(initial_value(310))
 
 tdim = mesh.topology.dim
 fdim = tdim - 1
@@ -105,7 +101,7 @@ F = u * v / dt * ufl.dx + alpha * ufl.dot(ufl.grad(u), ufl.grad(v)) * ufl.dx - u
 
 # apply constant Dirichlet boundary condition at bottom edge
 # apply Dirichlet boundary condition on coupling interface
-bcs = [fem.dirichletbc(coupling_expression, dofs_coupling), fem.dirichletbc(u_D, dofs_bottom)]
+bcs = [fem.dirichletbc(coupling_expression, dofs_coupling), fem.dirichletbc(default_scalar_type(310), dofs_bottom, V)]
 
 a = fem.form(ufl.lhs(F))
 L = fem.form(ufl.rhs(F))
@@ -173,8 +169,8 @@ while precice.is_coupling_ongoing():
             vtxwriter.write(t)
 
     if precice.is_time_window_complete():
-        # update boundary condition
-        u_D.interpolate(boundary_function)
+        # update boundary condition not necessary because it is constant
+        pass
 
 
 precice.finalize()
