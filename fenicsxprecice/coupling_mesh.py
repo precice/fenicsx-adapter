@@ -12,7 +12,7 @@ class CouplingMesh:
         self._mesh_name = mesh_name
         self._coupling_boundary = coupling_boundary
         self._read_fields = read_fields
-        self._write_fields = write_fields     
+        self._write_fields = write_fields
 
     def get_name(self):
         return self._mesh_name

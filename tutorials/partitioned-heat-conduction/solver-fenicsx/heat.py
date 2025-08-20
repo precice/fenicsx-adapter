@@ -41,6 +41,7 @@ from problem_setup import get_geometry
 def interface(x):
     return np.isclose(x[0], 1)
 
+
 def determine_gradient(V_g, u):
     """
     compute flux following http://hplgit.github.io/INF5620/doc/pub/fenics_tutorial1.1/tu2.html#tut-poisson-gradu
@@ -92,6 +93,8 @@ else:
     V_coup = W
 
 # Define the exact solution
+
+
 class exact_solution():
     def __init__(self, alpha, beta, t):
         self.alpha = alpha
@@ -100,6 +103,7 @@ class exact_solution():
 
     def __call__(self, x):
         return 1 + x[0]**2 + self.alpha * x[1]**2 + self.beta * self.t
+
 
 u_exact = exact_solution(alpha, beta, t)
 
@@ -140,7 +144,7 @@ else:
 coupling_mesh = None
 if problem is ProblemType.DIRICHLET:
     coupling_mesh = CouplingMesh("Dirichlet-Mesh", coupling_boundary, {"Temperature": V}, {"Heat-Flux": f_N})
-    precice.set_mesh_access_region("Neumann-Mesh", [(0,0), (1,1)])
+    precice.set_mesh_access_region("Neumann-Mesh", [(0, 0), (1, 1)])
     precice.initialize([coupling_mesh])
 elif problem is ProblemType.NEUMANN:
     coupling_mesh = CouplingMesh("Neumann-Mesh", coupling_boundary, {"Heat-Flux": V}, {"Temperature": u_D})
@@ -212,7 +216,7 @@ f_err = fem.Function(V)
 vtxwriter = io.VTXWriter(MPI.COMM_WORLD, f"output_{problem.name}.bp", [f_err])
 vtxwriter.write(t)
 
-read_coords = dofs_coupling_coordinates[:,:2]
+read_coords = dofs_coupling_coordinates[:, :2]
 
 while precice.is_coupling_ongoing():
 
@@ -222,7 +226,6 @@ while precice.is_coupling_ongoing():
     precice_dt = precice.get_max_time_step_size()
     dt = np.min([fenics_dt, precice_dt])
 
-    
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
         loc_b.set(0)
