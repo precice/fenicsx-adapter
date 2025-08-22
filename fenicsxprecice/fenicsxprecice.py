@@ -180,6 +180,38 @@ class Adapter:
 
         return copy.deepcopy(read_data)
 
+    def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
+        """
+        Read data from preCICE at specified coordinates. This function uses the JIT-mapping feature.
+
+        Args:
+            mesh_name: Specifies for which mesh the data shall be read
+            read_data_name: Specifies the data name of the mesh
+            coordinates (list): List of coordinates where preCICE reads the data
+            dt: offset within time window
+
+        Returns:
+            dict: Returns a dict of coordinates as key and read data as value
+        """
+        read_data = None
+
+        if not self._empty_rank:
+            read_data = self._participant.map_and_read_data(
+                mesh_name,
+                read_data_name,
+                coordinates,
+                dt
+            )
+
+            read_data = {
+                tuple(key): value for key, value in zip(coordinates, read_data)
+            }
+
+        else:
+            pass
+
+        return copy.deepcopy(read_data)
+
     def write_data(self, mesh_name, write_data_name, write_function):
         """
         Writes data to preCICE. Depending on the dimensions of the simulation (2D-3D Coupling, 2D-2D coupling or
@@ -211,6 +243,21 @@ class Adapter:
             self._precice_vertex_ids[mesh_name],
             write_data
         )
+
+    def write_data_at_coordinates(self, mesh_name, write_data_name, coordinates, write_function):
+        """
+        Writes data to preCICE at the given coordinates with the JIT-mapping feature
+
+        Args:
+            mesh_name: Name of the mesh that is written to
+            write_data_name: Name of the data field that is written
+            coordinates: A list of coordinates that defines where write_function is evaluated
+            write_function: The function whose values at the given coordinates will be written
+        """
+        write_function_type = determine_function_type(write_function)
+        assert write_function_type in list(FunctionType)
+        write_data = convert_fenicsx_to_precice(write_function, coordinates)
+        self._participant.write_and_map_data(mesh_name, write_data_name, write_data)
 
     def validate_function_space(self, function_objects, mesh_name, checkIfFunction):
         """_summary_
@@ -491,3 +538,21 @@ class Adapter:
 
     def requires_reading_checkpoint(self):
         return self._participant.requires_reading_checkpoint()
+
+    def set_mesh_access_region(self, mesh_name, access_region):
+        """
+        Defines the access region for the JIT-mapping
+
+        Args:
+            mesh_name: The name of the mesh for which the access region is defined
+            access_region (list): A list of tuples defining the access region. Expects a list of 2 points.
+        """
+        assert len(access_region) == 2  # should also be fine for 3d cases
+        assert len(access_region[0]) == len(access_region[1])
+        ar = [0] * (len(access_region[0]) * 2)
+        for idx, v in enumerate(access_region[0]):
+            ar[idx * 2] = v
+        for idx, v in enumerate(access_region[1]):
+            ar[1 + idx * 2] = v
+
+        self._participant.set_mesh_access_region(mesh_name, ar)

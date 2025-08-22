@@ -29,13 +29,17 @@ from mpi4py import MPI
 import basix.ufl
 from petsc4py import PETSc
 import ufl
-from dolfinx import fem, io
+from dolfinx import fem, io, mesh as msh
 from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc, LinearProblem
 import basix
 from fenicsxprecice import Adapter, CouplingMesh
 from errorcomputation import compute_errors
 from my_enums import ProblemType, DomainPart
 from problem_setup import get_geometry
+
+
+def interface(x):
+    return np.isclose(x[0], 1)
 
 
 def determine_gradient(V_g, u):
@@ -82,6 +86,11 @@ V = fem.functionspace(domain, ("Lagrange", 2))
 element = basix.ufl.element("Lagrange", domain.topology.cell_name(), 1, shape=(domain.geometry.dim,))
 V_g = fem.functionspace(domain, element)
 W, map_to_W = V_g.sub(0).collapse()
+V_coup = None
+if problem is ProblemType.DIRICHLET:
+    V_coup = V
+else:
+    V_coup = W
 
 # Define the exact solution
 
@@ -106,11 +115,16 @@ tdim = domain.topology.dim
 fdim = tdim - 1
 domain.topology.create_connectivity(fdim, tdim)
 # dofs for the coupling boundary
-dofs_coupling = fem.locate_dofs_geometrical(V, coupling_boundary)
+dofs_boundary = fem.locate_dofs_geometrical(V, coupling_boundary)
 # dofs for the remaining boundary. Can be directly set to u_D
 dofs_remaining = fem.locate_dofs_geometrical(V, remaining_boundary)
 bc_D = fem.dirichletbc(u_D, dofs_remaining)
 bcs.append(bc_D)
+
+# dofs (and the corresponding coordinates) for the coupling boundary (coupling function space)
+# this is later used to read data from preCICE and update boundary condition
+dofs_coupling = fem.locate_dofs_geometrical(V_coup, coupling_boundary)
+dofs_coupling_coordinates = V_coup.tabulate_dof_coordinates()[dofs_coupling]
 
 if problem is ProblemType.DIRICHLET:
     # Define flux in x direction
@@ -130,9 +144,11 @@ else:
 coupling_mesh = None
 if problem is ProblemType.DIRICHLET:
     coupling_mesh = CouplingMesh("Dirichlet-Mesh", coupling_boundary, {"Temperature": V}, {"Heat-Flux": f_N})
+    precice.set_mesh_access_region("Neumann-Mesh", [(0, 0), (1, 1)])
     precice.initialize([coupling_mesh])
 elif problem is ProblemType.NEUMANN:
     coupling_mesh = CouplingMesh("Neumann-Mesh", coupling_boundary, {"Heat-Flux": V}, {"Temperature": u_D})
+    precice.set_mesh_access_region("Dirichlet-Mesh", [(1, 0), (2, 1)])
     precice.initialize([coupling_mesh])
 
 # get precice's dt
@@ -146,17 +162,26 @@ f = fem.Constant(domain, beta - 2 - 2 * alpha)
 # We can now create our variational formulation, with the bilinear form `a` and  linear form `L`.
 u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
 F = u * v * ufl.dx + dt * ufl.dot(ufl.grad(u), ufl.grad(v)) * ufl.dx - (u_n + dt * f) * v * ufl.dx
-# create a coupling expression for the coupling_boundary and modify variational problem accordingly
-coupling_expression = precice.create_coupling_expression(coupling_mesh.get_name())
+
+
+name_read = None
+if problem is ProblemType.DIRICHLET:
+    name_read = "Temperature"
+    read_mesh = "Neumann-Mesh"
+else:
+    name_read = "Heat-Flux"
+    read_mesh = "Dirichlet-Mesh"
+
+coupling_function = fem.Function(V_coup)
 
 if problem is ProblemType.DIRICHLET:
     # modify Dirichlet boundary condition on coupling interface
-    bc_coup = fem.dirichletbc(coupling_expression, dofs_coupling)
+    bc_coup = fem.dirichletbc(coupling_function, dofs_boundary)
     bcs.append(bc_coup)
 if problem is ProblemType.NEUMANN:
     # modify Neumann boundary condition on coupling interface, modify weak
     # form correspondingly
-    F += dt * coupling_expression * v * ufl.ds
+    F += dt * coupling_function * v * ufl.ds
 a = fem.form(ufl.lhs(F))
 L = fem.form(ufl.rhs(F))
 
@@ -191,6 +216,8 @@ f_err = fem.Function(V)
 vtxwriter = io.VTXWriter(MPI.COMM_WORLD, f"output_{problem.name}.bp", [f_err])
 vtxwriter.write(t)
 
+read_coords = dofs_coupling_coordinates[:, :2]
+
 while precice.is_coupling_ongoing():
 
     if precice.requires_writing_checkpoint():
@@ -199,17 +226,13 @@ while precice.is_coupling_ongoing():
     precice_dt = precice.get_max_time_step_size()
     dt = np.min([fenics_dt, precice_dt])
 
-    if problem is ProblemType.DIRICHLET:
-        read_data = precice.read_data(coupling_mesh.get_name(), "Temperature", dt)
-    else:
-        read_data = precice.read_data(coupling_mesh.get_name(), "Heat-Flux", dt)
-
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
         loc_b.set(0)
     assemble_vector(b, L)
     # Update the coupling expression with the new read data
-    precice.update_coupling_expression(coupling_expression, read_data)
+    read_values = list(precice.read_data_at_coordinates(read_mesh, name_read, read_coords, dt).values())
+    coupling_function.x.array[dofs_coupling] = read_values
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)
     # Boundary condition bc should be updated by u_D.interpolate above, since
@@ -251,7 +274,6 @@ while precice.is_coupling_ongoing():
         u_ref.interpolate(u_D)
         error, error_pointwise = compute_errors(u_n, u_ref, total_error_tol=1)
         print("t = %.2f: L2 error on domain = %.3g" % (t, error))
-
         # Update Dirichlet BC
         u_exact.t += dt
         u_D.interpolate(u_exact)
