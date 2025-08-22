@@ -142,21 +142,11 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
         rbf_interp = Rbf(coords_x, coords_y, res)
 
         return lambda x, y: rbf_interp(x, y) + lstsq_interp(x, y, w)
-    
-    def _seg_interpolant_3d(self, coords_x, coords_y, coords_z, data):
-        from scipy.interpolate import RBFInterpolator as rbf
-        coords = np.column_stack((coords_x, coords_y, coords_z))
-        #rbf_interp = rbf(coords, data, smoothing=0, kernel='thin_plate_spline')
-        rbf_interp = Rbf(coords_x, coords_y, coords_z, data)
-        return lambda x,y,z: rbf_interp(x,y,z)
 
     def _create_interpolant(self):
         """
         See base class description.
         """
         assert (self._is_scalar_valued())  # this implementation only supports scalar valued functions
-        assert self._dimension == 2 or self._dimension == 3  # this implementation only supports two dimensions
-        if self._dimension == 2:
-            return lambda x: self._segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals)(x[0], x[1])
-        else:
-            return lambda x: self._seg_interpolant_3d(self._coords_x, self._coords_y, self._coords_z, self._vals)(x[0], x[1], x[2])
+        assert self._dimension == 2  # this implementation only supports two dimensions
+        return lambda x: self._segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals)(x[0], x[1])

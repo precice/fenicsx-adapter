@@ -130,10 +130,7 @@ class Adapter:
         """
         vertices = np.array(list(data.keys()))
         nodal_data = np.array(list(data.values()))
-        if self._fenicsx_dims == 2:
-            coupling_expression.update_boundary_data(nodal_data, vertices[:, 0], vertices[:, 1])
-        else:
-            coupling_expression.update_boundary_data(nodal_data, vertices[:, 0], vertices[:, 1], vertices[:, 2])
+        coupling_expression.update_boundary_data(nodal_data, vertices[:, 0], vertices[:, 1])
 
     def get_point_sources(self, data):
         raise Exception("PointSources are not implemented for the FEniCSx adapter.")
