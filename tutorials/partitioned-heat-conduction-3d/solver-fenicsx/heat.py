@@ -32,7 +32,7 @@ import ufl
 from dolfinx import fem, io
 from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc, LinearProblem
 import basix
-from fenicsxprecice import Adapter
+from fenicsxprecice import Adapter, CouplingMesh
 from errorcomputation import compute_errors
 from my_enums import ProblemType, DomainPart
 from problem_setup import get_geometry
@@ -83,6 +83,12 @@ V = fem.functionspace(domain, ("Lagrange", 2))
 element = basix.ufl.element("Lagrange", domain.topology.cell_name(), 1, shape=(domain.geometry.dim,))
 V_g = fem.functionspace(domain, element)
 W, map_to_W = V_g.sub(0).collapse()
+V_coup = None
+V_coup = None
+if problem is ProblemType.DIRICHLET:
+    V_coup = V
+else:
+    V_coup = W
 
 # Define the exact solution
 
@@ -108,11 +114,30 @@ tdim = domain.topology.dim
 fdim = tdim - 1
 domain.topology.create_connectivity(fdim, tdim)
 # dofs for the coupling boundary
-dofs_coupling = fem.locate_dofs_geometrical(V, coupling_boundary)
+dofs_boundary = fem.locate_dofs_geometrical(V, coupling_boundary)
 # dofs for the remaining boundary. Can be directly set to u_D
 dofs_remaining = fem.locate_dofs_geometrical(V, remaining_boundary)
 bc_D = fem.dirichletbc(u_D, dofs_remaining)
 bcs.append(bc_D)
+
+# dofs (and the corresponding coordinates) for the coupling boundary (coupling function space)
+# this is later used to read data from preCICE and update boundary condition
+dofs_coupling = fem.locate_dofs_geometrical(V_coup, coupling_boundary)
+dofs_coupling_coordinates = V_coup.tabulate_dof_coordinates()[dofs_coupling]
+for idx, coord in enumerate(dofs_coupling_coordinates):
+    if coord[0] < 0:
+        dofs_coupling_coordinates[idx][0] = 0
+    if coord[1] < 0:
+        dofs_coupling_coordinates[idx][1] = 0
+    if coord[2] < 0:
+        dofs_coupling_coordinates[idx][2] = 0
+    if np.isclose(coord[0], 1, 1e-15) :
+        dofs_coupling_coordinates[idx][0] = 1
+    if np.isclose(coord[1], 1, 1e-15) :
+        dofs_coupling_coordinates[idx][1] = 1
+    if np.isclose(coord[2], 1, 1e-15) :
+        dofs_coupling_coordinates[idx][2] = 1
+    
 
 if problem is ProblemType.DIRICHLET:
     # Define flux in x direction
@@ -129,10 +154,15 @@ if problem is ProblemType.DIRICHLET:
 else:
     precice = Adapter(adapter_config_filename="precice-adapter-config-N.json", mpi_comm=MPI.COMM_WORLD)
 
+coupling_mesh = None
 if problem is ProblemType.DIRICHLET:
-    precice.initialize({"Dirichlet-Mesh": [coupling_boundary, V, f_N]})
+    coupling_mesh = CouplingMesh("Dirichlet-Mesh", coupling_boundary, {"Temperature": V}, {"Heat-Flux": f_N})
+    precice.set_mesh_access_region("Neumann-Mesh", [(0, 0, 0), (1, 1, 1)])
+    precice.initialize([coupling_mesh])
 elif problem is ProblemType.NEUMANN:
-    precice.initialize({"Neumann-Mesh": [coupling_boundary, W, u_D]})
+    coupling_mesh = CouplingMesh("Neumann-Mesh", coupling_boundary, {"Heat-Flux": V}, {"Temperature": u_D})
+    precice.set_mesh_access_region("Dirichlet-Mesh", [(1, 0, 0), (2, 1, 1)])
+    precice.initialize([coupling_mesh])
 
 # get precice's dt
 precice_dt = precice.get_max_time_step_size()
@@ -145,20 +175,25 @@ f = fem.Constant(domain, gamma - 2 - 2 * alpha - 2 * beta)
 # We can now create our variational formulation, with the bilinear form `a` and  linear form `L`.
 u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
 F = u * v * ufl.dx + dt * ufl.dot(ufl.grad(u), ufl.grad(v)) * ufl.dx - (u_n + dt * f) * v * ufl.dx
-# create a coupling expression for the coupling_boundary and modify variational problem accordingly
+
+name_read = None
 if problem is ProblemType.DIRICHLET:
-    coupling_expression = precice.create_coupling_expression("Dirichlet-Mesh")
+    name_read = "Temperature"
+    read_mesh = "Neumann-Mesh"
 else:
-    coupling_expression = precice.create_coupling_expression("Neumann-Mesh")
+    name_read = "Heat-Flux"
+    read_mesh = "Dirichlet-Mesh"
+    
+coupling_function = fem.Function(V_coup)
 
 if problem is ProblemType.DIRICHLET:
     # modify Dirichlet boundary condition on coupling interface
-    bc_coup = fem.dirichletbc(coupling_expression, dofs_coupling)
+    bc_coup = fem.dirichletbc(coupling_function, dofs_coupling)
     bcs.append(bc_coup)
 if problem is ProblemType.NEUMANN:
     # modify Neumann boundary condition on coupling interface, modify weak
     # form correspondingly
-    F += dt * coupling_expression * v * ufl.ds
+    F += dt * coupling_function * v * ufl.ds
 a = fem.form(ufl.lhs(F))
 L = fem.form(ufl.rhs(F))
 
@@ -201,17 +236,13 @@ while precice.is_coupling_ongoing():
     precice_dt = precice.get_max_time_step_size()
     dt = np.min([fenics_dt, precice_dt])
 
-    if problem is ProblemType.DIRICHLET:
-        read_data = precice.read_data("Dirichlet-Mesh", dt)
-    else:
-        read_data = precice.read_data("Neumann-Mesh", dt)
-
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
         loc_b.set(0)
     assemble_vector(b, L)
     # Update the coupling expression with the new read data
-    precice.update_coupling_expression(coupling_expression, read_data)
+    read_values = list(precice.read_data_at_coordinates(read_mesh, name_read, dofs_coupling_coordinates, dt).values())
+    coupling_function.x.array[dofs_coupling] = read_values
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)
     # Boundary condition bc should be updated by u_D.interpolate above, since
@@ -228,10 +259,10 @@ while precice.is_coupling_ongoing():
         flux = determine_gradient(V_g, uh)
         flux_x = fem.Function(W)
         flux_x.interpolate(flux.sub(0))
-        precice.write_data("Dirichlet-Mesh", flux_x)
+        precice.write_data(coupling_mesh.get_name(), "Heat-Flux", flux_x)
     elif problem is ProblemType.NEUMANN:
         # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
-        precice.write_data("Neumann-Mesh", uh)
+        precice.write_data(coupling_mesh.get_name(), "Temperature", uh)
 
     precice.advance(dt)
     precice_dt = precice.get_max_time_step_size()

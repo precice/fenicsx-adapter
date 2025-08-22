@@ -16,9 +16,10 @@ x_coupling = 1.0  # x coordinate of coupling interface
 
 def exclude_straight_boundary(x):
     tol = 1E-14
-    return np.logical_or(
-        np.logical_or(~np.isclose(x[0], x_coupling, tol), np.isclose(x[1], y_top, tol)),
-        np.isclose(x[1], y_bottom, tol)
+    return np.logical_or(~np.isclose(x[0], x_coupling, tol),
+                         np.logical_or(np.logical_or(np.isclose(x[1], y_top, tol), np.isclose(x[1], y_bottom, tol)),
+                         np.logical_or(np.isclose(x[2], z_top, tol), np.isclose(x[2], z_bottom, tol)))
+
     )
 
 
@@ -28,17 +29,14 @@ def straight_boundary(x):
 
 
 def get_geometry(domain_part):
-    nx = 3
-    ny = 3
-    nz = 3
+    nx = 5
+    ny = 5
+    nz = 5
 
     if domain_part is DomainPart.LEFT:
         p0 = (x_left, y_bottom, z_bottom)
         p1 = (x_coupling, y_top, z_top)
     elif domain_part is DomainPart.RIGHT:
-        nx = 2 * nx
-        ny = 2 * ny
-        nz = 2 * nz
         p0 = (x_coupling, y_bottom, z_bottom)
         p1 = (x_right, y_top, z_top)
     else:
