@@ -137,8 +137,8 @@ def main():
         if reference_result_folder.exists():
             create_tar_gz(reference_result_folder, systemtest.reference_result.path)
         else:
-            raise RuntimeError(
-                f"Error executing: \n {systemtest} \n Could not find result folder {reference_result_folder}\n Probably the tutorial did not run through properly. Please check corresponding logs")
+            raise RuntimeError(f"Error executing: \n {systemtest} \n Could not find result folder {
+                reference_result_folder}\n Probably the tutorial did not run through properly. Please check corresponding logs")
 
     # write readme
     for tutorial in reference_result_per_tutorial.keys():

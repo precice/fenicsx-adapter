@@ -210,7 +210,8 @@ class Case:
         """
         if not self.component:
             raise Exception(
-                f'Tried to instantiate the case {self.name} but failed. Reason: Could not find the component it uses in the components.yaml file.')
+                f'Tried to instantiate the case {
+                    self.name} but failed. Reason: Could not find the component it uses in the components.yaml file.')
 
     @classmethod
     def from_dict(cls, name, dict, available_components):
@@ -236,7 +237,7 @@ class Case:
         return f"{self.name}"
 
     def __hash__(self) -> int:
-        return hash(f"{self.name,self.participant,self.component,self.tutorial}")
+        return hash(f"{self.name, self.participant, self.component, self.tutorial}")
 
     def __eq__(self, other) -> bool:
         if isinstance(other, Case):

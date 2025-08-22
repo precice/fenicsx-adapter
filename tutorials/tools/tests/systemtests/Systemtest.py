@@ -83,7 +83,14 @@ def display_systemtestresults_as_table(results: List[SystemtestResult]):
 
     max_name_length = _get_length_of_name(results)
 
-    header = f"| {'systemtest':<{max_name_length + 2}} | {'success':^7} | {'building time [s]':^17} | {'solver time [s]':^15} | {'fieldcompare time [s]':^21} |"
+    header = f"| {
+        'systemtest':<{
+            max_name_length +
+            2}} | {
+        'success':^7} | {
+                'building time [s]':^17} | {
+                    'solver time [s]':^15} | {
+                        'fieldcompare time [s]':^21} |"
     separator_plaintext = "+-" + "-" * (max_name_length + 2) + \
         "-+---------+-------------------+-----------------+-----------------------+"
     separator_markdown = "| --- | --- | --- | --- | --- |"
@@ -98,7 +105,15 @@ def display_systemtestresults_as_table(results: List[SystemtestResult]):
             print(separator_markdown, file=f)
 
     for result in results:
-        row = f"| {str(result.systemtest):<{max_name_length + 2}} | {result.success:^7} | {result.build_time:^17.1f} | {result.solver_time:^15.1f} | {result.fieldcompare_time:^21.1f} |"
+        row = f"| {
+            str(
+                result.systemtest):<{
+                max_name_length +
+                2}} | {
+            result.success:^7} | {
+                    result.build_time:^17.1f} | {
+                        result.solver_time:^15.1f} | {
+                            result.fieldcompare_time:^21.1f} |"
         print(row)
         print(separator_plaintext)
         if "GITHUB_STEP_SUMMARY" in os.environ:
@@ -138,7 +153,7 @@ class Systemtest:
         return False
 
     def __hash__(self) -> int:
-        return hash(f"{self.tutorial,self.arguments,self.case_combination}")
+        return hash(f"{self.tutorial, self.arguments, self.case_combination}")
 
     def __post_init__(self):
         self.__init_args_to_use()
@@ -162,9 +177,11 @@ class Systemtest:
 
         # Substitute defaults for non-provided, needed arguments
         for needed_param in needed_parameters:
-            if not needed_param.key in provided_arguments:
+            if needed_param.key not in provided_arguments:
                 logging.warning(
-                    f"No argument provided for needed parameter {needed_param.key}. Substituting with {needed_param.default}")
+                    f"No argument provided for needed parameter {
+                        needed_param.key}. Substituting with {
+                        needed_param.default}")
                 self.params_to_use[needed_param.key] = needed_param.default
 
     def __get_docker_services(self) -> Dict[str, str]:
@@ -181,8 +198,8 @@ class Systemtest:
 
         self.dockerfile_context = PRECICE_TESTS_DIR / "dockerfiles" / Path(plaform_requested)
         if not self.dockerfile_context.exists():
-            raise ValueError(
-                f"The path {self.dockerfile_context.resolve()} resulting from argument PLATFORM={plaform_requested} could not be found in the system")
+            raise ValueError(f"The path {self.dockerfile_context.resolve()} resulting from argument PLATFORM={
+                plaform_requested} could not be found in the system")
 
         def render_service_template_per_case(case: Case, params_to_use: Dict[str, str]) -> str:
             render_dict = {
@@ -391,8 +408,8 @@ class Systemtest:
                 process.kill()
                 raise KeyboardInterrupt from k
             except Exception as e:
-                logging.critical(
-                    f"Systemtest {self} had serious issues executing the docker compose command about to kill the docker compose command. Please check the logs! {e}")
+                logging.critical(f"Systemtest {
+                    self} had serious issues executing the docker compose command about to kill the docker compose command. Please check the logs! {e}")
                 process.kill()
                 process.communicate(timeout=SHORT_TIMEOUT)
             stdout_data.extend(stdout.decode().splitlines())
@@ -437,8 +454,8 @@ class Systemtest:
                 # process.send_signal(9)
                 raise KeyboardInterrupt from k
             except Exception as e:
-                logging.critical(
-                    f"systemtest {self} had serious issues building the docker images via the `docker compose build` command. About to kill the docker compose command. Please check the logs! {e}")
+                logging.critical(f"systemtest {
+                    self} had serious issues building the docker images via the `docker compose build` command. About to kill the docker compose command. Please check the logs! {e}")
                 process.communicate(timeout=SHORT_TIMEOUT)
                 process.kill()
 
@@ -481,8 +498,8 @@ class Systemtest:
                 # process.send_signal(9)
                 raise KeyboardInterrupt from k
             except Exception as e:
-                logging.critical(
-                    f"Systemtest {self} had serious issues executing the docker compose command about to kill the docker compose command. Please check the logs! {e}")
+                logging.critical(f"Systemtest {
+                    self} had serious issues executing the docker compose command about to kill the docker compose command. Please check the logs! {e}")
                 process.kill()
                 stdout, stderr = process.communicate(timeout=SHORT_TIMEOUT)
                 process.kill()

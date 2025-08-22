@@ -52,8 +52,8 @@ def main():
             else:
                 test_suites_to_execute.append(test_suite_found)
         if not test_suites_to_execute:
-            raise RuntimeError(
-                f"No matching test suites with names {test_suites_requested} found. Use print_test_suites.py to get an overview")
+            raise RuntimeError(f"No matching test suites with names {
+                test_suites_requested} found. Use print_test_suites.py to get an overview")
         # now convert the test_suites into systemtests
         for test_suite in test_suites_to_execute:
             tutorials = test_suite.cases_of_tutorial.keys()
