@@ -63,7 +63,7 @@ while precice.is_coupling_ongoing():
 
 
 precice.finalize()
-# check correctness (error expected to be relatively high because the other participant has a different mesh ;) )
+# check correctness (error not expected to be within machine precision because the other participant has a different mesh)
 # expected: x[0]+x[1]**2+1
 max_diff = 0
 for key in read_data.keys():
