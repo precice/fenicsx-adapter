@@ -2,6 +2,7 @@
 
 ## current development
 
+* Added working FEniCSx-OpenFOAM version of `flow-over-heated-plate`. [#49](https://github.com/precice/fenicsx-adapter/pull/49)
 * Support to handle multiple data fields on one mesh. [#39](https://github.com/precice/fenicsx-adapter/pull/39)
 * Support communication of multiple data fields. [#34](https://github.com/precice/fenicsx-adapter/pull/34)
 * Update to support dolfinx version 0.9.0 and preCICE v3. [#28](https://github.com/precice/fenicsx-adapter/pull/28)

@@ -22,20 +22,24 @@ x_right = x_left + 1
 
 fenics_dt = 0.01  # time step size
 
+
 def top_boundary(x):
     tol = 1E-14
     return np.isclose(x[1], y_top, tol)
-    
+
+
 def bottom_boundary(x):
     tol = 1E-14
     return np.isclose(x[1], y_bottom, tol)
-    
+
+
 class initial_value():
     def __init__(self, constant):
         self.constant = constant
-        
+
     def __call__(self, x):
         return np.full(x[0].shape, self.constant)
+
 
 def determine_heat_flux(V_g, u, k):
     """
@@ -43,7 +47,7 @@ def determine_heat_flux(V_g, u, k):
     :param V_g: Vector function space
     :param u: solution where gradient is to be determined
     :param k: thermal conductivity
-    """ 
+    """
     w = ufl.TrialFunction(V_g)
     v = ufl.TestFunction(V_g)
 
@@ -52,7 +56,7 @@ def determine_heat_flux(V_g, u, k):
     problem = LinearProblem(a, L)
     return problem.solve()
 
-    
+
 p0 = (x_left, y_bottom)
 p1 = (x_right, y_top)
 
@@ -135,14 +139,13 @@ while precice.is_coupling_ongoing():
     dt = np.min([fenics_dt, precice_dt])
     read_data = precice.read_data(coupling_mesh.get_name(), "Temperature", dt)
 
-
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
         loc_b.set(0)
     assemble_vector(b, L)
     # Update the coupling expression with the new read data
     precice.update_coupling_expression(coupling_expression, read_data)
-    
+
     apply_lifting(b, [a], [bcs])
     set_bc(b, bcs)
 
@@ -165,7 +168,7 @@ while precice.is_coupling_ongoing():
         u_n.x.array[:] = uh.x.array
         t += float(dt)
         n += 1
-        if n%20 == 0:
+        if n % 20 == 0:
             vtxwriter.write(t)
 
     if precice.is_time_window_complete():
