@@ -7,5 +7,6 @@ except ModuleNotFoundError:
                   "The FEniCSx adapter might not work as expected.\n\n")
 
 from .fenicsxprecice import Adapter
+from .coupling_mesh import CouplingMesh
 from . import _version
 __version__ = _version.get_versions()['version']
