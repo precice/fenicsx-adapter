@@ -8,7 +8,7 @@
   </log>
 
   <data:scalar name="Temperature" waveform-degree="1" />
-  <data:scalar name="Heat-Flux" waveform-degree="1" />
+  <data:vector name="Heat-Flux" waveform-degree="1" />
 
   <mesh name="Dirichlet-Mesh" dimensions="3">
     <use-data name="Temperature" />
