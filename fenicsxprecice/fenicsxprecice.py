@@ -408,12 +408,13 @@ class Adapter:
                 raise Exception("Dimension of preCICE setup and FEniCSx do not match")
 
             if self._participant.requires_initial_data():
-                for write_data_name in c_mesh.get_write_fields():
-                    write_function = c_mesh.get_write_fields()[write_data_name]
-                    if not isinstance(write_function, fem.Function):
-                        raise Exception(
-                            "preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
-                    self.write_data(mesh_name, write_data_name, write_function)
+                if c_mesh.get_write_fields() is not None:
+                    for write_data_name in c_mesh.get_write_fields():
+                        write_function = c_mesh.get_write_fields()[write_data_name]
+                        if not isinstance(write_function, fem.Function):
+                            raise Exception(
+                                "preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
+                        self.write_data(mesh_name, write_data_name, write_function)
 
         self._participant.initialize()
 
