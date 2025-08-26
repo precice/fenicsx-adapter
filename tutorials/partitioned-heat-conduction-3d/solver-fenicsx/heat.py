@@ -44,14 +44,23 @@ def determine_gradient(V_g, u):
     :param V_g: Vector function space
     :param u: solution where gradient is to be determined
     """
-
     w = ufl.TrialFunction(V_g)
     v = ufl.TestFunction(V_g)
 
-    a = ufl.inner(w, v) * ufl.dx
-    L = ufl.inner(ufl.grad(u), v) * ufl.dx
-    problem = LinearProblem(a, L)
-    return problem.solve()
+    F = ufl.inner(w, v) * ufl.dx - ufl.inner(ufl.grad(u), v) * ufl.dx
+    a = fem.form(ufl.lhs(F))
+    L = fem.form(ufl.rhs(F))
+    A = assemble_matrix(a)
+    A.assemble()
+    b = create_vector(L)
+    solver = PETSc.KSP().create(domain.comm)
+    solver.setOperators(A)
+    solver.setType(PETSc.KSP.Type.PREONLY)
+    solver.getPC().setType(PETSc.PC.Type.LU)
+    assemble_vector(b, L)
+    retVal = fem.Function(V_g)
+    solver.solve(b, retVal.x.petsc_vec)
+    return retVal
 
 
 # Parse arguments
