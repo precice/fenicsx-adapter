@@ -182,15 +182,17 @@ class Adapter:
 
     def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
         """
-        Read data from preCICE at specified coordinates. This function uses the JIT-mapping feature.
+        Read data from preCICE at specified coordinates. This function uses the just-in-time mapping of preCICE.
 
-        Args:
-            mesh_name: Specifies for which mesh the data shall be read
+        Parameters
+        ----------
+            mesh_name: Specifies for which mesh the data is read
             read_data_name: Specifies the data name of the mesh
-            coordinates (list): List of coordinates where preCICE reads the data
+            coordinates: List of coordinates where preCICE reads the data
             dt: offset within time window
 
-        Returns:
+        Returns
+        -------
             dict: Returns a dict of coordinates as key and read data as value
         """
         read_data = None
@@ -246,9 +248,10 @@ class Adapter:
 
     def write_data_at_coordinates(self, mesh_name, write_data_name, coordinates, write_function):
         """
-        Writes data to preCICE at the given coordinates with the JIT-mapping feature
+        Writes data to preCICE at the given coordinates with the just-in-time mapping of preCICE.
 
-        Args:
+        Parameters
+        ----------
             mesh_name: Name of the mesh that is written to
             write_data_name: Name of the data field that is written
             coordinates: A list of coordinates that defines where write_function is evaluated
@@ -534,14 +537,19 @@ class Adapter:
 
     def set_mesh_access_region(self, mesh_name, access_region):
         """
-        Defines the access region for the JIT-mapping
+        Defines the access region for the just-in-time mapping
 
-        Args:
+        Parameters
+        ----------
             mesh_name: The name of the mesh for which the access region is defined
-            access_region (list): A list of tuples defining the access region. Expects a list of 2 points.
+            access_region: A list of tuples defining the access region. Expects a list of 2 points.
         """
-        assert len(access_region) == 2  # should also be fine for 3d cases
-        assert len(access_region[0]) == len(access_region[1])
+        if len(access_region) != 2:  # should also be fine for 3d cases
+            raise Exception(
+                "Two points to define the access region were expected but {} were given.".format(
+                    len(access_region)))
+        if len(access_region[0]) != len(access_region[1]):
+            raise Exception("The dimensions of the given points do not coincide.".format(len(access_region)))
         ar = [0] * (len(access_region[0]) * 2)
         for idx, v in enumerate(access_region[0]):
             ar[idx * 2] = v
