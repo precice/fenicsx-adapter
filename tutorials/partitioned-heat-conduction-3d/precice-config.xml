@@ -29,9 +29,20 @@
       direction="read"
       from="Neumann-Mesh"
       constraint="consistent"
-      project-to-input="off"
+      project-to-input="false"
+      relative-overlap="0.5"
+      vertices-per-cluster="90"
       polynomial="separate">
-      <basis-function:thin-plate-splines />
+      <basis-function:compact-polynomial-c8 support-radius="2.5"/>
+      <!-- <mapping:rbf-pum-direct
+      direction="read"
+      from="Neumann-Mesh"
+      constraint="consistent"
+      project-to-input="false"
+      relative-overlap="0.15"
+      vertices-per-cluster="50"
+      polynomial="separate">
+      <basis-function:compact-polynomial-c8 support-radius="1.0"/> -->
     </mapping:rbf-pum-direct>
   </participant>
 
@@ -39,16 +50,19 @@
     <provide-mesh name="Neumann-Mesh" />
     <receive-mesh name="Dirichlet-Mesh" from="Dirichlet" api-access="true"/>
     <write-data name="Temperature" mesh="Neumann-Mesh" />
+    <write-data name="Temperature" mesh="Dirichlet-Mesh" />
     <read-data name="Heat-Flux" mesh="Dirichlet-Mesh" />
     <mapping:rbf-pum-direct
       direction="read"
       from="Dirichlet-Mesh"
       constraint="consistent"
-      project-to-input="off"
+      project-to-input="false"
+      relative-overlap="0.15"
+      vertices-per-cluster="50"
       polynomial="separate">
-      <basis-function:thin-plate-splines />
+      <basis-function:thin-plate-splines/>
     </mapping:rbf-pum-direct>
-  </participant>
+    </participant>
 
   <m2n:sockets acceptor="Dirichlet" connector="Neumann" exchange-directory=".." />
 

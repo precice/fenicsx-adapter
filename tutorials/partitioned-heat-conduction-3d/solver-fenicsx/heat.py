@@ -37,32 +37,36 @@ from errorcomputation import compute_errors
 from my_enums import ProblemType, DomainPart
 from problem_setup import get_geometry, get_complex_geometry
 
-
-def determine_gradient(V_g, u):
+class GradientSolver:
     """
     compute flux following http://hplgit.github.io/INF5620/doc/pub/fenics_tutorial1.1/tu2.html#tut-poisson-gradu
     :param V_g: Vector function space
     :param u: solution where gradient is to be determined
     """
-    w = ufl.TrialFunction(V_g)
-    v = ufl.TestFunction(V_g)
-
-    F = ufl.inner(w, v) * ufl.dx - ufl.inner(ufl.grad(u), v) * ufl.dx
-    a = fem.form(ufl.lhs(F))
-    L = fem.form(ufl.rhs(F))
-    A = assemble_matrix(a)
-    A.assemble()
-    b = create_vector(L)
-    solver = PETSc.KSP().create(domain.comm)
-    solver.setOperators(A)
-    solver.setType(PETSc.KSP.Type.PREONLY)
-    solver.getPC().setType(PETSc.PC.Type.LU)
-    assemble_vector(b, L)
-    retVal = fem.Function(V_g)
-    solver.solve(b, retVal.x.petsc_vec)
-    return retVal
-
-
+    def __init__(self, domain, V_g):
+        self.domain = domain,
+        self.V_g = V_g
+        
+        w = ufl.TrialFunction(V_g)
+        self.v = ufl.TestFunction(V_g)
+        a = fem.form(ufl.inner(w, self.v) * ufl.dx)
+        self.A = assemble_matrix(a)
+        self.A.assemble()
+        
+        self.solver = PETSc.KSP().create(domain.comm)
+        self.solver.setOperators(self.A)
+        self.solver.setType(PETSc.KSP.Type.PREONLY)
+        self.solver.getPC().setType(PETSc.PC.Type.LU)
+        
+        self.returnValue = fem.Function(V_g)
+        
+    def compute(self, u):
+        L = fem.form(ufl.inner(ufl.grad(u), self.v) * ufl.dx)
+        b = create_vector(L)
+        assemble_vector(b, L)
+        self.solver.solve(b, self.returnValue.x.petsc_vec)
+        return self.returnValue
+        
 # Parse arguments
 parser = argparse.ArgumentParser(description="Solving heat equation for simple or complex interface case")
 parser.add_argument("participantName", help="Name of the solver.", type=str, choices=[p.value for p in ProblemType])
@@ -91,8 +95,6 @@ domain, coupling_boundary, remaining_boundary, access_region = get_complex_geome
 V = fem.functionspace(domain, ("Lagrange", 2))
 element = basix.ufl.element("Lagrange", domain.topology.cell_name(), 1, shape=(domain.geometry.dim,))
 V_g = fem.functionspace(domain, element)
-W, map_to_W = V_g.sub(0).collapse()
-V_coup = None
 V_coup = None
 if problem is ProblemType.DIRICHLET:
     V_coup = V
@@ -115,6 +117,8 @@ class exact_solution():
 
 u_exact = exact_solution(alpha, beta, gamma, t)
 
+gradient_solver = GradientSolver(domain, V_g)
+
 # Define the boundary condition
 bcs = []
 u_D = fem.Function(V)
@@ -122,8 +126,6 @@ u_D.interpolate(u_exact)
 tdim = domain.topology.dim
 fdim = tdim - 1
 domain.topology.create_connectivity(fdim, tdim)
-# dofs for the coupling boundary
-dofs_boundary = fem.locate_dofs_geometrical(V, coupling_boundary)
 # dofs for the remaining boundary. Can be directly set to u_D
 dofs_remaining = fem.locate_dofs_geometrical(V, remaining_boundary)
 bc_D = fem.dirichletbc(u_D, dofs_remaining)
@@ -136,7 +138,7 @@ dofs_coupling_coordinates = V_coup.tabulate_dof_coordinates()[dofs_coupling]
 
 if problem is ProblemType.DIRICHLET:
     f_N = fem.Function(V_g)
-    f_N.interpolate(determine_gradient(V_g, u_D))
+    f_N.interpolate(gradient_solver.compute(u_D))
 
 u_n = fem.Function(V)  # IV and solution u for the n-th time step
 u_n.interpolate(u_exact)
@@ -189,7 +191,7 @@ if problem is ProblemType.NEUMANN:
     # form correspondingly
     n = ufl.FacetNormal(domain)
     F -= dt * ufl.inner(coupling_function, n) * v * ufl.ds
-    coupling_function.interpolate(determine_gradient(V_g, u_D))
+    coupling_function.interpolate(gradient_solver.compute(u_D))
 a = fem.form(ufl.lhs(F))
 L = fem.form(ufl.rhs(F))
 
@@ -224,6 +226,13 @@ f_err = fem.Function(V)
 vtxwriter = io.VTXWriter(MPI.COMM_WORLD, f"output_{problem.name}.bp", [f_err])
 vtxwriter.write(t)
 
+if problem is ProblemType.NEUMANN:
+    mappingToOriginalSpace = None
+    dofs_coupling_coordinates = None
+    Tmp, mappingToOriginalSpace = V_coup.sub(0).collapse()
+    dofs_subspace = fem.locate_dofs_geometrical(Tmp, coupling_boundary)
+    dofs_coupling_coordinates = V_coup.tabulate_dof_coordinates()[dofs_subspace]
+
 while precice.is_coupling_ongoing():
 
     if precice.requires_writing_checkpoint():
@@ -239,12 +248,14 @@ while precice.is_coupling_ongoing():
     # Update the coupling expression with the new read data
     read_values = list(precice.read_data_at_coordinates(read_mesh, name_read, dofs_coupling_coordinates, dt).values())
     if problem is ProblemType.NEUMANN:
-        for d in range(3):
-            SubSpace, mappingToOriginalDof = V_coup.sub(d).collapse()
-            for idx in np.intersect1d(dofs_coupling, mappingToOriginalDof, assume_unique=True):
-                coupling_function.x.array[idx] = read_values[int(np.floor(idx/3))][d]
+        for idx in range(len(dofs_subspace)):
+            dof_original = mappingToOriginalSpace[dofs_subspace[idx]]
+            for d in range(domain.geometry.dim):
+                coupling_function.x.array[dof_original + d] = read_values[idx][d]
+        #coupling_function.interpolate(gradient_solver.compute(u_D))
     else:
         coupling_function.x.array[dofs_coupling] = read_values
+        coupling_function.interpolate(u_D)
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)
     # Boundary condition bc should be updated by u_D.interpolate above, since
@@ -258,10 +269,8 @@ while precice.is_coupling_ongoing():
     # Write data to preCICE according to which problem is being solved
     if problem is ProblemType.DIRICHLET:
         # Dirichlet problem reads temperature and writes flux on boundary to Neumann problem
-        flux = determine_gradient(V_g, uh)
-        flux_f = fem.Function(V_g)
-        flux_f.interpolate(flux)
-        precice.write_data(coupling_mesh.get_name(), "Heat-Flux", flux_f)
+        flux = gradient_solver.compute(uh)
+        precice.write_data(coupling_mesh.get_name(), "Heat-Flux", flux)
     elif problem is ProblemType.NEUMANN:
         # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
         precice.write_data(coupling_mesh.get_name(), "Temperature", uh)

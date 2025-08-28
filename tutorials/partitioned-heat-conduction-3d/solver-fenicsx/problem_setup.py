@@ -107,6 +107,7 @@ def get_complex_geometry(domain_part):
         gmsh.model.occ.synchronize()
         gmsh.model.addPhysicalGroup(3, [3], 4, "foo")
         gmsh.model.mesh.setOrder(2)
+        gmsh.option.setNumber("Mesh.CharacteristicLengthMax", 0.15)
         gmsh.model.mesh.generate(3)
         outer_mesh, _, _ = dolfinx.io.gmshio.model_to_mesh(gmsh.model, MPI.COMM_WORLD, 0, 3)
         gmsh.finalize()
