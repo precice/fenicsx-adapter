@@ -1,9 +1,10 @@
 ---
+title: FEniCSx flow over heated plate
 ---
 
 ## General information
 
-The full description with all general information about this tutorial can be taken from the `precice/tutorials` repository [here](https://github.com/precice/tutorials/tree/develop/flow-over-heated-plate).
+The full description with all general information about this tutorial can be taken from the `precice/tutorials/flow-over-heated-plate` repository.
 
 ## Running the Simulation
 
