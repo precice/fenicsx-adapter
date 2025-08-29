@@ -35,5 +35,5 @@ Comparison between FEniCS-OpenFOAM and FEniCSx-OpenFOAM of the temperature along
 [1]  M. Vynnycky, S. Kimura, K. Kanev, and I. Pop. Forced convection heat transfer from a flat plate: the conjugate problem. International Journal of Heat and Mass Transfer, 41(1):45 – 59, 1998.
 
 {% disclaimer %}
-This offering is not approved or endorsed by OpenCFD Limited, producer and distributor of the OpenFOAM software via [www.openfoam.com](https://www.openfoam.com/), and owner of the OPENFOAM®  and OpenCFD®  trade marks.
+This offering is not approved or endorsed by OpenCFD Limited, producer and distributor of the OpenFOAM software via www.openfoam.com, and owner of the OPENFOAM®  and OpenCFD®  trade marks.
 {% enddisclaimer %}
