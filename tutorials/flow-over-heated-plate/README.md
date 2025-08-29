@@ -1,10 +1,13 @@
+---
+---
+
 ## General information
 
 The full description with all general information about this tutorial can be taken from the `precice/tutorials` repository [here](https://github.com/precice/tutorials/tree/develop/flow-over-heated-plate).
 
 ## Running the Simulation
 
-All listed solvers can be used in order to run the simulation. Open two separate terminals and start the FEniCSx solver and OpenFOAM solver by running 
+All listed solvers can be used in order to run the simulation. Open two separate terminals and start the FEniCSx solver and OpenFOAM solver by running
 
 ```bash
 cd fluid-openfoam
@@ -19,6 +22,7 @@ python3 solid.py
 ```
 
 ## Results
+
 Paraview output at `t=1.0`:
 ![img](images/paraview_output_fenicsx_openfoam.png)
 
