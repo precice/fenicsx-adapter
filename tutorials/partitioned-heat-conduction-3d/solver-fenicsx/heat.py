@@ -30,43 +30,48 @@ import basix.ufl
 from petsc4py import PETSc
 import ufl
 from dolfinx import fem, io
-from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc, LinearProblem
+from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc
 import basix
 from fenicsxprecice import Adapter, CouplingMesh
 from errorcomputation import compute_errors
 from my_enums import ProblemType, DomainPart
-from problem_setup import get_geometry, get_complex_geometry
+from problem_setup import get_geometry
+
 
 class GradientSolver:
     """
     compute flux following http://hplgit.github.io/INF5620/doc/pub/fenics_tutorial1.1/tu2.html#tut-poisson-gradu
+    The solver has been changed since the original version from the link above introduces larger errors
+
     :param V_g: Vector function space
     :param u: solution where gradient is to be determined
     """
+
     def __init__(self, domain, V_g):
         self.domain = domain,
         self.V_g = V_g
-        
+
         w = ufl.TrialFunction(V_g)
         self.v = ufl.TestFunction(V_g)
         a = fem.form(ufl.inner(w, self.v) * ufl.dx)
         self.A = assemble_matrix(a)
         self.A.assemble()
-        
+
         self.solver = PETSc.KSP().create(domain.comm)
         self.solver.setOperators(self.A)
         self.solver.setType(PETSc.KSP.Type.PREONLY)
         self.solver.getPC().setType(PETSc.PC.Type.LU)
-        
+
         self.returnValue = fem.Function(V_g)
-        
+
     def compute(self, u):
         L = fem.form(ufl.inner(ufl.grad(u), self.v) * ufl.dx)
         b = create_vector(L)
         assemble_vector(b, L)
         self.solver.solve(b, self.returnValue.x.petsc_vec)
         return self.returnValue
-        
+
+
 # Parse arguments
 parser = argparse.ArgumentParser(description="Solving heat equation for simple or complex interface case")
 parser.add_argument("participantName", help="Name of the solver.", type=str, choices=[p.value for p in ProblemType])
@@ -85,13 +90,13 @@ gamma = 1.2
 # define the domain
 if participant_name == ProblemType.DIRICHLET.value:
     problem = ProblemType.DIRICHLET
-    domain_part = DomainPart.LEFT
+    domain_part = DomainPart.OUTER
 elif participant_name == ProblemType.NEUMANN.value:
     problem = ProblemType.NEUMANN
-    domain_part = DomainPart.RIGHT
+    domain_part = DomainPart.INNER
 
 # create domain and function space
-domain, coupling_boundary, remaining_boundary, access_region = get_complex_geometry(domain_part)
+domain, coupling_boundary, remaining_boundary, access_region = get_geometry(domain_part)
 V = fem.functionspace(domain, ("Lagrange", 2))
 element = basix.ufl.element("Lagrange", domain.topology.cell_name(), 1, shape=(domain.geometry.dim,))
 V_g = fem.functionspace(domain, element)
@@ -101,10 +106,9 @@ if problem is ProblemType.DIRICHLET:
 else:
     V_coup = V_g
 
-# Define the exact solution
-
 
 class exact_solution():
+    # Define the exact solution
     def __init__(self, alpha, beta, gamma, t):
         self.alpha = alpha
         self.beta = beta
@@ -179,7 +183,7 @@ if problem is ProblemType.DIRICHLET:
 else:
     name_read = "Heat-Flux"
     read_mesh = "Dirichlet-Mesh"
-    
+
 coupling_function = fem.Function(V_coup)
 
 if problem is ProblemType.DIRICHLET:
@@ -231,6 +235,7 @@ if problem is ProblemType.NEUMANN:
     dofs_coupling_coordinates = None
     Tmp, mappingToOriginalSpace = V_coup.sub(0).collapse()
     dofs_subspace = fem.locate_dofs_geometrical(Tmp, coupling_boundary)
+    # to get the vector dof's (true) coordinates, it is sufficient to use the dof's coordinates of an arbitrary subspace
     dofs_coupling_coordinates = V_coup.tabulate_dof_coordinates()[dofs_subspace]
 
 while precice.is_coupling_ongoing():
@@ -249,13 +254,14 @@ while precice.is_coupling_ongoing():
     read_values = list(precice.read_data_at_coordinates(read_mesh, name_read, dofs_coupling_coordinates, dt).values())
     if problem is ProblemType.NEUMANN:
         for idx in range(len(dofs_subspace)):
+            # assign the read_values to the corresponding dofs
+            # -> assume the dof of the x component of a vector is located at index idx. Then the y and z component of the same vector is located at idx+1 and idx+2
+            # -> Use the dof list of V_coup.sub(0) and mappingToOriginalSpace to determine the dof indices in V_coup
             dof_original = mappingToOriginalSpace[dofs_subspace[idx]]
             for d in range(domain.geometry.dim):
                 coupling_function.x.array[dof_original + d] = read_values[idx][d]
-        #coupling_function.interpolate(gradient_solver.compute(u_D))
     else:
         coupling_function.x.array[dofs_coupling] = read_values
-        coupling_function.interpolate(u_D)
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)
     # Boundary condition bc should be updated by u_D.interpolate above, since
