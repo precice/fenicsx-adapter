@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="1431pt" height="896pt" viewBox="0 0 1431 896">
+<title>ParaView GL2PS Export</title>
+<desc>
+Creator: GL2PS 1.4.2, (C) 1999-2020 C. Geuzaine
+For: VTK
+CreationDate: Fri Aug 22 14:33:15 2025
+</desc>
+<defs>
+</defs>
+<g>
+<polyline fill="none" stroke="#00ff00" stroke-width="3.57143" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="508.188,506.097 526.254,522.162 544.32,539.681 562.386,556.64 580.452,573.035 598.518,588.805 616.584,604.005 634.65,618.586 652.716,632.569 670.782,645.894 688.848,658.603 706.914,670.726 724.98,682.228 743.046,693.124 761.112,703.441 779.178,713.21 797.244,722.476 815.31,731.024 833.376,739.073 851.442,746.703 869.508,753.736 887.574,760.269 905.64,766.545 923.706,772.053 941.771,777.394 959.837,782.167 977.903,786.703 995.969,790.756 1014.04,794.603 1032.1,797.964 1050.17,801.245 1068.23,803.97 1086.3,806.695 1104.36,808.952 1122.43,811.094 1140.5,813.075 1158.56,814.706 1176.63,816.337 1194.69,817.671 1212.76,818.849 1230.83,820.028 1248.89,820.885 1266.96,821.663 1285.02,822.439 1303.09,822.969 1321.16,823.417 1339.22,823.863 1357.29,824.164 1375.35,824.311 1393.42,824.458 1411.49,824.605"/>
+<polyline fill="none" stroke="#00ffff" stroke-width="3.57143" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="56.5395,39.2579 79.1219,62.7141 101.704,86.1678 124.287,109.612 146.869,133.046 169.452,156.466 192.034,179.87 214.617,203.251 237.199,226.606 259.782,249.934 282.364,273.234 304.946,296.497 327.529,319.725 350.111,342.913 372.694,366.061 395.276,389.165 417.859,412.227 440.441,435.237 463.024,458.202 485.606,481.118 508.188,503.953"/>
+<polyline fill="none" stroke="#ff00ff" stroke-width="3.57143" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="8,8" points="508.188,503.254 526.254,519.087 544.32,536.523 562.386,553.375 580.452,569.674 598.518,585.387 616.584,600.483 634.65,615.03 652.716,628.972 670.782,642.263 688.848,654.972 706.914,667.119 724.98,678.66 743.046,689.59 761.112,699.957 779.178,709.791 797.244,719.12 815.31,727.745 833.376,735.891 851.442,743.629 869.508,750.777 887.574,757.422 905.64,763.804 923.706,769.434 941.771,774.896 959.837,779.794 977.903,784.451 995.969,788.621 1014.04,792.584 1032.1,796.063 1050.17,799.463 1068.23,802.298 1086.3,805.131 1104.36,807.488 1122.43,809.726 1140.5,811.8 1158.56,813.52 1176.63,815.24 1194.69,816.652 1212.76,817.9 1230.83,819.146 1248.89,820.059 1266.96,820.888 1285.02,821.716 1303.09,822.285 1321.16,822.769 1339.22,823.256 1357.29,823.579 1375.35,823.738 1393.42,823.894 1411.49,824.053"/>
+<polyline fill="none" stroke="#5500ff" stroke-width="3.57143" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="8,8" points="56.5395,39.2579 79.1219,62.5671 101.704,85.8738 124.287,109.171 146.869,132.461 169.452,155.734 192.034,178.988 214.617,202.225 237.199,225.435 259.782,248.617 282.364,271.769 304.946,294.89 327.529,317.976 350.111,341.017 372.694,364.021 395.276,386.983 417.859,409.902 440.441,432.77 463.024,455.59 485.606,478.362 508.188,501.074"/>
+<polyline fill="none" stroke="#000000" stroke-width="0.714286" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="56.5395,848.447 56.5395,19.5219"/>
+<text fill="#000000" x="23" y="431" font-size="18" transform="rotate(-90, 23, 431)" text-anchor="middle" dy="0" font-family="Helvetica" font-weight="bold">Temperature</text>
+<text fill="#000000" x="50" y="826" font-size="15" text-anchor="end" dy="7" font-family="Helvetica">300</text>
+<polyline fill="none" stroke="#000000" stroke-width="0.714286" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="51.536,829.426 56.5395,829.426"/>
+<text fill="#000000" x="50" y="431" font-size="15" text-anchor="end" dy="7" font-family="Helvetica">305</text>
+<polyline fill="none" stroke="#000000" stroke-width="0.714286" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="51.536,433.984 56.5395,433.984"/>
+<text fill="#000000" x="50" y="37" font-size="15" text-anchor="end" dy="7" font-family="Helvetica">310</text>
+<polyline fill="none" stroke="#000000" stroke-width="0.714286" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="51.536,39.5442 56.5395,39.5442"/>
+<polyline fill="none" stroke="#000000" stroke-width="0.714286" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="56.5395,848.447 1411.49,848.447"/>
+<text fill="#000000" x="734" y="870" font-size="18" text-anchor="middle" dy="18" font-family="Helvetica" font-weight="bold">Y</text>
+<text fill="#000000" x="57" y="852" font-size="15" text-anchor="middle" dy="15" font-family="Helvetica">-0.25</text>
+<polyline fill="none" stroke="#000000" stroke-width="0.714286" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="56.5395,853.453 56.5395,848.447"/>
+<text fill="#000000" x="508" y="852" font-size="15" text-anchor="middle" dy="15" font-family="Helvetica">0</text>
+<polyline fill="none" stroke="#000000" stroke-width="0.714286" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="507.855,853.453 507.855,848.447"/>
+<text fill="#000000" x="959" y="852" font-size="15" text-anchor="middle" dy="15" font-family="Helvetica">0.25</text>
+<polyline fill="none" stroke="#000000" stroke-width="0.714286" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="959.17,853.453 959.17,848.447"/>
+<text fill="#000000" x="1411" y="852" font-size="15" text-anchor="middle" dy="15" font-family="Helvetica">0.5</text>
+<polyline fill="none" stroke="#000000" stroke-width="0.714286" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="1411.49,853.453 1411.49,848.447"/>
+<polygon fill="#ffffff" shape-rendering="crispEdges" points="1193.33,104.617 1411.49,104.617 1411.49,19.5219"/>
+<polygon fill="#ffffff" shape-rendering="crispEdges" points="1193.33,104.617 1411.49,19.5219 1193.33,19.5219"/>
+<polyline fill="none" stroke="#000000" stroke-width="0.714286" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="1193.33,104.617 1411.49,104.617 1411.49,19.5219 1193.33,19.5219 1193.33,104.617"/>
+<text fill="#000000" x="1223" y="37" font-size="15" text-anchor="start" dy="0" font-family="Helvetica">Fluid OpenFOAM-FEniCSx</text>
+<polyline fill="none" stroke="#00ff00" stroke-width="3.57143" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="1198.34,32.0358 1220.35,32.0358"/>
+<text fill="#000000" x="1223" y="57" font-size="15" text-anchor="start" dy="0" font-family="Helvetica">Solid OpenFOAM-FEniCSx</text>
+<polyline fill="none" stroke="#00ffff" stroke-width="3.57143" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="16,0" points="1198.34,52.0581 1220.35,52.0581"/>
+<text fill="#000000" x="1223" y="77" font-size="15" text-anchor="start" dy="0" font-family="Helvetica">Fluid OpenFOAM-FEniCS</text>
+<polyline fill="none" stroke="#ff00ff" stroke-width="3.57143" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="8,8" points="1198.34,72.0804 1220.35,72.0804"/>
+<text fill="#000000" x="1223" y="97" font-size="15" text-anchor="start" dy="0" font-family="Helvetica">Solid OpenFOAM-FEniCS</text>
+<polyline fill="none" stroke="#5500ff" stroke-width="3.57143" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="8,8" points="1198.34,92.1028 1220.35,92.1028"/>
+</g>
+</svg>
