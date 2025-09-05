@@ -34,8 +34,6 @@ def get_geometry(domain_part):
         p0 = (x_left, y_bottom)
         p1 = (x_coupling, y_top)
     elif domain_part is DomainPart.RIGHT:
-        nx = 2 * nx
-        ny = 2 * ny
         p0 = (x_coupling, y_bottom)
         p1 = (x_right, y_top)
     else:
