@@ -2,6 +2,7 @@
 
 ## current development
 
+* Support 3D coupling. [#51](https://github.com/precice/fenicsx-adapter/pull/51)
 * Support JIT-mapping. [#48](https://github.com/precice/fenicsx-adapter/pull/48)
 * Support to handle multiple data fields on one mesh. [#39](https://github.com/precice/fenicsx-adapter/pull/39)
 * Support communication of multiple data fields. [#34](https://github.com/precice/fenicsx-adapter/pull/34)
