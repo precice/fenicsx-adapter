@@ -10,9 +10,6 @@
 <a style="text-decoration: none" href="https://github.com/precice/fenicsx-adapter/actions/workflows/run-tutorials.yml" target="_blank">
     <img src="https://github.com/precice/fenicsx-adapter/actions/workflows/run-tutorials.yml/badge.svg" alt="Run preCICE Tutorials">
 </a>
-<a style="text-decoration: none" href="https://pypi.org/project/fenicsxprecice/" target="_blank">
-    <img src="https://github.com/precice/fenicsx-adapter/actions/workflows/pythonpublish.yml/badge.svg" alt="Upload Python Package">
-</a>
 
 preCICE-adapter for the open source computing platform FEniCSx.
 
