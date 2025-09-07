@@ -120,7 +120,7 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
         def lstsq_interp(x, y, w): return w[0] * x ** 2 + w[1] * y ** 2 + w[2] * x * y + w[3] * x + w[4] * y + w[5]
 
         A = np.empty((coords_x.shape[0], 0))
-        n_unknowns = 6 # 6 unknowns are w[0],...,w[5]
+        n_unknowns = 6
         for i in range(n_unknowns):
             w = np.zeros([n_unknowns])
             w[i] = 1
@@ -148,5 +148,5 @@ class SegregatedRBFInterpolationExpression(CouplingExpression):
         See base class description.
         """
         assert (self._is_scalar_valued())  # this implementation only supports scalar valued functions
-        assert self._dimension == 2  # this implementation only supports two dimensions
+        assert (self._dimension == 2)  # this implementation only supports two dimensions
         return lambda x: self._segregated_interpolant_2d(self._coords_x, self._coords_y, self._vals)(x[0], x[1])
