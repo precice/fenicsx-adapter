@@ -4,6 +4,8 @@
 
 * Support 3D coupling. [#51](https://github.com/precice/fenicsx-adapter/pull/51)
 * Support JIT-mapping. [#48](https://github.com/precice/fenicsx-adapter/pull/48)
+* Added working FEniCSx-OpenFOAM version of the flow over heated plate tutorial. [#49](https://github.com/precice/fenicsx-adapter/pull/49)
+* Remove version restriction on the dependency mpi4py. [#46](https://github.com/precice/fenicsx-adapter/pull/46)
 * Support to handle multiple data fields on one mesh. [#39](https://github.com/precice/fenicsx-adapter/pull/39)
 * Support communication of multiple data fields. [#34](https://github.com/precice/fenicsx-adapter/pull/34)
 * Update to support dolfinx version 0.9.0 and preCICE v3. [#28](https://github.com/precice/fenicsx-adapter/pull/28)
