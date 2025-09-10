@@ -183,6 +183,7 @@ class Adapter:
     def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
         """
         Read data from preCICE at specified coordinates. This function uses the just-in-time mapping of preCICE.
+        It can be used for 2D and 3D cases.
 
         Parameters
         ----------
@@ -249,6 +250,7 @@ class Adapter:
     def write_data_at_coordinates(self, mesh_name, write_data_name, coordinates, write_function):
         """
         Writes data to preCICE at the given coordinates with the just-in-time mapping of preCICE.
+        It can be used for 2D and 3D cases.
 
         Parameters
         ----------
