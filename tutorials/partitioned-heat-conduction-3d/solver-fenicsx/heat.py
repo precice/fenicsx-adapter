@@ -2,22 +2,23 @@
 The basic example is taken from "Langtangen, Hans Petter, and Anders Logg. Solving PDEs in Python: The FEniCS
 Tutorial I. Springer International Publishing, 2016."
 
-The example code has been extended with preCICE API calls and mixed boundary conditions to allow for a Dirichlet-Neumann
-coupling of two separate heat equations. It also has been adapted to be compatible with FEniCSx.
+The example code has been extended with preCICE API calls, mixed boundary conditions to allow for a Dirichlet-Neumann
+coupling of two separate heat equations and the domain has been changed to three dimensions. 
+It also has been adapted to be compatible with FEniCSx.
 
 The original source code can be found on https://jsdokken.com/dolfinx-tutorial/chapter2/heat_equation.html.
 
 Heat equation with Dirichlet conditions. (Dirichlet problem)
-  u'= Laplace(u) + f  in the unit square [0,1] x [0,1]
-  u = u_C             on the coupling boundary at x = 1
+  u'= Laplace(u) + f  in the outer domain
+  u = u_C             on the coupling boundary
   u = u_D             on the remaining boundary
   u = u_0             at t = 0
   u = 1 + x^2 + alpha*y^2 + \beta*t
   f = beta - 2 - 2*alpha
 
 Heat equation with mixed boundary conditions. (Neumann problem)
-  u'= Laplace(u) + f  in the shifted unit square [1,2] x [0,1]
-  du/dn = f_N         on the coupling boundary at x = 1
+  u'= Laplace(u) + f  in the inner domain
+  du/dn = f_N         on the coupling boundary
   u = u_D             on the remaining boundary
   u = u_0             at t = 0
   u = 1 + x^2 + alpha*y^2 + \beta*t
