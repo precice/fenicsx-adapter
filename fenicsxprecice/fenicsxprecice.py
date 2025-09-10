@@ -404,9 +404,6 @@ class Adapter:
                 assert (self._read_function_spaces[mesh_name].mesh is write_function_space.mesh
                         ), "read_function_space and write_object need to be defined using the same mesh"
 
-            #if self._fenicsx_dims != 2:
-            #    raise Exception("Currently the fenicsx-adapter only supports 2D cases")
-
             if self._fenicsx_dims != self._participant.get_mesh_dimensions(mesh_name):
                 raise Exception("Dimension of preCICE setup and FEniCSx do not match")
 
