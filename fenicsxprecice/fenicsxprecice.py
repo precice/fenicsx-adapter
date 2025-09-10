@@ -388,11 +388,11 @@ class Adapter:
             # Set up mesh in preCICE
             if self._fenicsx_dims == 2:
                 self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
-                mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates()[
-                    :, :2])  # give preCICE only 2D coordinates
+                    mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates()[
+                        :, :2])  # give preCICE only 2D coordinates
             else:
                 self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
-                mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates())
+                    mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates())
 
             if self._fenicsx_vertices[mesh_name].get_ids().size > 0:
                 self._empty_rank = False

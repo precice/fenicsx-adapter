@@ -3,7 +3,7 @@ The basic example is taken from "Langtangen, Hans Petter, and Anders Logg. Solvi
 Tutorial I. Springer International Publishing, 2016."
 
 The example code has been extended with preCICE API calls, mixed boundary conditions to allow for a Dirichlet-Neumann
-coupling of two separate heat equations and the domain has been changed to three dimensions. 
+coupling of two separate heat equations and the domain has been changed to three dimensions.
 It also has been adapted to be compatible with FEniCSx.
 
 The original source code can be found on https://jsdokken.com/dolfinx-tutorial/chapter2/heat_equation.html.
