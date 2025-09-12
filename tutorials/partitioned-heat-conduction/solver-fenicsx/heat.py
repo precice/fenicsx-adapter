@@ -29,7 +29,7 @@ from mpi4py import MPI
 import basix.ufl
 from petsc4py import PETSc
 import ufl
-from dolfinx import fem, io, mesh as msh
+from dolfinx import fem, io, mesh as msh, geometry
 from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc, LinearProblem
 import basix
 from fenicsxprecice import Adapter, CouplingMesh
@@ -211,12 +211,25 @@ if problem is ProblemType.DIRICHLET:
 u_exact.t += dt
 u_D.interpolate(u_exact)
 
+bb_tree = geometry.bb_tree(domain, domain.geometry.dim)
+cell_candidates = geometry.compute_collisions_points(bb_tree, dofs_coupling_coordinates)
+cell_candidates = geometry.compute_colliding_cells(domain, cell_candidates, dofs_coupling_coordinates)
+cc = np.array(list(set(cell_candidates.array)))
+
+def interpolate_jit(x):
+    coords = np.transpose(x)[:,:2]
+    tmp_val = precice.read_data_at_coordinates(read_mesh, name_read, coords, dt)
+    return_value = np.zeros((len(coords),))
+    for idx, c in enumerate(coords):
+        return_value[idx] = tmp_val[(c[0], c[1])]
+    
+    return return_value
+
+
 f_err = fem.Function(V)
 # create writer for output files
-vtxwriter = io.VTXWriter(MPI.COMM_WORLD, f"output_{problem.name}.bp", [f_err])
+vtxwriter = io.VTXWriter(MPI.COMM_WORLD, f"output_{problem.name}.bp", [coupling_function])
 vtxwriter.write(t)
-
-read_coords = dofs_coupling_coordinates[:, :2]
 
 while precice.is_coupling_ongoing():
 
@@ -231,8 +244,8 @@ while precice.is_coupling_ongoing():
         loc_b.set(0)
     assemble_vector(b, L)
     # Update the coupling expression with the new read data
-    read_values = list(precice.read_data_at_coordinates(read_mesh, name_read, read_coords, dt).values())
-    coupling_function.x.array[dofs_coupling] = read_values
+    coupling_function.interpolate(interpolate_jit, cc)
+        
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)
     # Boundary condition bc should be updated by u_D.interpolate above, since
