@@ -183,6 +183,7 @@ class Adapter:
     def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
         """
         Read data from preCICE at specified coordinates. This function uses the just-in-time mapping of preCICE.
+        It can be used for 2D and 3D cases.
 
         Parameters
         ----------
@@ -249,6 +250,7 @@ class Adapter:
     def write_data_at_coordinates(self, mesh_name, write_data_name, coordinates, write_function):
         """
         Writes data to preCICE at the given coordinates with the just-in-time mapping of preCICE.
+        It can be used for 2D and 3D cases.
 
         Parameters
         ----------
@@ -386,9 +388,13 @@ class Adapter:
             self._fenicsx_vertices[mesh_name].set_coordinates(coords)
 
             # Set up mesh in preCICE
-            self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
-                mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates()[
-                    :, :2])  # give preCICE only 2D coordinates
+            if self._fenicsx_dims == 2:
+                self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
+                    mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates()[
+                        :, :2])  # give preCICE only 2D coordinates
+            else:
+                self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
+                    mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates())
 
             if self._fenicsx_vertices[mesh_name].get_ids().size > 0:
                 self._empty_rank = False
@@ -400,19 +406,17 @@ class Adapter:
                 assert (self._read_function_spaces[mesh_name].mesh is write_function_space.mesh
                         ), "read_function_space and write_object need to be defined using the same mesh"
 
-            if self._fenicsx_dims != 2:
-                raise Exception("Currently the fenicsx-adapter only supports 2D cases")
-
             if self._fenicsx_dims != self._participant.get_mesh_dimensions(mesh_name):
                 raise Exception("Dimension of preCICE setup and FEniCSx do not match")
 
             if self._participant.requires_initial_data():
-                for write_data_name in c_mesh.get_write_fields():
-                    write_function = c_mesh.get_write_fields()[write_data_name]
-                    if not isinstance(write_function, fem.Function):
-                        raise Exception(
-                            "preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
-                    self.write_data(mesh_name, write_data_name, write_function)
+                if c_mesh.get_write_fields() is not None:
+                    for write_data_name in c_mesh.get_write_fields():
+                        write_function = c_mesh.get_write_fields()[write_data_name]
+                        if not isinstance(write_function, fem.Function):
+                            raise Exception(
+                                "preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
+                        self.write_data(mesh_name, write_data_name, write_function)
 
         self._participant.initialize()
 
