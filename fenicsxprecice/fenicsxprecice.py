@@ -11,7 +11,6 @@ from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
 from .coupling_mesh import CouplingMesh
 from dolfinx import fem
-import copy
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
@@ -178,7 +177,7 @@ class Adapter:
         else:
             pass
 
-        return copy.deepcopy(read_data)
+        return read_data
 
     def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
         """
@@ -212,7 +211,7 @@ class Adapter:
         else:
             pass
 
-        return copy.deepcopy(read_data)
+        return read_data
 
     def write_data(self, mesh_name, write_data_name, write_function):
         """

@@ -6,7 +6,6 @@ from dolfinx import fem, geometry
 import numpy as np
 from enum import Enum
 import logging
-import copy
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
@@ -29,10 +28,10 @@ class Vertices:
         self._coordinates = coords
 
     def get_ids(self):
-        return copy.deepcopy(self._ids)
+        return self._ids
 
     def get_coordinates(self):
-        return copy.deepcopy(self._coordinates)
+        return self._coordinates
 
 
 class FunctionType(Enum):
