@@ -262,13 +262,21 @@ class Adapter:
         write_data = convert_fenicsx_to_precice(write_function, coordinates)
         self._participant.write_and_map_data(mesh_name, write_data_name, coordinates, write_data)
 
-    def validate_function_space(self, function_objects, mesh_name, checkIfFunction):
-        """_summary_
+    def validate_function_space(self, function_objects, mesh_name, check_if_condition):
+        """
+        Validates that all function objects provided by the user are either of type dolfinx.Function or
+        dolfinx.FunctionSpace and that all function objects are defined using the same function space.
 
-        Args:
-            functions: a dict of Function and FunctionSpace
-        ------
-        Returns: the function space that is equal for all function_objects or raises an exception
+        Parameters
+        ----------
+        function_objects: a dict of Function and FunctionSpace
+        mesh_name: Name of the mesh
+        check_if_condition: Whether to check the function space condition
+
+        Returns
+        -------
+        function_space : Object of class dolfinx.functions.functionspace.FunctionSpace
+            The function space on which all functions provided by the user are defined.
         """
 
         # get first and extract function space
@@ -277,7 +285,7 @@ class Adapter:
             return None
         else:
             f = list(function_objects.values())[0]
-            if checkIfFunction and isinstance(f, fem.Function):
+            if check_if_condition and isinstance(f, fem.Function):
                 function_space = f.function_space
             # preCICE will use default zero values for initialization.
             elif isinstance(f, fem.FunctionSpace):
@@ -285,7 +293,7 @@ class Adapter:
             elif f is None:
                 pass
             else:
-                if checkIfFunction:
+                if check_if_condition:
                     raise Exception("A given object in {} is neither of type dolfinx.functions.function.Function or "
                                     "dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
                 else:
@@ -296,16 +304,16 @@ class Adapter:
             raise Exception("Invalid argument provided: At least one write function space is defined as None,"
                             "but the number of given write functions was {}."
                             "If no write function want to be used on mesh {}, set"
-                            "the write function object array to None instead!".format(len(function_objects, mesh_name)))
+                            "the write function object array to None instead!".format(len(function_objects), mesh_name))
 
         for fun in function_objects:
             func = function_objects[fun]
-            if checkIfFunction and isinstance(func, fem.Function):
+            if check_if_condition and isinstance(func, fem.Function):
                 assert func.function_space == function_space
             elif isinstance(func, fem.FunctionSpace):
                 assert func == function_space
             else:
-                if checkIfFunction:
+                if check_if_condition:
                     raise Exception("A given object in {} is neither of type dolfinx.functions.function.Function or "
                                     "dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
                 else:
@@ -332,9 +340,9 @@ class Adapter:
             mesh_name = c_mesh.get_name()
             # check if all function spaces (read amd write are equal each) and get the function space
             write_function_space = self.validate_function_space(
-                c_mesh.get_write_fields(), mesh_name, checkIfFunction=True)
+                c_mesh.get_write_fields(), mesh_name, check_if_condition=True)
             read_function_space = self.validate_function_space(
-                c_mesh.get_read_fields(), mesh_name, checkIfFunction=False)
+                c_mesh.get_read_fields(), mesh_name, check_if_condition=False)
 
             if read_function_space is None and write_function_space:
                 self._coupling_types[mesh_name] = CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING
@@ -537,7 +545,7 @@ class Adapter:
 
     def set_mesh_access_region(self, mesh_name, access_region):
         """
-        Defines the access region for the just-in-time mapping
+        Defines the access region for the just-in-time mapping.
 
         Parameters
         ----------
@@ -549,7 +557,7 @@ class Adapter:
                 "Two points to define the access region were expected but {} were given.".format(
                     len(access_region)))
         if len(access_region[0]) != len(access_region[1]):
-            raise Exception("The dimensions of the given points do not coincide.".format(len(access_region)))
+            raise Exception("The dimensions of the given points are not the same.")
         ar = [0] * (len(access_region[0]) * 2)
         for idx, v in enumerate(access_region[0]):
             ar[idx * 2] = v
