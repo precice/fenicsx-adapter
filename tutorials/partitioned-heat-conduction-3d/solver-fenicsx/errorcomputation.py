@@ -4,7 +4,7 @@ from mpi4py import MPI
 import ufl
 
 
-def compute_errors(u_approx, u_ref, total_error_tol=10 ** -4):
+def compute_errors(u_approx, u_ref, total_error_tol=10 ** -7):
     mesh = u_ref.function_space.mesh
     # Compute L2 error and error at nodes
     error_L2 = np.sqrt(mesh.comm.allreduce(fem.assemble_scalar(fem.form((u_approx - u_ref)**2 * ufl.dx)), op=MPI.SUM))

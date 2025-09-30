@@ -183,7 +183,6 @@ class Adapter:
     def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
         """
         Read data from preCICE at specified coordinates. This function uses the just-in-time mapping of preCICE.
-        It can be used for 2D and 3D cases.
 
         Parameters
         ----------
@@ -250,7 +249,6 @@ class Adapter:
     def write_data_at_coordinates(self, mesh_name, write_data_name, coordinates, write_function):
         """
         Writes data to preCICE at the given coordinates with the just-in-time mapping of preCICE.
-        It can be used for 2D and 3D cases.
 
         Parameters
         ----------
@@ -410,13 +408,12 @@ class Adapter:
                 raise Exception("Dimension of preCICE setup and FEniCSx do not match")
 
             if self._participant.requires_initial_data():
-                if c_mesh.get_write_fields() is not None:
-                    for write_data_name in c_mesh.get_write_fields():
-                        write_function = c_mesh.get_write_fields()[write_data_name]
-                        if not isinstance(write_function, fem.Function):
-                            raise Exception(
-                                "preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
-                        self.write_data(mesh_name, write_data_name, write_function)
+                for write_data_name in c_mesh.get_write_fields():
+                    write_function = c_mesh.get_write_fields()[write_data_name]
+                    if not isinstance(write_function, fem.Function):
+                        raise Exception(
+                            "preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
+                    self.write_data(mesh_name, write_data_name, write_function)
 
         self._participant.initialize()
 

@@ -34,15 +34,6 @@
       vertices-per-cluster="90"
       polynomial="separate">
       <basis-function:compact-polynomial-c8 support-radius="2.5"/>
-      <!-- <mapping:rbf-pum-direct
-      direction="read"
-      from="Neumann-Mesh"
-      constraint="consistent"
-      project-to-input="false"
-      relative-overlap="0.15"
-      vertices-per-cluster="50"
-      polynomial="separate">
-      <basis-function:compact-polynomial-c8 support-radius="1.0"/> -->
     </mapping:rbf-pum-direct>
   </participant>
 
@@ -70,7 +61,7 @@
     <participants first="Dirichlet" second="Neumann" />
     <max-time value="1.0" />
     <time-window-size value="0.1" />
-    <max-iterations value="100" />
+    <max-iterations value="200" />
     <exchange
       data="Heat-Flux"
       mesh="Dirichlet-Mesh"
@@ -88,7 +79,7 @@
     <relative-convergence-measure data="Heat-Flux" mesh="Dirichlet-Mesh" limit="1e-10" />
     <relative-convergence-measure data="Temperature" mesh="Neumann-Mesh" limit="1e-10" />
     <acceleration:constant>
-      <relaxation value="0.125" />
-    </acceleration:constant>
+      <relaxation value="0.2" />
+    </acceleration:constant> 
   </coupling-scheme:serial-implicit>
 </precice-configuration>
