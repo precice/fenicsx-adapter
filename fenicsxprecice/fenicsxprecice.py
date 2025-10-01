@@ -394,9 +394,13 @@ class Adapter:
             self._fenicsx_vertices[mesh_name].set_coordinates(coords)
 
             # Set up mesh in preCICE
-            self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
-                mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates()[
-                    :, :2])  # give preCICE only 2D coordinates
+            if self._fenicsx_dims == 2:
+                self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
+                    mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates()[
+                        :, :2])  # give preCICE only 2D coordinates
+            else:
+                self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
+                    mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates())
 
             if self._fenicsx_vertices[mesh_name].get_ids().size > 0:
                 self._empty_rank = False
@@ -407,9 +411,6 @@ class Adapter:
             if coupling_type is CouplingMode.BI_DIRECTIONAL_COUPLING:
                 assert (self._read_function_spaces[mesh_name].mesh is write_function_space.mesh
                         ), "read_function_space and write_object need to be defined using the same mesh"
-
-            if self._fenicsx_dims != 2:
-                raise Exception("Currently the fenicsx-adapter only supports 2D cases")
 
             if self._fenicsx_dims != self._participant.get_mesh_dimensions(mesh_name):
                 raise Exception("Dimension of preCICE setup and FEniCSx do not match")
