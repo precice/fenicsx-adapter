@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<precice-configuration experimental="true">
+<precice-configuration>
   <log>
     <sink
       filter="%Severity% > debug and %Rank% = 0"
@@ -22,32 +22,26 @@
 
   <participant name="Dirichlet">
     <provide-mesh name="Dirichlet-Mesh" />
-    <receive-mesh name="Neumann-Mesh" from="Neumann" api-access="true"/>
+    <receive-mesh name="Neumann-Mesh" from="Neumann" />
     <write-data name="Heat-Flux" mesh="Dirichlet-Mesh" />
-    <read-data name="Temperature" mesh="Neumann-Mesh" />
-    <mapping:rbf-pum-direct
+    <read-data name="Temperature" mesh="Dirichlet-Mesh" />
+    <mapping:nearest-neighbor
       direction="read"
       from="Neumann-Mesh"
-      constraint="consistent"
-      project-to-input="off"
-      polynomial="separate">
-      <basis-function:thin-plate-splines />
-    </mapping:rbf-pum-direct>
+      to="Dirichlet-Mesh"
+      constraint="consistent" />
   </participant>
 
   <participant name="Neumann">
     <provide-mesh name="Neumann-Mesh" />
-    <receive-mesh name="Dirichlet-Mesh" from="Dirichlet" api-access="true"/>
+    <receive-mesh name="Dirichlet-Mesh" from="Dirichlet" />
     <write-data name="Temperature" mesh="Neumann-Mesh" />
-    <read-data name="Heat-Flux" mesh="Dirichlet-Mesh" />
-    <mapping:rbf-pum-direct
+    <read-data name="Heat-Flux" mesh="Neumann-Mesh" />
+    <mapping:nearest-neighbor
       direction="read"
       from="Dirichlet-Mesh"
-      constraint="consistent"
-      project-to-input="off"
-      polynomial="separate">
-      <basis-function:thin-plate-splines />
-    </mapping:rbf-pum-direct>
+      to="Neumann-Mesh"
+      constraint="consistent" />
   </participant>
 
   <m2n:sockets acceptor="Dirichlet" connector="Neumann" exchange-directory=".." />
@@ -73,6 +67,13 @@
       substeps="true" />
     <relative-convergence-measure data="Heat-Flux" mesh="Dirichlet-Mesh" limit="1e-10" />
     <relative-convergence-measure data="Temperature" mesh="Neumann-Mesh" limit="1e-10" />
+    <!-- <acceleration:IQN-ILS>
+      <data name="Temperature" mesh="Neumann-Mesh" />
+      <initial-relaxation value="0.1" />
+      <max-used-iterations value="10" />
+      <time-windows-reused value="5" />
+      <filter type="QR2" limit="1e-3" />
+    </acceleration:IQN-ILS> -->
     <acceleration:constant>
       <relaxation value="0.5" />
     </acceleration:constant>

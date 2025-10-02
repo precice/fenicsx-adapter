@@ -6,7 +6,7 @@ import numpy as np
 from .config import Config
 import logging
 import precice
-from .adapter_core import FunctionType, determine_function_type, get_fenicsx_vertices, CouplingMode, Vertices, convert_fenicsx_to_precice
+from .adapter_core import FunctionType, determine_function_type, get_fenicsx_vertices, CouplingMode, Vertices, convert_fenicsx_to_precice, CouplingBoundaryProcessing, get_fenicsx_interpolation_points, interpolate_fenicsx
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
 from .coupling_mesh import CouplingMesh
@@ -36,7 +36,7 @@ class Adapter:
     NOTE: dolfinx.PointSource use only works in serial
     """
 
-    def __init__(self, mpi_comm, adapter_config_filename='precice-adapter-config.json'):
+    def __init__(self, mpi_comm, adapter_config_filename='precice-adapter-config.json', boundary_processing_mode = CouplingBoundaryProcessing.AUTOMATIC):
         """
         Constructor of Adapter class.
 
@@ -46,12 +46,17 @@ class Adapter:
             Communicator used by the adapter. Should be the same one used by FEniCSx, usually MPI.COMM_WORLD
         adapter_config_filename : string
             Name of the JSON adapter configuration file (to be provided by the user)
+        boundary_processing_mode: If set to AUTOMATIC, the user lets the adapter take care of defining the preCICE mesh and updating the coupling boundary functions.
+            If set to MANUAL, the user needs to define the preCICE mesh and gets raw data from preCICE
         """
 
         self._config = Config(adapter_config_filename)
 
         # Setup up MPI communicator
         self._comm = mpi_comm
+        
+        # set boundary processing mode
+        self.bpm = boundary_processing_mode
 
         self._participant = precice.Participant(
             self._config.get_participant_name(),
@@ -63,10 +68,11 @@ class Adapter:
         # FEniCSx related quantities
         self._read_function_spaces = {}  # initialized later
         self._write_function_spaces = {}  # initialized later
-        self._dofmap = None  # initialized later using function space provided by user
 
         # coupling mesh related quantities
         self._fenicsx_vertices = {}
+        # for automatic interpolation
+        self._interpolation_cells = {}
         self._precice_vertex_ids = {}  # initialized later
 
         # read data related quantities (read data is read from preCICE and applied in FEniCSx)
@@ -89,53 +95,10 @@ class Adapter:
         self._fenicsx_dims = None
         self._empty_rank = True
 
-    def create_coupling_expression(self, mesh_name):
-        """
-        Creates a FEniCSx Expression in the form of an object of class GeneralInterpolationExpression or
-        ExactInterpolationExpression. The adapter will hold this object till the coupling is on going.
-
-        Parameters
-        ----------
-        mesh_name:
-            Specifies for which field a coupling expression shall be created
-
-        Returns
-        -------
-        coupling_expression : Object of class dolfinx.functions.expression.Expression
-            Reference to object of class GeneralInterpolationExpression or ExactInterpolationExpression.
-        """
-
-        if not (self._read_function_types[mesh_name]
-                is FunctionType.SCALAR or self._read_function_types[mesh_name] is FunctionType.VECTOR):
-            raise Exception("No valid read_function is provided in initialization. Cannot create coupling expression")
-
-        coupling_expression = self._my_expression(
-            self._read_function_spaces[mesh_name],
-            self._read_function_types[mesh_name])
-
-        return coupling_expression
-
-    def update_coupling_expression(self, coupling_expression, data):
-        """
-        Updates the given FEniCSx Expression using provided data. The boundary data is updated.
-        User needs to explicitly call this function in each time step.
-
-        Parameters
-        ----------
-        coupling_expression : Object of class dolfinx.functions.expression.Expression
-            Reference to object of class GeneralInterpolationExpression or ExactInterpolationExpression.
-        data : dict_like
-            The coupling data. A dictionary containing the values of the vertex coordinates as key and associated data as
-            value.
-        """
-        vertices = np.array(list(data.keys()))
-        nodal_data = np.array(list(data.values()))
-        coupling_expression.update_boundary_data(nodal_data, vertices[:, 0], vertices[:, 1])
-
     def get_point_sources(self, data):
         raise Exception("PointSources are not implemented for the FEniCSx adapter.")
 
-    def read_data(self, mesh_name, read_data_name, dt):
+    def read_data(self, mesh_name, read_data_name, dt, boundary_function = None):
         """
         Read data from preCICE. Data is generated depending on the type of the read function (Scalar or Vector).
         For a scalar read function the data is a numpy array with shape (N) where N = number of coupling vertices
@@ -150,6 +113,9 @@ class Adapter:
         dt : offset within time window
         mesh_name:
             Specifies for which mesh the data shall be read
+        
+        boundary_function: If boundary_processing_mode is set to AUTOMATIC, this function updates boundary_function directly.
+            If set to MANUAL, boundary_function is ignored
 
         Returns
         -------
@@ -177,8 +143,13 @@ class Adapter:
 
         else:
             pass
-
-        return copy.deepcopy(read_data)
+        
+        if self.bpm is CouplingBoundaryProcessing.AUTOMATIC:
+            assert type(boundary_function) is fem.Function
+            boundary_function.interpolate(interpolate_fenicsx(read_data), self._interpolation_cells[mesh_name])
+            return None
+        else:
+            return copy.deepcopy(read_data)
 
     def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
         """
@@ -323,22 +294,28 @@ class Adapter:
                         "A given object of {} is not of type dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
 
         return function_space
+    
 
-    def initialize(self, coupling_meshes: list[CouplingMesh]):
+    def initialize(self, coupling_meshes: list[CouplingMesh], precice_mesh = None):
         """
         Initializes the coupling and sets up the mesh where coupling happens in preCICE.
 
         Parameters
         ----------
         coupling_meshes: A list of coupling meshes of the class CouplingMesh.
+        precice_meshes: A list of dicts containing the definition of preCICE meshes for each CouplingMesh. 
+            This parameter is ignored if bpm is AUTOMATIC
 
         Returns
         -------
         dt : double
             Recommended time step value from preCICE.
         """
+        
+        if self.bpm == CouplingBoundaryProcessing.MANUAL:
+            assert len(precice_mesh) == len(coupling_meshes), "precice_mesh must have the same number of entries as coupling_meshes"
 
-        for c_mesh in coupling_meshes:
+        for idx, c_mesh in enumerate(coupling_meshes):
             mesh_name = c_mesh.get_name()
             # check if all function spaces (read amd write are equal each) and get the function space
             write_function_space = self.validate_function_space(
@@ -384,13 +361,17 @@ class Adapter:
                 self._write_function_types[mesh_name] = determine_function_type(write_function_space)
                 self._write_function_spaces[mesh_name] = write_function_space
 
-            # Set vertices on the coupling subdomain for this rank (assumed to be
-            # equal across all fields and meshes that will be coupled)
+            # Set dimension of the problem (assumed to be equal across all meshes)
             self._fenicsx_dims = function_space.mesh.geometry.dim
-            # returns 3d coordinates (necessary later for writing the data!)
-            ids, coords = get_fenicsx_vertices(function_space, c_mesh.get_coupling_boundary(), self._fenicsx_dims)
-            # this isnt a problem in update_coupling_expression, because in this function
-            # , the two first dimensions are extracted. Exactly what we want!
+
+            if self.bpm == CouplingBoundaryProcessing.AUTOMATIC:
+                coords, cells = get_fenicsx_interpolation_points(function_space, c_mesh.get_coupling_boundary())
+                ids = np.array(list(range(len(coords))))
+                self._interpolation_cells[mesh_name] = cells
+            else:
+                # precice_mesh = {ids : coordinates}
+                ids = np.array(list(precice_mesh[idx].keys()))
+                coords = np.array(list(precice_mesh[idx].values()))
             self._fenicsx_vertices[mesh_name] = Vertices()
             self._fenicsx_vertices[mesh_name].set_ids(ids)
             self._fenicsx_vertices[mesh_name].set_coordinates(coords)

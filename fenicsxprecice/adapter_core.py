@@ -7,6 +7,7 @@ import numpy as np
 from enum import Enum
 import logging
 import copy
+from numbers import Number
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
@@ -53,6 +54,10 @@ class CouplingMode(Enum):
     BI_DIRECTIONAL_COUPLING = 4
     UNI_DIRECTIONAL_WRITE_COUPLING = 5
     UNI_DIRECTIONAL_READ_COUPLING = 6
+    
+class CouplingBoundaryProcessing(Enum):
+    AUTOMATIC = 1
+    MANUAL = 2
 
 
 def determine_function_type(input_obj):
@@ -130,6 +135,51 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
     precice_data = fenicsx_function.eval(points, cells)
     return np.array(precice_data)
 
+
+def get_fenicsx_interpolation_points(function_space, coupling_boundary):
+    dofs_coupling = fem.locate_dofs_geometrical(function_space, coupling_boundary)
+    dofs_coupling_coordinates = function_space.tabulate_dof_coordinates()[dofs_coupling]
+    domain = function_space.mesh
+    bb_tree = geometry.bb_tree(domain, domain.geometry.dim)
+    cell_candidates = geometry.compute_collisions_points(bb_tree, dofs_coupling_coordinates)
+    cell_candidates = geometry.compute_colliding_cells(domain, cell_candidates, dofs_coupling_coordinates)
+    cc = np.array(list(set(cell_candidates.array)))
+    va = []
+    def query_coordinates(x):
+        va.append(np.transpose(copy.deepcopy(x)))
+        return x[0]*0
+    query_function = fem.Function(function_space)
+    query_function.interpolate(query_coordinates, cc)
+    return va[0], cc
+
+def interpolate_fenicsx(values):
+    first_key = next(iter(values))
+    # check if it is vector or scalar valued
+    vector_length = 0
+    if isinstance(values[first_key], Number) or np.isscalar(values[first_key]):
+        # scalar valued function
+        vector_length = 1
+    else:
+        # vector valued function
+        vector_length = len(values[first_key])
+    def return_function(x):
+        # truncation to smaller dimension not necessary because fenicsx coordinates are always 3D
+        coords = np.transpose(x)
+        npoints = len(coords)
+        
+        if vector_length == 1:
+            # function is scalar valued
+            return_value = np.zeros((npoints,))
+            for idx, c in enumerate(coords):
+                return_value[idx] = values[tuple(c)]
+        else:
+            # function is vector valued
+            return_value = np.zeros((vector_length, npoints))
+            for idx, c in enumerate(coords):
+                return_value[:, idx] = values[tuple(c)]
+        return return_value
+    
+    return return_function
 
 def get_fenicsx_vertices(function_space, coupling_subdomain, dims):
     """
