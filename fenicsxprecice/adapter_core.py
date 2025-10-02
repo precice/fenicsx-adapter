@@ -29,7 +29,7 @@ class Vertices:
         self._coordinates = coords
 
     def get_ids(self):
-        return copy.deepcopy(self._ids)
+        return self._ids
 
     def get_coordinates(self):
         return copy.deepcopy(self._coordinates)
@@ -72,12 +72,13 @@ def determine_function_type(input_obj):
     if isinstance(input_obj, fem.FunctionSpace):  # scalar-valued functions have rank 0 is FEniCSx
         if input_obj.num_sub_spaces == 0:
             return FunctionType.SCALAR
-        elif input_obj.num_sub_spaces == 2:
+        elif input_obj.num_sub_spaces >= 1:
             return FunctionType.VECTOR
     elif isinstance(input_obj, fem.Function):
-        if len(input_obj.x.array.shape) == 1:
+        input_fspace = input_obj.function_space
+        if input_fspace.num_sub_spaces == 0:
             return FunctionType.SCALAR
-        elif input_obj.x.array.shape[1] > 1:
+        elif input_fspace.num_sub_spaces >= 1:
             return FunctionType.VECTOR
         else:
             raise Exception("Error determining type of given dolfin Function")
