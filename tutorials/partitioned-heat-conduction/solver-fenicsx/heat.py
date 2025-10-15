@@ -71,6 +71,7 @@ class GradientSolver:
         L = fem.form(ufl.inner(ufl.grad(u), self.v) * ufl.dx)
         b = create_vector(L)
         assemble_vector(b, L)
+        b.ghostUpdate(addv=PETSc.InsertMode.ADD_VALUES, mode=PETSc.ScatterMode.REVERSE)
         self.solver.solve(b, self.returnValue.x.petsc_vec)
         return self.returnValue
 
@@ -83,6 +84,9 @@ args = parser.parse_args()
 # Init variables with arguments
 participant_name = args.participantName
 error_tol = args.error_tol
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
 
 t = 0
 fenics_dt = 0.1
@@ -98,7 +102,7 @@ elif participant_name == ProblemType.NEUMANN.value:
     domain_part = DomainPart.RIGHT
 
 # create domain and function space
-domain, coupling_boundary, remaining_boundary = get_geometry(domain_part)
+domain, coupling_boundary, remaining_boundary = get_geometry(domain_part, comm)
 V = fem.functionspace(domain, ("Lagrange", 2))
 element = basix.ufl.element("Lagrange", domain.topology.cell_name(), 1, shape=(domain.geometry.dim,))
 V_g = fem.functionspace(domain, element)
@@ -257,24 +261,26 @@ while precice.is_coupling_ongoing():
 
     precice_dt = precice.get_max_time_step_size()
     dt = np.min([fenics_dt, precice_dt])
-
+    
+    # Update the coupling expression with the new read data
+    precice.read_data(read_mesh, name_read, dt, coupling_function)
+    
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
         loc_b.set(0)
     assemble_vector(b, L)
-    # Update the coupling expression with the new read data
-    #coupling_function.interpolate(interpolate_jit, cc)
-    precice.read_data(read_mesh, name_read, dt, coupling_function)
-        
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)
     # Boundary condition bc should be updated by u_D.interpolate above, since
     # this function is wrapped into the bc object
     apply_lifting(b, [a], [bcs])
+    b.ghostUpdate(addv=PETSc.InsertMode.ADD_VALUES, mode=PETSc.ScatterMode.REVERSE)
+
     set_bc(b, bcs)
 
     # Solve linear problem
     solver.solve(b, uh.x.petsc_vec)
+    uh.x.scatter_forward()
 
     # Write data to preCICE according to which problem is being solved
     if problem is ProblemType.DIRICHLET:

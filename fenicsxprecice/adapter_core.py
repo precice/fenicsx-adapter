@@ -135,22 +135,39 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
     precice_data = fenicsx_function.eval(points, cells)
     return np.array(precice_data)
 
-
-def get_fenicsx_interpolation_points(function_space, coupling_boundary):
+def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, coupling_boundary):
+    domain = function_space.mesh
+    
+    # determine process local cells that are on the coupling boundary
     dofs_coupling = fem.locate_dofs_geometrical(function_space, coupling_boundary)
     dofs_coupling_coordinates = function_space.tabulate_dof_coordinates()[dofs_coupling]
-    domain = function_space.mesh
     bb_tree = geometry.bb_tree(domain, domain.geometry.dim)
-    cell_candidates = geometry.compute_collisions_points(bb_tree, dofs_coupling_coordinates)
-    cell_candidates = geometry.compute_colliding_cells(domain, cell_candidates, dofs_coupling_coordinates)
-    cc = np.array(list(set(cell_candidates.array)))
-    va = []
+    cell_candidates_local = geometry.compute_collisions_points(bb_tree, dofs_coupling_coordinates)
+    cell_candidates_local = geometry.compute_colliding_cells(domain, cell_candidates_local, dofs_coupling_coordinates)
+    # the cell candidates with local cell ids
+    cell_candidates_local = np.unique(cell_candidates_local.array)
+    
+    # determine process owned cells
+    index_map = domain.topology.index_map(domain.topology.dim)
+    # range of owned cells
+    owned_idx = list(index_map.local_range)
+    owned_cell_ids = np.arange(owned_idx[0], owned_idx[1])
+    # map local cell ids to global cell ids to determine ghost cells
+    cell_candidates_global = index_map.local_to_global(cell_candidates_local)
+    
+    # cells to be interpolated over must be owned! Find intersection of cell candidates and owned cells
+    owned_and_candidate_cells_global = np.intersect1d(owned_cell_ids, cell_candidates_global)
+    owned_and_candidate_cells_local = index_map.global_to_local(owned_and_candidate_cells_global)
+    
+    # query and store the interpolation points of owned boundary cells
+    interpolation_points = []
     def query_coordinates(x):
-        va.append(np.transpose(copy.deepcopy(x)))
+        interpolation_points.append(np.transpose(copy.deepcopy(x)))
         return x[0]*0
     query_function = fem.Function(function_space)
-    query_function.interpolate(query_coordinates, cc)
-    return va[0], cc
+    query_function.interpolate(query_coordinates, owned_and_candidate_cells_local)
+    
+    return interpolation_points[0], owned_and_candidate_cells_local
 
 def interpolate_fenicsx(values):
     first_key = next(iter(values))
@@ -180,50 +197,3 @@ def interpolate_fenicsx(values):
         return return_value
     
     return return_function
-
-def get_fenicsx_vertices(function_space, coupling_subdomain, dims):
-    """
-    Extracts vertices which FEniCSx accesses on this rank and which lie on the given coupling domain, from a given
-    function space.
-
-    Parameters
-    ----------
-    function_space : FEniCSx function space
-        Function space on which the finite element problem definition lives.
-    coupling_subdomain : FEniCSx Domain
-        Subdomain consists of only the coupling interface region.
-    dims : int
-        Dimension of problem.
-
-    Returns
-    -------
-    ids : numpy array
-        Array of ids of fenicsx vertices.
-    coords : numpy array
-        The coordinates of fenicsx vertices in a numpy array [N x D] where
-        N = number of vertices and D = dimensions of geometry.
-    """
-
-    # Get mesh from FEniCSx function space
-    mesh = function_space.mesh
-
-    # Get coordinates and IDs of all vertices of the mesh which lie on the coupling boundary.
-    try:
-        ids = fem.locate_dofs_geometrical(function_space, coupling_subdomain)
-        if dims == 2 or dims == 3:
-            coords = function_space.tabulate_dof_coordinates()[ids]  # we get 3d coordinates here
-        else:
-            coords = np.array([])
-    except Exception as e:  # fall back to old method  # TODO is that too general? Better use, e.g., IndexError here?
-        print(f"Caught the following exception in the detection of the coupling subdomain:\n{e}")
-        print("Falling back to old, point-wise method.")
-        ids, coords = [], []
-        for idx in range(mesh.geometry.x.shape[0]):
-            v = mesh.geometry.x[idx]
-            if coupling_subdomain(v):
-                ids.append(idx)
-                if dims == 2:
-                    coords.append([v[0], v[1]])
-        ids = np.array(ids)
-        coords = np.array(coords)
-    return ids, coords

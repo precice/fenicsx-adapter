@@ -6,7 +6,7 @@ import numpy as np
 from .config import Config
 import logging
 import precice
-from .adapter_core import FunctionType, determine_function_type, get_fenicsx_vertices, CouplingMode, Vertices, convert_fenicsx_to_precice, CouplingBoundaryProcessing, get_fenicsx_interpolation_points, interpolate_fenicsx
+from .adapter_core import FunctionType, determine_function_type, CouplingMode, Vertices, convert_fenicsx_to_precice, CouplingBoundaryProcessing, get_fenicsx_interpolation_points, interpolate_fenicsx
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
 from .coupling_mesh import CouplingMesh
@@ -143,7 +143,7 @@ class Adapter:
         else:
             pass
         
-        if self.bpm is CouplingBoundaryProcessing.AUTOMATIC:
+        if self.bpm is CouplingBoundaryProcessing.AUTOMATIC and not self._empty_rank:
             assert type(boundary_function) is fem.Function
             boundary_function.interpolate(interpolate_fenicsx(read_data), self._interpolation_cells[mesh_name])
             return None
@@ -366,7 +366,7 @@ class Adapter:
 
             if self.bpm == CouplingBoundaryProcessing.AUTOMATIC:
                 coords, cells = get_fenicsx_interpolation_points(function_space, c_mesh.get_coupling_boundary())
-                ids = np.array(list(range(len(coords))))
+                ids = np.arange(len(coords))
                 self._interpolation_cells[mesh_name] = cells
             else:
                 # precice_mesh = {ids : coordinates}
