@@ -160,9 +160,9 @@ u_n.interpolate(u_exact)
 # initialise precice
 precice, precice_dt, initial_data = None, 0.0, None
 if problem is ProblemType.DIRICHLET:
-    precice = Adapter(adapter_config_filename="precice-adapter-config-D.json", mpi_comm=MPI.COMM_WORLD)
+    precice = Adapter(adapter_config_filename="precice-adapter-config-D.json", mpi_comm=comm)
 else:
-    precice = Adapter(adapter_config_filename="precice-adapter-config-N.json", mpi_comm=MPI.COMM_WORLD)
+    precice = Adapter(adapter_config_filename="precice-adapter-config-N.json", mpi_comm=comm)
 
 coupling_mesh = None
 if problem is ProblemType.DIRICHLET:
@@ -238,16 +238,6 @@ bb_tree = geometry.bb_tree(domain, domain.geometry.dim)
 cell_candidates = geometry.compute_collisions_points(bb_tree, dofs_coupling_coordinates)
 cell_candidates = geometry.compute_colliding_cells(domain, cell_candidates, dofs_coupling_coordinates)
 cc = np.array(list(set(cell_candidates.array)))
-
-def interpolate_jit(x):
-    coords = np.transpose(x)[:,:2]
-    tmp_val = precice.read_data_at_coordinates(read_mesh, name_read, coords, dt)
-    return_value = np.zeros((len(coords),))
-    for idx, c in enumerate(coords):
-        return_value[idx] = tmp_val[(c[0], c[1])]
-    
-    return return_value
-
 
 f_err = fem.Function(V)
 # create writer for output files

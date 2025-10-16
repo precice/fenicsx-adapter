@@ -145,11 +145,10 @@ class Adapter:
         
         if self.bpm is CouplingBoundaryProcessing.AUTOMATIC and not self._empty_rank:
             assert type(boundary_function) is fem.Function
-            boundary_function.interpolate(interpolate_fenicsx(read_data), self._interpolation_cells[mesh_name])
+            boundary_function.interpolate(interpolate_fenicsx(read_data, self._read_function_types[mesh_name]), self._interpolation_cells[mesh_name])
             return None
         else:
             return read_data
-        
 
     def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
         """

@@ -150,8 +150,8 @@ def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, couplin
     # determine process owned cells
     index_map = domain.topology.index_map(domain.topology.dim)
     # range of owned cells
-    owned_idx = list(index_map.local_range)
-    owned_cell_ids = np.arange(owned_idx[0], owned_idx[1])
+    owned_cell_ids = index_map.local_range
+    owned_cell_ids = np.arange(owned_cell_ids[0], owned_cell_ids[1])
     # map local cell ids to global cell ids to determine ghost cells
     cell_candidates_global = index_map.local_to_global(cell_candidates_local)
     
@@ -160,25 +160,28 @@ def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, couplin
     owned_and_candidate_cells_local = index_map.global_to_local(owned_and_candidate_cells_global)
     
     # query and store the interpolation points of owned boundary cells
-    interpolation_points = []
+    interpolation_coordinates = []
+    vec_len = function_space.dofmap.bs
     def query_coordinates(x):
-        interpolation_points.append(np.transpose(copy.deepcopy(x)))
-        return x[0]*0
+        # to avoid UnboundLocalError, interpolation_coordinates is an array to which x is appended to
+        interpolation_coordinates.append(np.transpose(copy.deepcopy(x)))
+        return np.zeros((vec_len, x.shape[1]))
     query_function = fem.Function(function_space)
     query_function.interpolate(query_coordinates, owned_and_candidate_cells_local)
     
-    return interpolation_points[0], owned_and_candidate_cells_local
+    interpolation_coordinates = np.unique(interpolation_coordinates[0], axis=0)
+    return interpolation_coordinates, owned_and_candidate_cells_local
 
-def interpolate_fenicsx(values):
-    first_key = next(iter(values))
+def interpolate_fenicsx(values, function_type):
     # check if it is vector or scalar valued
     vector_length = 0
-    if isinstance(values[first_key], Number) or np.isscalar(values[first_key]):
-        # scalar valued function
+    if function_type is FunctionType.SCALAR:
+        # scalar valued function has vector length 1
         vector_length = 1
     else:
         # vector valued function
-        vector_length = len(values[first_key])
+        # vector length is determined by getting one value of the values dict
+        vector_length = len(values[next(iter(values))])
     def return_function(x):
         # truncation to smaller dimension not necessary because fenicsx coordinates are always 3D
         coords = np.transpose(x)
