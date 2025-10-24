@@ -2,7 +2,7 @@
 This module consists of helper functions used in the Adapter class. Names of the functions are self explanatory
 """
 
-from dolfinx import fem, geometry
+from dolfinx import fem, geometry, mesh as msh
 import numpy as np
 from enum import Enum
 import logging
@@ -12,6 +12,8 @@ from numbers import Number
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
+# TODO make it potentially variable?
+COORDINATE_DIGITS = 10
 
 class Vertices:
     """
@@ -112,6 +114,8 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
         raise Exception("Cannot handle data type {}".format(type(fenicsx_function)))
 
     mesh = fenicsx_function.function_space.mesh
+    mesh.topology.create_entities(2)
+    mesh.topology.create_connectivity(2, 3)
 
     # this evaluation is a bit annoying, see:
     # https://github.com/FEniCS/dolfinx/blob/main/python/test/unit/fem/test_function.py#L63
@@ -119,6 +123,10 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
     # for fast function evaluation
     # TODO: as long as the domain didn't change, we could store that tree somewhere
     bb_tree = geometry.bb_tree(mesh, mesh.geometry.dim)
+    bb_tree_facet = geometry.bb_tree(mesh, mesh.geometry.dim - 1)
+    local_cells = mesh.topology.index_map(mesh.topology.dim).local_range
+    midpoint_tree_faces = geometry.create_midpoint_tree(mesh, mesh.topology.dim-1, np.arange(local_cells[0], local_cells[1]))
+    facet_to_cell_map = mesh.topology.connectivity(2,3)
 
     cells = []
     points = []
@@ -131,6 +139,18 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
         if len(colliding_cells.links(i)) > 0:
             points.append(point)
             cells.append(colliding_cells.links(i)[0])
+        else:
+            # point is outside domain, probably because of rounding
+            closest_facet_idx = geometry.compute_closest_entity(bb_tree_facet, midpoint_tree_faces, mesh, point)[0]
+            # change point such that it is in the function domain
+            # -> find midpoint to closest facet and just use this.
+            closest_midpoint_facet = msh.compute_midpoints(mesh, mesh.topology.dim-1, np.array([closest_facet_idx]))[0]
+            
+            # if links has more than 1 entry, the closest midpoint seems to be between two entities. Just pick one
+            closest_cell_idx_3d = facet_to_cell_map.links(closest_facet_idx)[0]
+            
+            cells.append(closest_cell_idx_3d)
+            points.append(closest_midpoint_facet)
 
     precice_data = fenicsx_function.eval(points, cells)
     return np.array(precice_data)
@@ -169,7 +189,12 @@ def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, couplin
     query_function = fem.Function(function_space)
     query_function.interpolate(query_coordinates, owned_and_candidate_cells_local)
     
-    interpolation_coordinates = np.unique(interpolation_coordinates[0], axis=0)
+    # round the coordinates to avoid close points (i.e. those that are equal until the 8 decimal place) to be able to use rbf mapping
+    tmp = np.zeros_like(interpolation_coordinates[0])
+    np.round(interpolation_coordinates[0], COORDINATE_DIGITS, tmp)
+    interpolation_coordinates = tmp
+    interpolation_coordinates = np.unique(interpolation_coordinates, axis=0)
+    
     return interpolation_coordinates, owned_and_candidate_cells_local
 
 def interpolate_fenicsx(values, function_type):
@@ -184,7 +209,9 @@ def interpolate_fenicsx(values, function_type):
         vector_length = len(values[next(iter(values))])
     def return_function(x):
         # truncation to smaller dimension not necessary because fenicsx coordinates are always 3D
-        coords = np.transpose(x)
+        coords = np.zeros_like(x)
+        np.round(x, COORDINATE_DIGITS, coords)
+        coords = np.transpose(coords)
         npoints = len(coords)
         
         if vector_length == 1:
