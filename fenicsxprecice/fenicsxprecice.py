@@ -6,11 +6,12 @@ import numpy as np
 from .config import Config
 import logging
 import precice
-from .adapter_core import FunctionType, determine_function_type, CouplingMode, Vertices, convert_fenicsx_to_precice, CouplingBoundaryProcessing, get_fenicsx_interpolation_points, interpolate_fenicsx
+from .adapter_core import FunctionType, determine_function_type, CouplingMode, Vertices, convert_fenicsx_to_precice, CouplingBoundaryProcessing, get_fenicsx_interpolation_points, get_fenicsx_interpolation_points_v2, interpolate_fenicsx
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
 from .coupling_mesh import CouplingMesh
 from dolfinx import fem
+from mpi4py import MPI
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
@@ -73,6 +74,8 @@ class Adapter:
         # for automatic interpolation
         self._interpolation_cells = {}
         self._precice_vertex_ids = {}  # initialized later
+        self._values_to_send = {} # initialized later
+        self._values_to_recv = {} # initialized later
 
         # read data related quantities (read data is read from preCICE and applied in FEniCSx)
         self._read_function_types = {}  # stores whether read function is scalar or vector valued
@@ -145,7 +148,7 @@ class Adapter:
         
         if self.bpm is CouplingBoundaryProcessing.AUTOMATIC and not self._empty_rank:
             assert type(boundary_function) is fem.Function
-            boundary_function.interpolate(interpolate_fenicsx(read_data, self._read_function_types[mesh_name]), self._interpolation_cells[mesh_name])
+            boundary_function.interpolate(interpolate_fenicsx(read_data, self._read_function_types[mesh_name], self._values_to_send, self._comm), self._interpolation_cells[mesh_name])
             return None
         else:
             return read_data
@@ -364,7 +367,7 @@ class Adapter:
             self._fenicsx_dims = function_space.mesh.geometry.dim
 
             if self.bpm == CouplingBoundaryProcessing.AUTOMATIC:
-                coords, cells = get_fenicsx_interpolation_points(function_space, c_mesh.get_coupling_boundary())
+                coords, cells, self._values_to_send = get_fenicsx_interpolation_points_v2(function_space, c_mesh.get_coupling_boundary(), self._comm)
                 ids = np.arange(len(coords))
                 self._interpolation_cells[mesh_name] = cells
             else:

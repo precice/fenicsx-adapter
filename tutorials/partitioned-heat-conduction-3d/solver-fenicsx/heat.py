@@ -69,6 +69,7 @@ class GradientSolver:
         L = fem.form(ufl.inner(ufl.grad(u), self.v) * ufl.dx)
         b = create_vector(L)
         assemble_vector(b, L)
+        b.ghostUpdate(addv=PETSc.InsertMode.ADD_VALUES, mode=PETSc.ScatterMode.REVERSE)
         self.solver.solve(b, self.returnValue.x.petsc_vec)
         return self.returnValue
 
@@ -81,6 +82,9 @@ args = parser.parse_args()
 # Init variables with arguments
 participant_name = args.participantName
 error_tol = args.error_tol
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
 
 t = 0
 fenics_dt = 0.1
@@ -97,7 +101,7 @@ elif participant_name == ProblemType.NEUMANN.value:
     domain_part = DomainPart.INNER
 
 # create domain and function space
-domain, coupling_boundary, remaining_boundary, access_region = get_geometry(domain_part)
+domain, coupling_boundary, remaining_boundary, access_region = get_geometry(domain_part, comm)
 V = fem.functionspace(domain, ("Lagrange", 2))
 element = basix.ufl.element("Lagrange", domain.topology.cell_name(), 1, shape=(domain.geometry.dim,))
 V_g = fem.functionspace(domain, element)
@@ -151,18 +155,18 @@ u_n.interpolate(u_exact)
 # initialise precice
 precice, precice_dt, initial_data = None, 0.0, None
 if problem is ProblemType.DIRICHLET:
-    precice = Adapter(adapter_config_filename="precice-adapter-config-D.json", mpi_comm=MPI.COMM_WORLD)
+    precice = Adapter(adapter_config_filename="precice-adapter-config-D.json", mpi_comm=comm)
 else:
-    precice = Adapter(adapter_config_filename="precice-adapter-config-N.json", mpi_comm=MPI.COMM_WORLD)
+    precice = Adapter(adapter_config_filename="precice-adapter-config-N.json", mpi_comm=comm)
 
 coupling_mesh = None
 if problem is ProblemType.DIRICHLET:
-    coupling_mesh = CouplingMesh("Dirichlet-Mesh", coupling_boundary, {"Temperature": V}, {"Heat-Flux": f_N})
-    precice.set_mesh_access_region("Neumann-Mesh", access_region)
+    coupling_mesh = CouplingMesh("Dirichlet-Mesh", coupling_boundary, {"Temperature": V_coup}, {"Heat-Flux": f_N})
+    #precice.set_mesh_access_region("Neumann-Mesh", access_region)
     precice.initialize([coupling_mesh])
 elif problem is ProblemType.NEUMANN:
-    coupling_mesh = CouplingMesh("Neumann-Mesh", coupling_boundary, {"Heat-Flux": V}, {"Temperature": u_D})
-    precice.set_mesh_access_region("Dirichlet-Mesh", access_region)
+    coupling_mesh = CouplingMesh("Neumann-Mesh", coupling_boundary, {"Heat-Flux": V_coup}, {"Temperature": u_D})
+    #precice.set_mesh_access_region("Dirichlet-Mesh", access_region)
     precice.initialize([coupling_mesh])
 
 # get precice's dt
@@ -180,10 +184,10 @@ F = u * v * ufl.dx + dt * ufl.dot(ufl.grad(u), ufl.grad(v)) * ufl.dx - (u_n + dt
 name_read = None
 if problem is ProblemType.DIRICHLET:
     name_read = "Temperature"
-    read_mesh = "Neumann-Mesh"
+    read_mesh = "Dirichlet-Mesh"
 else:
     name_read = "Heat-Flux"
-    read_mesh = "Dirichlet-Mesh"
+    read_mesh = "Neumann-Mesh"
 
 coupling_function = fem.Function(V_coup)
 
@@ -247,40 +251,35 @@ while precice.is_coupling_ongoing():
     precice_dt = precice.get_max_time_step_size()
     dt = np.min([fenics_dt, precice_dt])
 
+    # Update the coupling expression with the new read data
+    precice.read_data(read_mesh, name_read, dt, coupling_function)
+    
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
         loc_b.set(0)
     assemble_vector(b, L)
-    # Update the coupling expression with the new read data
-    read_values = list(precice.read_data_at_coordinates(read_mesh, name_read, dofs_coupling_coordinates, dt).values())
-    if problem is ProblemType.NEUMANN:
-        for idx in range(len(dofs_subspace)):
-            # assign the read_values to the corresponding dofs
-            # -> assume the dof of the x component of a vector is located at index idx. Then the y and z component of the same vector is located at idx+1 and idx+2
-            # -> Use the dof list of V_coup.sub(0) and mappingToOriginalSpace to determine the dof indices in V_coup
-            dof_original = mappingToOriginalSpace[dofs_subspace[idx]]
-            for d in range(domain.geometry.dim):
-                coupling_function.x.array[dof_original + d] = read_values[idx][d]
-    else:
-        coupling_function.x.array[dofs_coupling] = read_values
+
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)
     # Boundary condition bc should be updated by u_D.interpolate above, since
     # this function is wrapped into the bc object
     apply_lifting(b, [a], [bcs])
+    b.ghostUpdate(addv=PETSc.InsertMode.ADD_VALUES, mode=PETSc.ScatterMode.REVERSE)
     set_bc(b, bcs)
 
     # Solve linear problem
     solver.solve(b, uh.x.petsc_vec)
+    uh.x.scatter_forward()
 
     # Write data to preCICE according to which problem is being solved
     if problem is ProblemType.DIRICHLET:
         # Dirichlet problem reads temperature and writes flux on boundary to Neumann problem
         flux = gradient_solver.compute(uh)
-        precice.write_data(coupling_mesh.get_name(), "Heat-Flux", flux)
+        #precice.write_data(coupling_mesh.get_name(), "Heat-Flux", flux)
+        precice.write_data(coupling_mesh.get_name(), "Heat-Flux", f_N)
     elif problem is ProblemType.NEUMANN:
         # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
-        precice.write_data(coupling_mesh.get_name(), "Temperature", uh)
+        precice.write_data(coupling_mesh.get_name(), "Temperature", u_D)
 
     precice.advance(dt)
     precice_dt = precice.get_max_time_step_size()
@@ -300,7 +299,7 @@ while precice.is_coupling_ongoing():
     if precice.is_time_window_complete():
         u_ref = fem.Function(V)
         u_ref.interpolate(u_D)
-        error, error_pointwise = compute_errors(u_n, u_ref)
+        error, error_pointwise = compute_errors(u_n, u_ref, 1e-1)
         print("t = %.2f: L2 error on domain = %.3g" % (t, error))
 
         # Update Dirichlet BC
