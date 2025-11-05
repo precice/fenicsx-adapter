@@ -146,9 +146,13 @@ class Adapter:
         else:
             pass
         
-        if self.bpm is CouplingBoundaryProcessing.AUTOMATIC and not self._empty_rank:
-            assert type(boundary_function) is fem.Function
-            boundary_function.interpolate(interpolate_fenicsx(read_data, self._read_function_types[mesh_name], self._values_to_send, self._comm), self._interpolation_cells[mesh_name])
+        if self.bpm is CouplingBoundaryProcessing.AUTOMATIC:
+            if not self._empty_rank:
+                assert type(boundary_function) is fem.Function
+                boundary_function.interpolate(interpolate_fenicsx(read_data, self._read_function_types[mesh_name], self._values_to_send, self._comm), self._interpolation_cells[mesh_name])
+            else:
+                for dest_rank in self._values_to_send.keys():
+                    self._comm.send(self._values_to_send[dest_rank], dest_rank)
             return None
         else:
             return read_data
@@ -200,6 +204,9 @@ class Adapter:
         mesh_name :
             Specifies the mesh from which the data is written
         """
+        
+        if self._empty_rank:
+            return
 
         assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING or
                 CouplingMode.BI_DIRECTIONAL_COUPLING)
@@ -232,6 +239,9 @@ class Adapter:
             coordinates: A list of coordinates that defines where write_function is evaluated
             write_function: The function whose values at the given coordinates will be written
         """
+        if self._empty_rank:
+            return
+        
         write_function_type = determine_function_type(write_function)
         assert write_function_type in list(FunctionType)
         write_data = convert_fenicsx_to_precice(write_function, coordinates)
@@ -377,15 +387,16 @@ class Adapter:
             self._fenicsx_vertices[mesh_name] = Vertices()
             self._fenicsx_vertices[mesh_name].set_ids(ids)
             self._fenicsx_vertices[mesh_name].set_coordinates(coords)
-
-            # Set up mesh in preCICE
-            if self._fenicsx_dims == 2:
-                self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
-                    mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates()[
-                        :, :2])  # give preCICE only 2D coordinates
-            else:
-                self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
-                    mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates())
+            
+            if len(self._fenicsx_vertices[mesh_name].get_coordinates()) > 0:
+                # Set up mesh in preCICE
+                if self._fenicsx_dims == 2:
+                    self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
+                        mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates()[
+                            :, :2])  # give preCICE only 2D coordinates
+                else:
+                    self._precice_vertex_ids[mesh_name] = self._participant.set_mesh_vertices(
+                        mesh_name, self._fenicsx_vertices[mesh_name].get_coordinates())
 
             if self._fenicsx_vertices[mesh_name].get_ids().size > 0:
                 self._empty_rank = False
