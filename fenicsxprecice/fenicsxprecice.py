@@ -410,6 +410,7 @@ class Adapter:
                         self.write_data(mesh_name, write_data_name, write_function)
 
         self._participant.initialize()
+        
 
     def store_checkpoint(self, payload, t, n):
         """

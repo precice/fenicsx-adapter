@@ -347,12 +347,6 @@ def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, couplin
 def get_fenicsx_interpolation_points_v2(function_space : fem.FunctionSpace, coupling_boundary, comm: MPI.Comm):
     comm_size = comm.Get_size()
     comm_rank = comm.Get_rank()
-    # send to all mpi ranks (except the local rank) facet list
-    other_ranks = []
-    for r in range(comm_size):
-        if r == comm_rank:
-            continue
-        other_ranks.append(r)
     
     # domain of function space
     domain = function_space.mesh
@@ -412,14 +406,14 @@ def get_fenicsx_interpolation_points_v2(function_space : fem.FunctionSpace, coup
         duplicate_coordinates_per_rank[source_rank] = interpolation_coordinates & interpolation_coordinates_from_source
         # filter out duplicates
         interpolation_coordinates = interpolation_coordinates - interpolation_coordinates_from_source
-        
+    
     for receiver_rank in range(comm_rank + 1, comm_size):
         comm.send(interpolation_coordinates, receiver_rank)
     
     
     coordinates_to_send = {}
     # receive coordinates that need to be communicated
-    for source_rank in range(comm_rank + 1, comm_size):
+    for source_rank in range(comm_size-1, comm_rank, -1):
         #TODO if there is no duplicate coordinate between two ranks, there is no need to send an empty array
         coordinates_to_send[source_rank] = comm.recv(source = source_rank)
     # send coordinates
