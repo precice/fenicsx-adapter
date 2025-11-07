@@ -275,11 +275,11 @@ while precice.is_coupling_ongoing():
     if problem is ProblemType.DIRICHLET:
         # Dirichlet problem reads temperature and writes flux on boundary to Neumann problem
         flux = gradient_solver.compute(uh)
-        #precice.write_data(coupling_mesh.get_name(), "Heat-Flux", flux)
-        precice.write_data(coupling_mesh.get_name(), "Heat-Flux", f_N)
+        flux.x.scatter_forward()
+        precice.write_data(coupling_mesh.get_name(), "Heat-Flux", flux)
     elif problem is ProblemType.NEUMANN:
         # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
-        precice.write_data(coupling_mesh.get_name(), "Temperature", u_D)
+        precice.write_data(coupling_mesh.get_name(), "Temperature", uh)
 
     precice.advance(dt)
     precice_dt = precice.get_max_time_step_size()
