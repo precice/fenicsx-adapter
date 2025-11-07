@@ -278,6 +278,7 @@ while precice.is_coupling_ongoing():
         flux = gradient_solver.compute(uh)
         flux_x = fem.Function(W)
         flux_x.interpolate(flux.sub(0))
+        flux_x.x.scatter_forward()
         precice.write_data(coupling_mesh.get_name(), "Heat-Flux", flux_x)
     elif problem is ProblemType.NEUMANN:
         # Neumann problem reads flux and writes temperature on boundary to Dirichlet problem
