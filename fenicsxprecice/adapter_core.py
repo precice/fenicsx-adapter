@@ -122,8 +122,6 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
         raise Exception("Cannot handle data type {}".format(type(fenicsx_function)))
 
     mesh = fenicsx_function.function_space.mesh
-    mesh.topology.create_entities(2)
-    mesh.topology.create_connectivity(2, 3)
 
     # this evaluation is a bit annoying, see:
     # https://github.com/FEniCS/dolfinx/blob/main/python/test/unit/fem/test_function.py#L63
@@ -142,25 +140,26 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
     
     #generate from the already computed cell candidates the midpoint tree! (-> original cell owner is in the list anyways)
     all_cells = np.unique(colliding_cells.array)
-    midpoint_tree_faces = geometry.create_midpoint_tree(mesh, mesh.topology.dim, all_cells)
+    midpoint_tree = geometry.create_midpoint_tree(mesh, mesh.topology.dim, all_cells)
     
     for i, point in enumerate(local_coords):
         if len(colliding_cells.links(i)) > 0:
             points.append(point)
             cells.append(colliding_cells.links(i)[0])
         else:
-            
-            # FIXME: it is more accurate to compute the closest midpoint to the facet and not the cell
-            
             # point is outside domain, probably because of rounding
-            closest_cell_idx = geometry.compute_closest_entity(bb_tree, midpoint_tree_faces, mesh, point)[0]
+            closest_cell_idx = geometry.compute_closest_entity(bb_tree, midpoint_tree, mesh, point)[0]
             # change point such that it is in the function domain
-            # -> find midpoint to closest cell and just use this.
+            # -> find midpoint to closest cell
             closest_midpoint_cell = msh.compute_midpoints(mesh, mesh.topology.dim, np.array([closest_cell_idx]))[0]
-            
+            # in each direction, COORDINATE_DIGITS defines on how much the point has been shifted
+            # -> move it in the direction of midpoint cell by at max. this amount, so, in each direction maximal 1e-COORDINATE_DIGITS
+            direction = closest_midpoint_cell-point
+            direction = np.sign(direction)*(10**(-COORDINATE_DIGITS))
+            new_point = point + direction
             
             cells.append(closest_cell_idx)
-            points.append(closest_midpoint_cell)
+            points.append(new_point)
 
     precice_data = fenicsx_function.eval(points, cells)
     return np.array(precice_data)
@@ -225,7 +224,7 @@ def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, couplin
     duplicate_coordinates_per_rank = {} # save the filtered coordinates per rank to reduce communication volume
     
     for source_rank in range(comm_rank):
-        interpolation_coordinates_from_source = comm.recv(source = source_rank) # get this here as a set of tuples
+        interpolation_coordinates_from_source = comm.recv(source = source_rank) # recv a set of tuples
         # save duplicates
         duplicate_coordinates_per_rank[source_rank] = interpolation_coordinates & interpolation_coordinates_from_source
         # filter out duplicates
@@ -233,7 +232,6 @@ def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, couplin
     
     for receiver_rank in range(comm_rank + 1, comm_size):
         comm.send(interpolation_coordinates, receiver_rank)
-    
     
     coordinates_to_send = {}
     # receive coordinates that need to be communicated
