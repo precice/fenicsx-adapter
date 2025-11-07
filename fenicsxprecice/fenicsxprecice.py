@@ -8,7 +8,6 @@ import logging
 import precice
 from .adapter_core import FunctionType, CouplingMode, Vertices, CouplingBoundaryInterpolation
 from .adapter_core import determine_function_type, convert_fenicsx_to_precice, get_fenicsx_interpolation_points, interpolate_boundary_function
-from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
 from .coupling_mesh import CouplingMesh
 from dolfinx import fem
@@ -80,9 +79,6 @@ class Adapter:
         # read data related quantities (read data is read from preCICE and applied in FEniCSx)
         self._read_function_types = {}  # stores whether read function is scalar or vector valued
         self._write_function_types = {}  # stores whether write function is scalar or vector valued
-
-        # Interpolation strategy
-        self._my_expression = SegregatedRBFInterpolationExpression
 
         # Solver state used by the Adapter internally to handle checkpointing
         self._checkpoint = None
