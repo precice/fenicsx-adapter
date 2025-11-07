@@ -65,9 +65,9 @@ class CouplingMode(Enum):
     UNI_DIRECTIONAL_WRITE_COUPLING = 5
     UNI_DIRECTIONAL_READ_COUPLING = 6
     
-class CouplingBoundaryProcessing(Enum):
-    AUTOMATIC = 1
-    MANUAL = 2
+class CouplingBoundaryInterpolation(Enum):
+    ADAPTER = 1
+    USER = 2
 
 
 def determine_function_type(input_obj):
@@ -164,16 +164,25 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
     precice_data = fenicsx_function.eval(points, cells)
     return np.array(precice_data)
 
-def m_print(rank, msg):
-    print(f"Rank {rank}: {msg}")
-
 def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, coupling_boundary, comm: MPI.Comm):
+    """
+    Determines the interpolation points FEniCSx needs to interpolate the coupling boundary and the coordinates for the preCICE mesh.
+
+    Parameters
+    ----------
+        function_space (fem.FunctionSpace): The function space of the problem
+        coupling_boundary (function): A callable function describing the coupling boundary
+        comm (MPI.Comm): The used MPI communicator
+
+    Returns:
+        (ndarray, list, dict): Returns a triplet of (interpolation coordinates, interpolation cells, function values to be sent to other MPI ranks) 
+    """
     comm_size = comm.Get_size()
     comm_rank = comm.Get_rank()
     
     # domain of function space
     domain = function_space.mesh
-    # dummy function used to query interpolation coordinates
+    # function used to query interpolation coordinates
     query_function = fem.Function(function_space)
     
     # variables and function definition required for querying the coordinates FEniCSx needs
@@ -182,7 +191,7 @@ def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, couplin
     def query_coordinates(x):
         # to avoid UnboundLocalError, interpolation_coordinates is an array to which x is appended to
         interpolation_coordinates.append(np.transpose(copy.deepcopy(x)))
-        # directly round and make each rounded coordinate unique to keep the code clean
+        # directly round and make each rounded coordinate unique to keep the code clean and to reduce memory consumption
         interpolation_coordinates[-1] = round_unique_coordinates(interpolation_coordinates[-1])
         
         return np.zeros((vec_len, x.shape[1]))
@@ -196,7 +205,7 @@ def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, couplin
     # the cell candidates with local cell ids
     cell_candidates_local = np.unique(cell_candidates_local.array)
     
-    # determine process owned cells
+    # determine process-owned cells
     index_map = domain.topology.index_map(domain.topology.dim)
     # range of owned cells
     owned_cell_ids = index_map.local_range
@@ -205,16 +214,18 @@ def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, couplin
     cell_candidates_global = index_map.local_to_global(cell_candidates_local)
     # cells to be interpolated over must be owned! Find intersection of cell candidates and owned cells
     owned_and_candidate_cells_global = np.intersect1d(owned_cell_ids, cell_candidates_global)
+    # map back to local cell indexing
     owned_and_candidate_cells_local = index_map.global_to_local(owned_and_candidate_cells_global)
     
     # get all interpolation points of owned domain
     query_function.interpolate(query_coordinates, owned_and_candidate_cells_local)
-    # convert the numpy array to a set of tuples to make set operations
+    # convert the numpy array to a set of tuples to allow set operations
     interpolation_coordinates = set(map(tuple, interpolation_coordinates[0]))
     
-    
-    # to avoid creating an ill-posed mapping problem for preCICE, equal coordinates used that are used to define the preCICE mesh across multiple MPI ranks
+    # to avoid creating an ill-posed mapping problem for preCICE (especially RBF mapping), equal coordinates used by multiple MPI ranks
     # must be determined and removed by all but one MPI rank.
+    
+    # rule: if rankA and rankB use coordinate x and rankA < rankB, rankA keeps x and rankB discards the coordinate, else rankB keeps x
     
     # send interpolation points of complete boundary (interpolation_coordinates[0]) to higher ranks 
     # OR receive interpolation points that potentially need to be filtered out from lower ranks
@@ -230,8 +241,8 @@ def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, couplin
         # filter out duplicates
         interpolation_coordinates = interpolation_coordinates - interpolation_coordinates_from_source
     
-    for receiver_rank in range(comm_rank + 1, comm_size):
-        comm.send(interpolation_coordinates, receiver_rank)
+    for dest_rank in range(comm_rank + 1, comm_size):
+        comm.send(interpolation_coordinates, dest_rank)
     
     coordinates_to_send = {}
     # receive coordinates that need to be communicated
@@ -239,8 +250,8 @@ def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, couplin
         #TODO if there is no duplicate coordinate between two ranks, there is no need to send an empty array
         coordinates_to_send[source_rank] = comm.recv(source = source_rank)
     # send coordinates
-    for receiver_rank in range(comm_rank):
-        comm.send(duplicate_coordinates_per_rank[receiver_rank], receiver_rank)
+    for dest_rank in range(comm_rank):
+        comm.send(duplicate_coordinates_per_rank[dest_rank], dest_rank)
     
     # convert set of tuples to numpy array
     interpolation_coordinates = np.array(list(interpolation_coordinates))
@@ -249,46 +260,64 @@ def get_fenicsx_interpolation_points(function_space : fem.FunctionSpace, couplin
     return interpolation_coordinates, owned_and_candidate_cells_local, coordinates_to_send
 
 
-def interpolate_fenicsx(values, function_type, values_to_send, comm:MPI.Comm):
-    # check if it is vector or scalar valued
-    vector_length = 0
-    if function_type is FunctionType.SCALAR:
-        # scalar valued function has vector length 1
-        vector_length = 1
+def interpolate_boundary_function(read_values:dict, function_type:FunctionType, values_to_send:dict, boundary_function: fem.Function, boundary_cells:list, comm:MPI.Comm, is_empty_rank: bool):
+    """
+    Interpolates the coupling boundary function at the specified cells.
+
+    Parameters
+    ----------
+        read_values (dict): A dict of (coordinates: function values) that were read from preCICE
+        function_type (FunctionType): Type of the function that needs to be interpolated
+        values_to_send (dict): A dict of (rank: coordinates) that defines which function values at which coordinates must be sent to the corresponding rank
+        boundary_function (fem.Function): The function that should be interpolated
+        boundary_cells (list): A list of cell indices to be interpolated
+        comm (MPI.Comm): The MPI communicator to be used
+        is_empty_rank (bool): specifies if the rank has no relation to the coupling boundary
+    """
+    if is_empty_rank:
+        # an empty rank does not need to do any interpolation
+        for dest_rank in values_to_send.keys():
+            comm.send(values_to_send[dest_rank], dest_rank)
     else:
-        # vector valued function
-        # vector length is determined by getting one value of the values dict
-        vector_length = len(values[next(iter(values))])
-
-    # TODO come up with something more efficient
-
-    # append previously filtered out coordinates to values
-    for source_rank in range(comm.Get_rank()):
-        value = comm.recv(source = source_rank)
-        values.update(value)
-    
-    # the values to append obvioulsy need to be send
-    for dest_rank in values_to_send.keys():
-        payload = {coord : values[coord] for coord in values_to_send[dest_rank]}
-        comm.send(payload, dest_rank)
-    
-    def return_function(x):
-        # truncation to smaller dimension not necessary because fenicsx coordinates are always 3D
-        coords = np.zeros_like(x)
-        np.round(x, COORDINATE_DIGITS, coords)
-        coords = np.transpose(coords)
-        npoints = len(coords)
-        
-        if vector_length == 1:
-            # function is scalar valued
-            return_value = np.zeros((npoints,))
-            for idx, c in enumerate(coords):
-                return_value[idx] = values[tuple(c)]
+        # check if it is vector or scalar valued
+        vector_length = 0
+        if function_type is FunctionType.SCALAR:
+            # scalar valued function has vector length 1
+            vector_length = 1
         else:
-            # function is vector valued
-            return_value = np.zeros((vector_length, npoints))
-            for idx, c in enumerate(coords):
-                return_value[:, idx] = values[tuple(c)]
-        return return_value
+            # vector valued function
+            # vector length is determined by getting one value of the values dict
+            vector_length = len(read_values[next(iter(read_values))])
     
-    return return_function
+        # append filtered coordinates again to provide all necessary points for interpolation
+        for source_rank in range(comm.Get_rank()):
+            value = comm.recv(source = source_rank)
+            read_values.update(value)
+
+        # send the values other ranks need for interpolation
+        for dest_rank in values_to_send.keys():
+            payload = {coord : read_values[coord] for coord in values_to_send[dest_rank]}
+            comm.send(payload, dest_rank)
+            
+        # define the interpolation function
+        def interpolation_function(x):
+            # truncation to smaller dimension not necessary because fenicsx coordinates are always 3D
+            coords = np.zeros_like(x)
+            np.round(x, COORDINATE_DIGITS, coords)
+            coords = np.transpose(coords)
+            npoints = len(coords)
+
+            if vector_length == 1:
+                # function is scalar valued
+                return_value = np.zeros((npoints,))
+                for idx, c in enumerate(coords):
+                    return_value[idx] = read_values[tuple(c)]
+            else:
+                # function is vector valued
+                return_value = np.zeros((vector_length, npoints))
+                for idx, c in enumerate(coords):
+                    return_value[:, idx] = read_values[tuple(c)]
+            return return_value
+        
+        # do the actual interpolation
+        boundary_function.interpolate(interpolation_function, boundary_cells)

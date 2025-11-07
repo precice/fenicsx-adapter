@@ -6,7 +6,8 @@ import numpy as np
 from .config import Config
 import logging
 import precice
-from .adapter_core import FunctionType, determine_function_type, CouplingMode, Vertices, convert_fenicsx_to_precice, CouplingBoundaryProcessing, get_fenicsx_interpolation_points, interpolate_fenicsx
+from .adapter_core import FunctionType, CouplingMode, Vertices, CouplingBoundaryInterpolation
+from .adapter_core import determine_function_type, convert_fenicsx_to_precice, get_fenicsx_interpolation_points, interpolate_boundary_function
 from .expression_core import SegregatedRBFInterpolationExpression
 from .solverstate import SolverState
 from .coupling_mesh import CouplingMesh
@@ -36,7 +37,7 @@ class Adapter:
     NOTE: dolfinx.PointSource use only works in serial
     """
 
-    def __init__(self, mpi_comm, adapter_config_filename='precice-adapter-config.json', boundary_processing_mode = CouplingBoundaryProcessing.AUTOMATIC):
+    def __init__(self, mpi_comm, adapter_config_filename='precice-adapter-config.json', boundary_processing_mode = CouplingBoundaryInterpolation.ADAPTER):
         """
         Constructor of Adapter class.
 
@@ -46,8 +47,8 @@ class Adapter:
             Communicator used by the adapter. Should be the same one used by FEniCSx, usually MPI.COMM_WORLD
         adapter_config_filename : string
             Name of the JSON adapter configuration file (to be provided by the user)
-        boundary_processing_mode: If set to AUTOMATIC, the user lets the adapter take care of defining the preCICE mesh and updating the coupling boundary functions.
-            If set to MANUAL, the user needs to define the preCICE mesh and gets raw data from preCICE
+        boundary_processing_mode: If set to ADAPTER, the user lets the adapter take care of defining the preCICE mesh and updating the coupling boundary functions.
+            If set to USER, the user needs to define the preCICE mesh and gets raw data from preCICE
         """
 
         self._config = Config(adapter_config_filename)
@@ -56,7 +57,7 @@ class Adapter:
         self._comm = mpi_comm
         
         # set boundary processing mode
-        self.bpm = boundary_processing_mode
+        self.boundary_proc_mode = boundary_processing_mode
 
         self._participant = precice.Participant(
             self._config.get_participant_name(),
@@ -71,11 +72,10 @@ class Adapter:
 
         # coupling mesh related quantities
         self._fenicsx_vertices = {}
-        # for automatic interpolation
+        # for ADAPTER interpolation
         self._interpolation_cells = {}
-        self._precice_vertex_ids = {}  # initialized later
-        self._values_to_send = {} # initialized later
-        self._values_to_recv = {} # initialized later
+        self._precice_vertex_ids = {}  
+        self._values_to_send = {} 
 
         # read data related quantities (read data is read from preCICE and applied in FEniCSx)
         self._read_function_types = {}  # stores whether read function is scalar or vector valued
@@ -116,8 +116,8 @@ class Adapter:
         mesh_name:
             Specifies for which mesh the data shall be read
         
-        boundary_function: If boundary_processing_mode is set to AUTOMATIC, this function updates boundary_function directly.
-            If set to MANUAL, boundary_function is ignored
+        boundary_function: If boundary_processing_mode is set to ADAPTER, this function updates boundary_function directly.
+            If set to USER, boundary_function is ignored
 
         Returns
         -------
@@ -146,13 +146,9 @@ class Adapter:
         else:
             pass
         
-        if self.bpm is CouplingBoundaryProcessing.AUTOMATIC:
-            if not self._empty_rank:
-                assert type(boundary_function) is fem.Function
-                boundary_function.interpolate(interpolate_fenicsx(read_data, self._read_function_types[mesh_name], self._values_to_send, self._comm), self._interpolation_cells[mesh_name])
-            else:
-                for dest_rank in self._values_to_send.keys():
-                    self._comm.send(self._values_to_send[dest_rank], dest_rank)
+        if self.boundary_proc_mode is CouplingBoundaryInterpolation.ADAPTER:
+            assert type(boundary_function) is fem.Function
+            interpolate_boundary_function(read_data, self._read_function_types[mesh_name], self._values_to_send[mesh_name], boundary_function, self._interpolation_cells[mesh_name], self._comm, self._empty_rank)
             return None
         else:
             return read_data
@@ -160,7 +156,6 @@ class Adapter:
     def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
         """
         Read data from preCICE at specified coordinates. This function uses the just-in-time mapping of preCICE.
-        It can be used for 2D and 3D cases.
 
         Parameters
         ----------
@@ -316,7 +311,7 @@ class Adapter:
         ----------
         coupling_meshes: A list of coupling meshes of the class CouplingMesh.
         precice_meshes: A list of dicts containing the definition of preCICE meshes for each CouplingMesh. 
-            This parameter is ignored if bpm is AUTOMATIC
+            This parameter is ignored if boundary_proc_mode is ADAPTER
 
         Returns
         -------
@@ -324,7 +319,7 @@ class Adapter:
             Recommended time step value from preCICE.
         """
         
-        if self.bpm == CouplingBoundaryProcessing.MANUAL:
+        if self.boundary_proc_mode == CouplingBoundaryInterpolation.USER:
             assert len(precice_mesh) == len(coupling_meshes), "precice_mesh must have the same number of entries as coupling_meshes"
 
         for idx, c_mesh in enumerate(coupling_meshes):
@@ -376,8 +371,8 @@ class Adapter:
             # Set dimension of the problem (assumed to be equal across all meshes)
             self._fenicsx_dims = function_space.mesh.geometry.dim
 
-            if self.bpm == CouplingBoundaryProcessing.AUTOMATIC:
-                coords, cells, self._values_to_send = get_fenicsx_interpolation_points(function_space, c_mesh.get_coupling_boundary(), self._comm)
+            if self.boundary_proc_mode == CouplingBoundaryInterpolation.ADAPTER:
+                coords, cells, self._values_to_send[mesh_name] = get_fenicsx_interpolation_points(function_space, c_mesh.get_coupling_boundary(), self._comm)
                 ids = np.arange(len(coords))
                 self._interpolation_cells[mesh_name] = cells
             else:
