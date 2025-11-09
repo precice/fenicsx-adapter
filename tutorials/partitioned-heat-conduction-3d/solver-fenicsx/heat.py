@@ -162,11 +162,9 @@ else:
 coupling_mesh = None
 if problem is ProblemType.DIRICHLET:
     coupling_mesh = CouplingMesh("Dirichlet-Mesh", coupling_boundary, {"Temperature": V_coup}, {"Heat-Flux": f_N})
-    #precice.set_mesh_access_region("Neumann-Mesh", access_region)
     precice.initialize([coupling_mesh])
 elif problem is ProblemType.NEUMANN:
     coupling_mesh = CouplingMesh("Neumann-Mesh", coupling_boundary, {"Heat-Flux": V_coup}, {"Temperature": u_D})
-    #precice.set_mesh_access_region("Dirichlet-Mesh", access_region)
     precice.initialize([coupling_mesh])
 
 # get precice's dt
@@ -253,12 +251,11 @@ while precice.is_coupling_ongoing():
 
     # Update the coupling expression with the new read data
     precice.read_data(read_mesh, name_read, dt, coupling_function)
-    
+
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
         loc_b.set(0)
     assemble_vector(b, L)
-
 
     # Apply Dirichlet boundary condition to the vector (according to the tutorial, the lifting operation is used to preserve the symmetry of the matrix)
     # Boundary condition bc should be updated by u_D.interpolate above, since

@@ -41,6 +41,7 @@ from problem_setup import get_geometry
 def interface(x):
     return np.isclose(x[0], 1)
 
+
 class GradientSolver:
     """
     compute flux following http://hplgit.github.io/INF5620/doc/pub/fenics_tutorial1.1/tu2.html#tut-poisson-gradu
@@ -167,11 +168,9 @@ else:
 coupling_mesh = None
 if problem is ProblemType.DIRICHLET:
     coupling_mesh = CouplingMesh("Dirichlet-Mesh", coupling_boundary, {"Temperature": V}, {"Heat-Flux": f_N})
-    #precice.set_mesh_access_region("Neumann-Mesh", [(0, 0), (1, 1)])
     precice.initialize([coupling_mesh])
 elif problem is ProblemType.NEUMANN:
     coupling_mesh = CouplingMesh("Neumann-Mesh", coupling_boundary, {"Heat-Flux": V}, {"Temperature": u_D})
-    #precice.set_mesh_access_region("Dirichlet-Mesh", [(1, 0), (2, 1)])
     precice.initialize([coupling_mesh])
 
 # get precice's dt
@@ -251,10 +250,10 @@ while precice.is_coupling_ongoing():
 
     precice_dt = precice.get_max_time_step_size()
     dt = np.min([fenics_dt, precice_dt])
-    
+
     # Update the coupling expression with the new read data
     precice.read_data(read_mesh, name_read, dt, coupling_function)
-    
+
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
         loc_b.set(0)

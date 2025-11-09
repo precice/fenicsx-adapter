@@ -20,7 +20,7 @@ logger.setLevel(level=logging.INFO)
 class Adapter:
     """
     This adapter class provides an interface to the preCICE coupling library for setting up a coupling case which has
-    FEniCSx as a participant for 2D problems.
+    FEniCSx as a participant.
     The user can create and manage a dolfinx.UserExpression and/or dolfinx.PointSource at the coupling boundary.
     Reading data from preCICE and writing data to preCICE is also managed via functions of this class.
     If the user wants to perform implicit coupling then a steering mechanism for checkpointing is also provided.
@@ -36,7 +36,8 @@ class Adapter:
     NOTE: dolfinx.PointSource use only works in serial
     """
 
-    def __init__(self, mpi_comm, adapter_config_filename='precice-adapter-config.json', boundary_processing_mode = CouplingBoundaryInterpolation.ADAPTER):
+    def __init__(self, mpi_comm, adapter_config_filename='precice-adapter-config.json',
+                 boundary_processing_mode=CouplingBoundaryInterpolation.ADAPTER):
         """
         Constructor of Adapter class.
 
@@ -54,7 +55,7 @@ class Adapter:
 
         # Setup up MPI communicator
         self._comm = mpi_comm
-        
+
         # set boundary processing mode
         self.boundary_proc_mode = boundary_processing_mode
 
@@ -73,8 +74,8 @@ class Adapter:
         self._fenicsx_vertices = {}
         # for ADAPTER interpolation
         self._interpolation_cells = {}
-        self._precice_vertex_ids = {}  
-        self._values_to_send = {} 
+        self._precice_vertex_ids = {}
+        self._values_to_send = {}
 
         # read data related quantities (read data is read from preCICE and applied in FEniCSx)
         self._read_function_types = {}  # stores whether read function is scalar or vector valued
@@ -96,7 +97,7 @@ class Adapter:
     def get_point_sources(self, data):
         raise Exception("PointSources are not implemented for the FEniCSx adapter.")
 
-    def read_data(self, mesh_name, read_data_name, dt, boundary_function = None):
+    def read_data(self, mesh_name, read_data_name, dt, boundary_function=None):
         """
         Read data from preCICE. Data is generated depending on the type of the read function (Scalar or Vector).
         For a scalar read function the data is a numpy array with shape (N) where N = number of coupling vertices
@@ -111,7 +112,7 @@ class Adapter:
         dt : offset within time window
         mesh_name:
             Specifies for which mesh the data shall be read
-        
+
         boundary_function: If boundary_processing_mode is set to ADAPTER, this function updates boundary_function directly.
             If set to USER, boundary_function is ignored
 
@@ -141,10 +142,17 @@ class Adapter:
 
         else:
             pass
-        
+
         if self.boundary_proc_mode is CouplingBoundaryInterpolation.ADAPTER:
-            assert type(boundary_function) is fem.Function
-            interpolate_boundary_function(read_data, self._read_function_types[mesh_name], self._values_to_send[mesh_name], boundary_function, self._interpolation_cells[mesh_name], self._comm, self._empty_rank)
+            assert isinstance(boundary_function, fem.Function)
+            interpolate_boundary_function(
+                read_data,
+                self._read_function_types[mesh_name],
+                self._values_to_send[mesh_name],
+                boundary_function,
+                self._interpolation_cells[mesh_name],
+                self._comm,
+                self._empty_rank)
             return None
         else:
             return read_data
@@ -195,7 +203,7 @@ class Adapter:
         mesh_name :
             Specifies the mesh from which the data is written
         """
-        
+
         if self._empty_rank:
             return
 
@@ -221,7 +229,6 @@ class Adapter:
     def write_data_at_coordinates(self, mesh_name, write_data_name, coordinates, write_function):
         """
         Writes data to preCICE at the given coordinates with the just-in-time mapping of preCICE.
-        It can be used for 2D and 3D cases.
 
         Parameters
         ----------
@@ -232,7 +239,7 @@ class Adapter:
         """
         if self._empty_rank:
             return
-        
+
         write_function_type = determine_function_type(write_function)
         assert write_function_type in list(FunctionType)
         write_data = convert_fenicsx_to_precice(write_function, coordinates)
@@ -297,16 +304,15 @@ class Adapter:
                         "A given object of {} is not of type dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
 
         return function_space
-    
 
-    def initialize(self, coupling_meshes: list[CouplingMesh], precice_mesh = None):
+    def initialize(self, coupling_meshes: list[CouplingMesh], precice_mesh=None):
         """
         Initializes the coupling and sets up the mesh where coupling happens in preCICE.
 
         Parameters
         ----------
         coupling_meshes: A list of coupling meshes of the class CouplingMesh.
-        precice_meshes: A list of dicts containing the definition of preCICE meshes for each CouplingMesh. 
+        precice_meshes: A list of dicts containing the definition of preCICE meshes for each CouplingMesh.
             This parameter is ignored if boundary_proc_mode is ADAPTER
 
         Returns
@@ -314,9 +320,10 @@ class Adapter:
         dt : double
             Recommended time step value from preCICE.
         """
-        
+
         if self.boundary_proc_mode == CouplingBoundaryInterpolation.USER:
-            assert len(precice_mesh) == len(coupling_meshes), "precice_mesh must have the same number of entries as coupling_meshes"
+            assert len(precice_mesh) == len(
+                coupling_meshes), "precice_mesh must have the same number of entries as coupling_meshes"
 
         for idx, c_mesh in enumerate(coupling_meshes):
             mesh_name = c_mesh.get_name()
@@ -368,7 +375,8 @@ class Adapter:
             self._fenicsx_dims = function_space.mesh.geometry.dim
 
             if self.boundary_proc_mode == CouplingBoundaryInterpolation.ADAPTER:
-                coords, cells, self._values_to_send[mesh_name] = get_fenicsx_interpolation_points(function_space, c_mesh.get_coupling_boundary(), self._comm)
+                coords, cells, self._values_to_send[mesh_name] = get_fenicsx_interpolation_points(
+                    function_space, c_mesh.get_coupling_boundary(), self._comm)
                 ids = np.arange(len(coords))
                 self._interpolation_cells[mesh_name] = cells
             else:
@@ -378,7 +386,7 @@ class Adapter:
             self._fenicsx_vertices[mesh_name] = Vertices()
             self._fenicsx_vertices[mesh_name].set_ids(ids)
             self._fenicsx_vertices[mesh_name].set_coordinates(coords)
-            
+
             if len(self._fenicsx_vertices[mesh_name].get_coordinates()) > 0:
                 # Set up mesh in preCICE
                 if self._fenicsx_dims == 2:
@@ -412,7 +420,6 @@ class Adapter:
                         self.write_data(mesh_name, write_data_name, write_function)
 
         self._participant.initialize()
-        
 
     def store_checkpoint(self, payload, t, n):
         """

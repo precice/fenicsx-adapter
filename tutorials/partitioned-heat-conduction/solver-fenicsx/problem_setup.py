@@ -2,7 +2,8 @@
 Problem setup for partitioned-heat-conduction/fenicsx tutorial
 """
 from dolfinx.mesh import DiagonalType, create_rectangle
-import dolfinx.mesh, dolfinx.cpp
+import dolfinx.mesh
+import dolfinx.cpp
 from my_enums import DomainPart
 import numpy as np
 from mpi4py import MPI
@@ -38,7 +39,10 @@ def get_geometry(domain_part, communicator):
         p1 = (x_right, y_top)
     else:
         raise Exception("invalid domain_part: {}".format(domain_part))
-    mesh = create_rectangle(communicator, [np.asarray(p0), np.asarray(p1)], [nx, ny], dolfinx.mesh.CellType.triangle,  ghost_mode = dolfinx.cpp.mesh.GhostMode.shared_facet)
+    mesh = create_rectangle(
+        communicator, [
+            np.asarray(p0), np.asarray(p1)], [
+            nx, ny], dolfinx.mesh.CellType.triangle, ghost_mode=dolfinx.cpp.mesh.GhostMode.shared_facet)
     coupling_boundary = straight_boundary
     remaining_boundary = exclude_straight_boundary
 
