@@ -102,8 +102,7 @@ class TestWriteandReadData(TestCase):
         Participant.requires_initial_data = MagicMock(return_value=False)
         Participant.initialize_data = MagicMock()
         precice_mesh = np.transpose(np.array([self.vertices_x, self.vertices_y]))
-        p_mesh = {x : precice_mesh[x] for x in range(len(precice_mesh))}
-        
+        p_mesh = {x: precice_mesh[x] for x in range(len(precice_mesh))}
 
         precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config, CouplingBoundaryInterpolation.USER)
         precice._participant = Participant(None, None, None, None)
