@@ -18,8 +18,22 @@ COORDINATE_DIGITS = 8
 
 
 def round_unique_coordinates(coords):
-    # round the coordinates to avoid close points (i.e. those that are equal
-    # until the 8 decimal place) to be able to use rbf mapping
+    """
+    round the coordinates (coords) to avoid close points (i.e. those that are equal
+    until the 8 decimal place) to be able to use rbf mapping
+
+    Parameters
+    ----------
+    coords: numpy array
+        Coordinate array to be rounded
+        
+
+    Returns
+    -------
+    numpy array: 
+        array of rounded and unique coordinates
+    """
+    # 
     tmp = np.zeros_like(coords)
     np.round(coords, COORDINATE_DIGITS, tmp)
     tmp = np.unique(tmp, axis=0)
@@ -176,12 +190,17 @@ def get_fenicsx_interpolation_points(function_space: fem.FunctionSpace, coupling
 
     Parameters
     ----------
-        function_space (fem.FunctionSpace): The function space of the problem
-        coupling_boundary: A callable function describing the coupling boundary
-        comm (MPI.Comm): The used MPI communicator
+    function_space:  fem.FunctionSpace
+        The function space of the problem
+    coupling_boundary:
+        A callable function describing the coupling boundary
+    comm: MPI.Comm 
+        The used MPI communicator
 
-    Returns:
-        (ndarray, list, dict): Returns a triplet of (interpolation coordinates, interpolation cells, function values to be sent to other MPI ranks)
+    Returns
+    -------
+    (ndarray, list, dict): 
+        Returns a triplet of (interpolation coordinates, interpolation cells, function values to be sent to other MPI ranks)
     """
     comm_size = comm.Get_size()
     comm_rank = comm.Get_rank()
@@ -281,13 +300,20 @@ def interpolate_boundary_function(
 
     Parameters
     ----------
-        read_values (dict): A dict of (coordinates: function values) that were read from preCICE
-        function_type (FunctionType): Type of the function that needs to be interpolated
-        values_to_send (dict): A dict of (rank: coordinates) that defines which function values at which coordinates must be sent to the corresponding rank
-        boundary_function (fem.Function): The function that should be interpolated
-        boundary_cells (list): A list of cell indices to be interpolated
-        comm (MPI.Comm): The MPI communicator to be used
-        is_empty_rank (bool): specifies if the rank has no relation to the coupling boundary
+    read_values: dict 
+        A dict of (coordinates: function values) that were read from preCICE
+    function_type: FunctionType
+        Type of the function that needs to be interpolated
+    values_to_send: dict
+        A dict of (rank: coordinates) that defines which function values at which coordinates must be sent to the corresponding rank
+    boundary_function: fem.Function
+        The function that should be interpolated
+    boundary_cells: list
+        A list of cell indices to be interpolated
+    comm: MPI.Comm
+        The MPI communicator to be used
+    is_empty_rank: bool
+        specifies if the rank has no relation to the coupling boundary
     """
     if is_empty_rank:
         # an empty rank does not need to do any interpolation
