@@ -26,14 +26,14 @@ def round_unique_coordinates(coords):
     ----------
     coords: numpy array
         Coordinate array to be rounded
-        
+
 
     Returns
     -------
-    numpy array: 
+    numpy array:
         array of rounded and unique coordinates
     """
-    # 
+    #
     tmp = np.zeros_like(coords)
     np.round(coords, COORDINATE_DIGITS, tmp)
     tmp = np.unique(tmp, axis=0)
@@ -194,12 +194,12 @@ def get_fenicsx_interpolation_points(function_space: fem.FunctionSpace, coupling
         The function space of the problem
     coupling_boundary:
         A callable function describing the coupling boundary
-    comm: MPI.Comm 
+    comm: MPI.Comm
         The used MPI communicator
 
     Returns
     -------
-    (ndarray, list, dict): 
+    (ndarray, list, dict):
         Returns a triplet of (interpolation coordinates, interpolation cells, function values to be sent to other MPI ranks)
     """
     comm_size = comm.Get_size()
@@ -300,7 +300,7 @@ def interpolate_boundary_function(
 
     Parameters
     ----------
-    read_values: dict 
+    read_values: dict
         A dict of (coordinates: function values) that were read from preCICE
     function_type: FunctionType
         Type of the function that needs to be interpolated
