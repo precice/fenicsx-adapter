@@ -156,7 +156,7 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
     # Choose one of the cells that contains the point
     colliding_cells = geometry.compute_colliding_cells(mesh, cell_candidates, local_coords)
 
-    # generate from the already computed cell candidates the midpoint tree!
+    # generate the midpoint tree from the already computed cell candidates
     # (-> original cell owner is in the list anyways)
     all_cells = np.unique(colliding_cells.array)
     midpoint_tree = geometry.create_midpoint_tree(mesh, mesh.topology.dim, all_cells)
@@ -175,10 +175,10 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
             # -> move it in the direction of midpoint cell by at max. this amount, so, in each direction maximal 1e-COORDINATE_DIGITS
             direction = closest_midpoint_cell - point
             direction = np.sign(direction) * (10**(-COORDINATE_DIGITS))
-            new_point = point + direction
+            moved_point = point + direction
 
             cells.append(closest_cell_idx)
-            points.append(new_point)
+            points.append(moved_point)
 
     precice_data = fenicsx_function.eval(points, cells)
     return np.array(precice_data)
@@ -219,7 +219,6 @@ def get_fenicsx_interpolation_points(function_space: fem.FunctionSpace, coupling
         interpolation_coordinates.append(np.transpose(copy.deepcopy(x)))
         # directly round and make each rounded coordinate unique to keep the code clean and to reduce memory consumption
         interpolation_coordinates[-1] = round_unique_coordinates(interpolation_coordinates[-1])
-
         return np.zeros((vec_len, x.shape[1]))
 
     # determine process local cells that are on the coupling boundary
@@ -335,7 +334,7 @@ def interpolate_boundary_function(
             value = comm.recv(source=source_rank)
             read_values.update(value)
 
-        # send the values other ranks need for interpolation
+        # send the values that other ranks need for interpolation
         for dest_rank in values_to_send.keys():
             payload = {coord: read_values[coord] for coord in values_to_send[dest_rank]}
             comm.send(payload, dest_rank)

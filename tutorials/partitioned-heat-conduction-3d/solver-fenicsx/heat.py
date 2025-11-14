@@ -69,6 +69,8 @@ class GradientSolver:
         L = fem.form(ufl.inner(ufl.grad(u), self.v) * ufl.dx)
         b = create_vector(L)
         assemble_vector(b, L)
+        # In the assembly above, ranks did not communicate and therefore, the cells have incorrect values
+        # To resolve this, the values in the ghost region must be added to the values from the owner
         b.ghostUpdate(addv=PETSc.InsertMode.ADD_VALUES, mode=PETSc.ScatterMode.REVERSE)
         self.solver.solve(b, self.returnValue.x.petsc_vec)
         return self.returnValue

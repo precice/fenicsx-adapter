@@ -109,11 +109,12 @@ class Adapter:
 
         Parameters
         ----------
-        dt : offset within time window
+        dt :
+            offset within time window
         mesh_name:
             Specifies for which mesh the data shall be read
-
-        boundary_function: If boundary_processing_mode is set to ADAPTER, this function updates boundary_function directly.
+        boundary_function:
+            If boundary_processing_mode is set to ADAPTER, this function updates boundary_function directly.
             If set to USER, boundary_function is ignored
 
         Returns
@@ -305,14 +306,17 @@ class Adapter:
 
         return function_space
 
-    def initialize(self, coupling_meshes: list[CouplingMesh], precice_mesh=None):
+    def initialize(self, coupling_meshes: list[CouplingMesh], precice_meshes=None):
         """
         Initializes the coupling and sets up the mesh where coupling happens in preCICE.
 
         Parameters
         ----------
-        coupling_meshes: A list of coupling meshes of the class CouplingMesh.
-        precice_meshes: A list of dicts containing the definition of preCICE meshes for each CouplingMesh.
+        coupling_meshes:
+            A list of coupling meshes of the class CouplingMesh.
+        precice_meshes:
+            A list of dicts containing the definition of preCICE meshes for each CouplingMesh.
+            A preCICE mesh is defined by a list of coordinates that from/to which preCICE maps write/read data.
             This parameter is ignored if boundary_proc_mode is ADAPTER
 
         Returns
@@ -322,8 +326,8 @@ class Adapter:
         """
 
         if self.boundary_proc_mode == CouplingBoundaryInterpolation.USER:
-            assert len(precice_mesh) == len(
-                coupling_meshes), "precice_mesh must have the same number of entries as coupling_meshes"
+            assert len(precice_meshes) == len(
+                coupling_meshes), "precice_meshes must have the same number of entries as coupling_meshes"
 
         for idx, c_mesh in enumerate(coupling_meshes):
             mesh_name = c_mesh.get_name()
@@ -380,9 +384,8 @@ class Adapter:
                 ids = np.arange(len(coords))
                 self._interpolation_cells[mesh_name] = cells
             else:
-                # precice_mesh = {ids : coordinates}
-                ids = np.array(list(precice_mesh[idx].keys()))
-                coords = np.array(list(precice_mesh[idx].values()))
+                ids = np.array(list(precice_meshes[mesh_name].keys()))
+                coords = np.array(list(precice_meshes[mesh_name].values()))
             self._fenicsx_vertices[mesh_name] = Vertices()
             self._fenicsx_vertices[mesh_name].set_ids(ids)
             self._fenicsx_vertices[mesh_name].set_coordinates(coords)
