@@ -384,8 +384,8 @@ class Adapter:
                 ids = np.arange(len(coords))
                 self._interpolation_cells[mesh_name] = cells
             else:
-                ids = np.array(list(precice_meshes[mesh_name].keys()))
-                coords = np.array(list(precice_meshes[mesh_name].values()))
+                ids = np.array(list(precice_meshes[idx].keys()))
+                coords = np.array(list(precice_meshes[idx].values()))
             self._fenicsx_vertices[mesh_name] = Vertices()
             self._fenicsx_vertices[mesh_name].set_ids(ids)
             self._fenicsx_vertices[mesh_name].set_coordinates(coords)
