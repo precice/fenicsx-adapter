@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 
-
 def round_unique_coordinates(coords, digit_cutoff):
     """
     round the coordinates (coords) to avoid close points (i.e. those that are equal
@@ -183,7 +182,11 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
     return np.array(precice_data)
 
 
-def get_fenicsx_interpolation_points(function_space: fem.FunctionSpace, coupling_boundary, comm: MPI.Comm, digit_cutoff: int):
+def get_fenicsx_interpolation_points(
+        function_space: fem.FunctionSpace,
+        coupling_boundary,
+        comm: MPI.Comm,
+        digit_cutoff: int):
     """
     Determines the interpolation points FEniCSx needs to interpolate the coupling boundary and the coordinates for the preCICE mesh.
 
@@ -219,7 +222,8 @@ def get_fenicsx_interpolation_points(function_space: fem.FunctionSpace, coupling
         # to avoid UnboundLocalError, interpolation_coordinates is an array to which x is appended to
         interpolation_coordinates.append(np.transpose(copy.deepcopy(x)))
         # directly round and make each rounded coordinate unique to keep the code clean and to reduce memory consumption
-        interpolation_coordinates[-1] = round_unique_coordinates(interpolation_coordinates[-1], digit_cutoff=digit_cutoff)
+        interpolation_coordinates[-1] = round_unique_coordinates(
+            interpolation_coordinates[-1], digit_cutoff=digit_cutoff)
         return np.zeros((vec_len, x.shape[1]))
 
     # determine process local cells that are on the coupling boundary
