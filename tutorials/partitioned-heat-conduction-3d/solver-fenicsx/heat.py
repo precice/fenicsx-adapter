@@ -159,7 +159,7 @@ precice, precice_dt, initial_data = None, 0.0, None
 if problem is ProblemType.DIRICHLET:
     precice = Adapter(adapter_config_filename="precice-adapter-config-D.json", mpi_comm=comm)
 else:
-    precice = Adapter(adapter_config_filename="precice-adapter-config-N.json", mpi_comm=comm)
+    precice = Adapter(adapter_config_filename="precice-adapter-config-N.json", mpi_comm=comm, digit_cutoff=12)
 
 coupling_mesh = None
 if problem is ProblemType.DIRICHLET:

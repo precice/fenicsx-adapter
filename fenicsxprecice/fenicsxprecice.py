@@ -37,7 +37,8 @@ class Adapter:
     """
 
     def __init__(self, mpi_comm, adapter_config_filename='precice-adapter-config.json',
-                 boundary_processing_mode=CouplingBoundaryInterpolation.ADAPTER):
+                 boundary_processing_mode=CouplingBoundaryInterpolation.ADAPTER,
+                 digit_cutoff=25):
         """
         Constructor of Adapter class.
 
@@ -47,8 +48,11 @@ class Adapter:
             Communicator used by the adapter. Should be the same one used by FEniCSx, usually MPI.COMM_WORLD
         adapter_config_filename : string
             Name of the JSON adapter configuration file (to be provided by the user)
-        boundary_processing_mode: If set to ADAPTER, the user lets the adapter take care of defining the preCICE mesh and updating the coupling boundary functions.
+        boundary_processing_mode: CoulpingBoundaryInterpolation
+            If set to ADAPTER, the user lets the adapter take care of defining the preCICE mesh and updating the coupling boundary functions.
             If set to USER, the user needs to define the preCICE mesh and gets raw data from preCICE
+        digit_cutoff: int
+            Specifies at which decimal place the coordinates are rounded. If boundary_processing_mode is set to USER, this variable is ignored
         """
 
         self._config = Config(adapter_config_filename)
@@ -76,6 +80,7 @@ class Adapter:
         self._interpolation_cells = {}
         self._precice_vertex_ids = {}
         self._values_to_send = {}
+        self._digit_cutoff = digit_cutoff
 
         # read data related quantities (read data is read from preCICE and applied in FEniCSx)
         self._read_function_types = {}  # stores whether read function is scalar or vector valued
@@ -153,7 +158,8 @@ class Adapter:
                 boundary_function,
                 self._interpolation_cells[mesh_name],
                 self._comm,
-                self._empty_rank)
+                self._empty_rank,
+                self._digit_cutoff)
             return None
         else:
             return read_data
@@ -380,7 +386,7 @@ class Adapter:
 
             if self.boundary_proc_mode == CouplingBoundaryInterpolation.ADAPTER:
                 coords, cells, self._values_to_send[mesh_name] = get_fenicsx_interpolation_points(
-                    function_space, c_mesh.get_coupling_boundary(), self._comm)
+                    function_space, c_mesh.get_coupling_boundary(), self._comm, self._digit_cutoff)
                 ids = np.arange(len(coords))
                 self._interpolation_cells[mesh_name] = cells
             else:

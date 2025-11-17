@@ -13,11 +13,9 @@ from mpi4py import MPI
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
-# TODO make it potentially variable?
-COORDINATE_DIGITS = 8
 
 
-def round_unique_coordinates(coords):
+def round_unique_coordinates(coords, digit_cutoff):
     """
     round the coordinates (coords) to avoid close points (i.e. those that are equal
     until the 8 decimal place) to be able to use rbf mapping
@@ -26,6 +24,8 @@ def round_unique_coordinates(coords):
     ----------
     coords: numpy array
         Coordinate array to be rounded
+    digit_cutoff: int
+        Specifies at which decimal place the coordinates are rounded
 
 
     Returns
@@ -33,9 +33,8 @@ def round_unique_coordinates(coords):
     numpy array:
         array of rounded and unique coordinates
     """
-    #
     tmp = np.zeros_like(coords)
-    np.round(coords, COORDINATE_DIGITS, tmp)
+    np.round(coords, digit_cutoff, tmp)
     tmp = np.unique(tmp, axis=0)
     return tmp
 
@@ -184,7 +183,7 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
     return np.array(precice_data)
 
 
-def get_fenicsx_interpolation_points(function_space: fem.FunctionSpace, coupling_boundary, comm: MPI.Comm):
+def get_fenicsx_interpolation_points(function_space: fem.FunctionSpace, coupling_boundary, comm: MPI.Comm, digit_cutoff: int):
     """
     Determines the interpolation points FEniCSx needs to interpolate the coupling boundary and the coordinates for the preCICE mesh.
 
@@ -196,6 +195,8 @@ def get_fenicsx_interpolation_points(function_space: fem.FunctionSpace, coupling
         A callable function describing the coupling boundary
     comm: MPI.Comm
         The used MPI communicator
+    digit_cutoff: int
+        Specifies the decimal place at which the coordinates are rounded
 
     Returns
     -------
@@ -218,7 +219,7 @@ def get_fenicsx_interpolation_points(function_space: fem.FunctionSpace, coupling
         # to avoid UnboundLocalError, interpolation_coordinates is an array to which x is appended to
         interpolation_coordinates.append(np.transpose(copy.deepcopy(x)))
         # directly round and make each rounded coordinate unique to keep the code clean and to reduce memory consumption
-        interpolation_coordinates[-1] = round_unique_coordinates(interpolation_coordinates[-1])
+        interpolation_coordinates[-1] = round_unique_coordinates(interpolation_coordinates[-1], digit_cutoff=digit_cutoff)
         return np.zeros((vec_len, x.shape[1]))
 
     # determine process local cells that are on the coupling boundary
@@ -293,7 +294,8 @@ def interpolate_boundary_function(
         boundary_function: fem.Function,
         boundary_cells: list,
         comm: MPI.Comm,
-        is_empty_rank: bool):
+        is_empty_rank: bool,
+        digit_cutoff: int):
     """
     Interpolates the coupling boundary function at the specified cells.
 
@@ -312,7 +314,9 @@ def interpolate_boundary_function(
     comm: MPI.Comm
         The MPI communicator to be used
     is_empty_rank: bool
-        specifies if the rank has no relation to the coupling boundary
+        Specifies if the rank has no relation to the coupling boundary
+    digit_cutoff: int
+        Specifies at which decimal place the coordinates are rounded
     """
     if is_empty_rank:
         # an empty rank does not need to do any interpolation
@@ -343,7 +347,7 @@ def interpolate_boundary_function(
         def interpolation_function(x):
             # truncation to smaller dimension not necessary because fenicsx coordinates are always 3D
             coords = np.zeros_like(x)
-            np.round(x, COORDINATE_DIGITS, coords)
+            np.round(x, digit_cutoff, coords)
             coords = np.transpose(coords)
             npoints = len(coords)
 
