@@ -117,7 +117,7 @@ def determine_function_type(input_obj):
         raise Exception("Error determining type of given dolfin FunctionSpace")
 
 
-def convert_fenicsx_to_precice(fenicsx_function, local_coords):
+def convert_fenicsx_to_precice(fenicsx_function, local_coords, digit_cutoff):
     """
     Converts data of type dolfinx.Function into Numpy array for all x and y coordinates on the boundary.
 
@@ -169,10 +169,10 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords):
             # change point such that it is in the function domain
             # -> find midpoint to closest cell
             closest_midpoint_cell = msh.compute_midpoints(mesh, mesh.topology.dim, np.array([closest_cell_idx]))[0]
-            # in each direction, COORDINATE_DIGITS defines on how much the point has been shifted
-            # -> move it in the direction of midpoint cell by at max. this amount, so, in each direction maximal 1e-COORDINATE_DIGITS
+            # in each direction, digit_cutoff defines on how much the point has been shifted
+            # -> move it in the direction of midpoint cell by at max. this amount, so, in each direction maximal 1e-digit_cutoff
             direction = closest_midpoint_cell - point
-            direction = np.sign(direction) * (10**(-COORDINATE_DIGITS))
+            direction = np.sign(direction) * (10**(-digit_cutoff))
             moved_point = point + direction
 
             cells.append(closest_cell_idx)

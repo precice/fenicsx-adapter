@@ -225,7 +225,10 @@ class Adapter:
 
         write_function_type = determine_function_type(write_function)
         assert write_function_type in list(FunctionType)
-        write_data = convert_fenicsx_to_precice(write_function, self._fenicsx_vertices[mesh_name].get_coordinates())
+        write_data = convert_fenicsx_to_precice(
+            write_function,
+            self._fenicsx_vertices[mesh_name].get_coordinates(),
+            self._digit_cutoff)
         self._participant.write_data(
             mesh_name,
             write_data_name,
@@ -249,7 +252,7 @@ class Adapter:
 
         write_function_type = determine_function_type(write_function)
         assert write_function_type in list(FunctionType)
-        write_data = convert_fenicsx_to_precice(write_function, coordinates)
+        write_data = convert_fenicsx_to_precice(write_function, coordinates, self._digit_cutoff)
         self._participant.write_and_map_data(mesh_name, write_data_name, coordinates, write_data)
 
     def validate_function_space(self, function_objects, mesh_name, check_if_condition):
