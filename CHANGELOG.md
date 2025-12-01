@@ -2,6 +2,7 @@
 
 ## current development
 
+* Add profiling from python bindings
 * Remove deepcopy operations in `read_data` as they are not performance efficient [#52](https://github.com/precice/fenicsx-adapter/pull/52)
 * Support 3D coupling. [#51](https://github.com/precice/fenicsx-adapter/pull/51)
 * Support JIT-mapping. [#48](https://github.com/precice/fenicsx-adapter/pull/48)
