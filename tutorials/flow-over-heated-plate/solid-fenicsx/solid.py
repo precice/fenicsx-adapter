@@ -40,6 +40,7 @@ class initial_value():
     def __call__(self, x):
         return np.full(x[0].shape, self.constant)
 
+
 class GradientSolver:
     """
     compute flux following http://hplgit.github.io/INF5620/doc/pub/fenics_tutorial1.1/tu2.html#tut-poisson-gradu
