@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<precice-configuration experimental="true">
+<precice-configuration experimental="false">
   <log>
     <sink
       filter="%Severity% > debug and %Rank% = 0"
@@ -22,37 +22,32 @@
 
   <participant name="Dirichlet">
     <provide-mesh name="Dirichlet-Mesh" />
-    <receive-mesh name="Neumann-Mesh" from="Neumann" api-access="true"/>
+    <receive-mesh name="Neumann-Mesh" from="Neumann" api-access="false"/>
     <write-data name="Heat-Flux" mesh="Dirichlet-Mesh" />
-    <read-data name="Temperature" mesh="Neumann-Mesh" />
+    <read-data name="Temperature" mesh="Dirichlet-Mesh" />
     <mapping:rbf-pum-direct
       direction="read"
       from="Neumann-Mesh"
+      to="Dirichlet-Mesh"
       constraint="consistent"
       project-to-input="false"
-      relative-overlap="0.5"
+      relative-overlap="0.75"
       vertices-per-cluster="90"
       polynomial="separate">
-      <basis-function:compact-polynomial-c8 support-radius="2.5"/>
+      <basis-function:compact-polynomial-c8 support-radius="2.0"/>
     </mapping:rbf-pum-direct>
   </participant>
 
   <participant name="Neumann">
     <provide-mesh name="Neumann-Mesh" />
-    <receive-mesh name="Dirichlet-Mesh" from="Dirichlet" api-access="true"/>
+    <receive-mesh name="Dirichlet-Mesh" from="Dirichlet" api-access="false"/>
     <write-data name="Temperature" mesh="Neumann-Mesh" />
-    <write-data name="Temperature" mesh="Dirichlet-Mesh" />
-    <read-data name="Heat-Flux" mesh="Dirichlet-Mesh" />
-    <mapping:rbf-pum-direct
+    <read-data name="Heat-Flux" mesh="Neumann-Mesh" />
+    <mapping:nearest-neighbor
       direction="read"
       from="Dirichlet-Mesh"
-      constraint="consistent"
-      project-to-input="false"
-      relative-overlap="0.15"
-      vertices-per-cluster="50"
-      polynomial="separate">
-      <basis-function:thin-plate-splines/>
-    </mapping:rbf-pum-direct>
+      to="Neumann-Mesh"
+      constraint="consistent" />
     </participant>
 
   <m2n:sockets acceptor="Dirichlet" connector="Neumann" exchange-directory=".." />

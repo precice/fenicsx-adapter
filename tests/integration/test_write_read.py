@@ -88,6 +88,7 @@ class TestWriteandReadData(TestCase):
         """
         from precice import Participant
         import fenicsxprecice
+        from fenicsxprecice.adapter_core import CouplingBoundaryInterpolation
 
         def return_dummy_data(n_points):
             data = np.arange(n_points)
@@ -100,12 +101,14 @@ class TestWriteandReadData(TestCase):
         Participant.initialize = MagicMock()
         Participant.requires_initial_data = MagicMock(return_value=False)
         Participant.initialize_data = MagicMock()
+        precice_mesh = np.transpose(np.array([self.vertices_x, self.vertices_y]))
+        p_mesh = {x: precice_mesh[x] for x in range(len(precice_mesh))}
 
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config, CouplingBoundaryInterpolation.USER)
         precice._participant = Participant(None, None, None, None)
         precice._read_data_name = self.fake_data_name
         c_mesh = fenicsxprecice.CouplingMesh("Dummy-Mesh", right_boundary, {"Dummy-Read": self.scalar_V})
-        precice.initialize([c_mesh])
+        precice.initialize([c_mesh], [p_mesh])
 
         read_data = precice.read_data("Dummy-Mesh", "Dummy-Read", 0)
 

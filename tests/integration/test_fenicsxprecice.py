@@ -117,36 +117,3 @@ class TestExpressionHandling(TestCase):
     n_samples = 1000
     samplepts_x = [1 for _ in range(n_samples)]
     samplepts_y = np.linspace(0, 1, n_samples)
-
-    def test_update_expression_scalar(self):
-        """
-        Check if a sampling of points on a dolfinx Function interpolated via FEniCSx is matching with the sampling of the
-        same points on a FEniCSx Expression created by the Adapter
-        """
-        from precice import Participant
-        import fenicsxprecice
-        Participant.get_mesh_dimensions = MagicMock(return_value=2)
-        Participant.set_mesh_vertices = MagicMock(return_value=self.vertex_ids)
-        Participant.requires_mesh_connectivity_for = MagicMock(return_value=False)
-        Participant.requires_initial_data = MagicMock(return_value=False)
-        Participant.initialize = MagicMock()
-        Participant.write_data = MagicMock()
-
-        def right_boundary(x): return abs(x[0] - 1.0) < 10**-14
-        c_mesh = fenicsxprecice.CouplingMesh("Dummy-Mesh", right_boundary,
-                                             {"Dummy-Read": self.scalar_V}, {"Dummy-Write": self.scalar_function})
-        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
-        precice._participant = Participant(None, None, None, None)
-        precice.initialize([c_mesh])
-        values = np.array([self.scalar_function.eval([x, y, 0], 0)[0]
-                           for x, y in zip(self.vertices_x, self.vertices_y)])
-        data = {(x, y): v for x, y, v in zip(self.vertices_x, self.vertices_y, values)}
-        scalar_coupling_expr = precice.create_coupling_expression("Dummy-Mesh")
-        precice.update_coupling_expression(scalar_coupling_expr, data)
-
-        expr_samples = np.array([scalar_coupling_expr.eval([x, y, 0], 0)
-                                 for x, y in zip(self.samplepts_x, self.samplepts_y)])
-        func_samples = np.array([self.scalar_function.eval([x, y, 0], 0)
-                                 for x, y in zip(self.samplepts_x, self.samplepts_y)])
-
-        assert (np.allclose(expr_samples, func_samples, 1E-10))

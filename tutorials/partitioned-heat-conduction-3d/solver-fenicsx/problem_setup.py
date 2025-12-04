@@ -10,7 +10,7 @@ from mpi4py import MPI
 import gmsh
 
 
-def get_geometry(domain_part):
+def get_geometry(domain_part, communicator):
     gmsh.initialize()
     gmsh.model.add("HeatMesh")
 
@@ -99,9 +99,9 @@ def get_geometry(domain_part):
         gmsh.option.setNumber("Mesh.CharacteristicLengthMax", 0.15)
         gmsh.model.mesh.generate(3)
         # convert from gmsh to a dolfinx representation
-        outer_mesh, _, _ = dolfinx.io.gmshio.model_to_mesh(gmsh.model, MPI.COMM_WORLD, 0, 3)
+        outer_mesh, _, _ = dolfinx.io.gmshio.model_to_mesh(gmsh.model, communicator, 0, 3)
         gmsh.finalize()
-        return outer_mesh, coupling_bc, boundary_bc, [(0, 0, 0), (2 + 1e-14, 1 + 1e-14, 2 + 1e-14)]
+        return outer_mesh, coupling_bc, boundary_bc
     else:
         # inner part of the domain
         # it is defined by a cuboid from (1, .25, .5) to (2, .75, 1.5)
@@ -126,6 +126,6 @@ def get_geometry(domain_part):
         gmsh.model.mesh.setOrder(2)
         gmsh.model.mesh.generate(3)
         # convert from gmsh to dolfinx representation
-        inner_mesh, _, _ = dolfinx.io.gmshio.model_to_mesh(gmsh.model, MPI.COMM_WORLD, 0, 3)
+        inner_mesh, _, _ = dolfinx.io.gmshio.model_to_mesh(gmsh.model, communicator, 0, 3)
         gmsh.finalize()
-        return inner_mesh, coupling_bc, boundary_bc, [(1, 0.25, 0.5), (2 + 1e-14, 0.75 + 1e-14, 1.5 + 1e-14)]
+        return inner_mesh, coupling_bc, boundary_bc
