@@ -574,3 +574,19 @@ class Adapter:
             ar[1 + idx * 2] = v
 
         self._participant.set_mesh_access_region(mesh_name, ar)
+
+    def start_profiling_section(self, event_name):
+        """
+        Starts a profiling section in preCICE with the given event name.
+
+        Parameters
+        ----------
+            event_name: Name of the profiling section.
+        """
+        return self._participant.start_profiling_section(event_name)
+
+    def stop_last_profiling_section(self):
+        """
+        Stops the last profiling section started in preCICE.
+        """
+        return self._participant.stop_last_profiling_section()
