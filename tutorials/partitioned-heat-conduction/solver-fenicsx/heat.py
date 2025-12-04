@@ -30,7 +30,7 @@ import basix.ufl
 from petsc4py import PETSc
 import ufl
 from dolfinx import fem, io, mesh as msh, geometry
-from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc, LinearProblem
+from dolfinx.fem.petsc import assemble_matrix, assemble_vector, apply_lifting, create_vector, set_bc
 import basix
 from fenicsxprecice import Adapter, CouplingMesh
 from errorcomputation import compute_errors
@@ -70,7 +70,7 @@ class GradientSolver:
 
     def compute(self, u):
         L = fem.form(ufl.inner(ufl.grad(u), self.v) * ufl.dx)
-        b = create_vector(L)
+        b = create_vector(fem.extract_function_spaces(L))
         assemble_vector(b, L)
         b.ghostUpdate(addv=PETSc.InsertMode.ADD_VALUES, mode=PETSc.ScatterMode.REVERSE)
         self.solver.solve(b, self.returnValue.x.petsc_vec)
@@ -214,7 +214,7 @@ L = fem.form(ufl.rhs(F))
 # independent of time, we only need to assemble the matrix once.
 A = assemble_matrix(a, bcs=bcs)
 A.assemble()
-b = create_vector(L)
+b = create_vector(fem.extract_function_spaces(L))
 uh = fem.Function(V)
 
 # ## Define a linear variational solver
