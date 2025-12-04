@@ -103,7 +103,7 @@ elif participant_name == ProblemType.NEUMANN.value:
     domain_part = DomainPart.INNER
 
 # create domain and function space
-domain, coupling_boundary, remaining_boundary, access_region = get_geometry(domain_part, comm)
+domain, coupling_boundary, remaining_boundary = get_geometry(domain_part, comm)
 V = fem.functionspace(domain, ("Lagrange", 2))
 element = basix.ufl.element("Lagrange", domain.topology.cell_name(), 1, shape=(domain.geometry.dim,))
 V_g = fem.functionspace(domain, element)
