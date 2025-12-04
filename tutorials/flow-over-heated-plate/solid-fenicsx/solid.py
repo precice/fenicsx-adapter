@@ -90,9 +90,8 @@ precice = Adapter(adapter_config_filename="precice-adapter-config.json", mpi_com
 coupling_mesh = CouplingMesh("Solid-Mesh", top_boundary, {"Temperature": V}, {"Heat-Flux": flux_y})
 precice.initialize([coupling_mesh])
 
-# Create a FEniCS Expression to define and control the coupling boundary values
-coupling_expression = precice.create_coupling_expression(coupling_mesh.get_name())
-
+# boundary function for the coupling interface
+coupling_function = fem.Function(V)
 
 # Assigning appropriate dt
 precice_dt = precice.get_max_time_step_size()
@@ -105,7 +104,7 @@ F = u * v / dt * ufl.dx + alpha * ufl.dot(ufl.grad(u), ufl.grad(v)) * ufl.dx - u
 
 # apply constant Dirichlet boundary condition at bottom edge
 # apply Dirichlet boundary condition on coupling interface
-bcs = [fem.dirichletbc(coupling_expression, dofs_coupling), fem.dirichletbc(default_scalar_type(310), dofs_bottom, V)]
+bcs = [fem.dirichletbc(coupling_function, dofs_coupling), fem.dirichletbc(default_scalar_type(310), dofs_bottom, V)]
 
 a = fem.form(ufl.lhs(F))
 L = fem.form(ufl.rhs(F))
@@ -137,14 +136,12 @@ while precice.is_coupling_ongoing():
 
     precice_dt = precice.get_max_time_step_size()
     dt = np.min([fenics_dt, precice_dt])
-    read_data = precice.read_data(coupling_mesh.get_name(), "Temperature", dt)
+    precice.read_data(coupling_mesh.get_name(), "Temperature", dt, coupling_function)
 
     # Update the right hand side reusing the initial vector
     with b.localForm() as loc_b:
         loc_b.set(0)
     assemble_vector(b, L)
-    # Update the coupling expression with the new read data
-    precice.update_coupling_expression(coupling_expression, read_data)
 
     apply_lifting(b, [a], [bcs])
     set_bc(b, bcs)

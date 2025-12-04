@@ -4,7 +4,7 @@ from mpi4py import MPI
 import ufl
 
 
-def compute_errors(u_approx, u_ref, total_error_tol=10 ** -4):
+def compute_errors(u_approx, u_ref, total_error_tol=10 ** -9):
     mesh = u_ref.function_space.mesh
     # Compute L2 error and error at nodes
     # V_ex = fem.functionspace(mesh, ("Lagrange", 2))
