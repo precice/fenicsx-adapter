@@ -67,7 +67,7 @@ class GradientSolver:
 
     def compute(self, u):
         L = fem.form(ufl.inner(ufl.grad(u), self.v) * ufl.dx)
-        b = create_vector(L)
+        b = create_vector(fem.extract_function_spaces(L))
         assemble_vector(b, L)
         # In the assembly above, ranks did not communicate and therefore, the cells have incorrect values
         # To resolve this, the values in the ghost region must be added to the values from the owner
@@ -211,7 +211,7 @@ L = fem.form(ufl.rhs(F))
 # independent of time, we only need to assemble the matrix once.
 A = assemble_matrix(a, bcs=bcs)
 A.assemble()
-b = create_vector(L)
+b = create_vector(fem.extract_function_spaces(L))
 uh = fem.Function(V)
 
 # ## Define a linear variational solver
