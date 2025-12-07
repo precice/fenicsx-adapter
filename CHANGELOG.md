@@ -2,6 +2,7 @@
 
 ## current development
 
+* Add support for the adapter config schema. [#59](https://github.com/precice/fenicsx-adapter/pull/59)
 * Add adapter-internal interpolation of boundary functions for 2D and 3D cases. [#55](https://github.com/precice/fenicsx-adapter/pull/55)
 * Add MPI support. [#55](https://github.com/precice/fenicsx-adapter/pull/55)
 * Added functions which wrap profiling API [#56](https://github.com/precice/fenicsx-adapter/pull/56)
