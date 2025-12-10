@@ -36,9 +36,6 @@ rightOne = fenicsxprecice.CouplingMesh("RightOne", coupling_bc,
 rightTwo = fenicsxprecice.CouplingMesh("RightTwo", coupling_bc, {"LeftOutThree": V2}, {"LeftInTwo": uD2})
 precice.initialize([rightOne, rightTwo])
 
-coupling_expression1 = precice.create_coupling_expression(rightOne.get_name())
-coupling_expression2 = precice.create_coupling_expression(rightTwo.get_name())
-
 while precice.is_coupling_ongoing():
 
     if precice.requires_writing_checkpoint():
