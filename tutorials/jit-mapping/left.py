@@ -26,9 +26,6 @@ cmesh = fenicsxprecice.CouplingMesh("LeftMesh", coupling_bc, {"RightValue": V1},
 precice.set_mesh_access_region("RightMesh", [(0, 0), (1, 1)])
 precice.initialize([cmesh])
 
-
-coupling_expression = precice.create_coupling_expression(cmesh.get_name())
-
 dofs_coupling = fem.locate_dofs_geometrical(V1, coupling_bc)
 dofs_coupling_coordinates = V1.tabulate_dof_coordinates()[dofs_coupling]
 

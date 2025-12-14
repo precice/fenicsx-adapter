@@ -1,7 +1,7 @@
 """
 Problem setup for partitioned-heat-conduction/fenicsx tutorial
 """
-import dolfinx.io.gmshio
+from dolfinx.io import gmsh as gmshio
 from dolfinx.mesh import DiagonalType, create_box
 import dolfinx.mesh
 from my_enums import DomainPart
@@ -99,7 +99,7 @@ def get_geometry(domain_part, communicator):
         gmsh.option.setNumber("Mesh.CharacteristicLengthMax", 0.15)
         gmsh.model.mesh.generate(3)
         # convert from gmsh to a dolfinx representation
-        outer_mesh, _, _ = dolfinx.io.gmshio.model_to_mesh(gmsh.model, communicator, 0, 3)
+        outer_mesh = gmshio.model_to_mesh(gmsh.model, communicator, 0, 3).mesh
         gmsh.finalize()
         return outer_mesh, coupling_bc, boundary_bc
     else:
@@ -126,6 +126,6 @@ def get_geometry(domain_part, communicator):
         gmsh.model.mesh.setOrder(2)
         gmsh.model.mesh.generate(3)
         # convert from gmsh to dolfinx representation
-        inner_mesh, _, _ = dolfinx.io.gmshio.model_to_mesh(gmsh.model, communicator, 0, 3)
+        inner_mesh = gmshio.model_to_mesh(gmsh.model, communicator, 0, 3).mesh
         gmsh.finalize()
         return inner_mesh, coupling_bc, boundary_bc

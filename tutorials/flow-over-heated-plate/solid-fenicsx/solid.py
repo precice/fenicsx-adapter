@@ -41,20 +41,39 @@ class initial_value():
         return np.full(x[0].shape, self.constant)
 
 
-def determine_heat_flux(V_g, u, k):
+class GradientSolver:
     """
     compute flux following http://hplgit.github.io/INF5620/doc/pub/fenics_tutorial1.1/tu2.html#tut-poisson-gradu
+    The solver has been changed since the original version from the link above introduces larger errors
+
     :param V_g: Vector function space
     :param u: solution where gradient is to be determined
-    :param k: thermal conductivity
     """
-    w = ufl.TrialFunction(V_g)
-    v = ufl.TestFunction(V_g)
 
-    a = ufl.inner(w, v) * ufl.dx
-    L = ufl.inner(-k * ufl.grad(u), v) * ufl.dx
-    problem = LinearProblem(a, L)
-    return problem.solve()
+    def __init__(self, domain, V_g):
+        self.domain = domain,
+        self.V_g = V_g
+
+        w = ufl.TrialFunction(V_g)
+        self.v = ufl.TestFunction(V_g)
+        a = fem.form(ufl.inner(w, self.v) * ufl.dx)
+        self.A = assemble_matrix(a)
+        self.A.assemble()
+
+        self.solver = PETSc.KSP().create(domain.comm)
+        self.solver.setOperators(self.A)
+        self.solver.setType(PETSc.KSP.Type.PREONLY)
+        self.solver.getPC().setType(PETSc.PC.Type.LU)
+
+        self.returnValue = fem.Function(V_g)
+
+    def compute(self, u, k):
+        L = fem.form(ufl.inner(-k * ufl.grad(u), self.v) * ufl.dx)
+        b = create_vector(fem.extract_function_spaces(L))
+        assemble_vector(b, L)
+        b.ghostUpdate(addv=PETSc.InsertMode.ADD_VALUES, mode=PETSc.ScatterMode.REVERSE)
+        self.solver.solve(b, self.returnValue.x.petsc_vec)
+        return self.returnValue
 
 
 p0 = (x_left, y_bottom)
@@ -66,6 +85,8 @@ V = fem.functionspace(mesh, ('P', 2))
 element = basix.ufl.element("Lagrange", mesh.topology.cell_name(), 1, shape=(mesh.geometry.dim,))
 V_g = fem.functionspace(mesh, element)
 W, map_to_W = V_g.sub(1).collapse()
+
+gradient_solver = GradientSolver(mesh, V_g)
 
 alpha = 1  # m^2/s, https://en.wikipedia.org/wiki/Thermal_diffusivity
 k = 100  # kg * m / s^3 / K, https://en.wikipedia.org/wiki/Thermal_conductivity
@@ -111,7 +132,7 @@ L = fem.form(ufl.rhs(F))
 
 A = assemble_matrix(a, bcs=bcs)
 A.assemble()
-b = create_vector(L)
+b = create_vector(fem.extract_function_spaces(L))
 uh = fem.Function(V)
 solver = PETSc.KSP().create(mesh.comm)
 solver.setOperators(A)
@@ -150,7 +171,7 @@ while precice.is_coupling_ongoing():
     solver.solve(b, uh.x.petsc_vec)
 
     # Dirichlet problem obtains flux from solution and sends flux on boundary to Neumann problem
-    flux = determine_heat_flux(V_g, u_n, k)
+    flux = gradient_solver.compute(u_n, k)
     flux_y.interpolate(flux.sub(1))
     precice.write_data(coupling_mesh.get_name(), "Heat-Flux", flux_y)
 
