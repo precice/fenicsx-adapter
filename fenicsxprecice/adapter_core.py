@@ -101,15 +101,15 @@ def determine_function_type(input_obj):
         0 if input_function is SCALAR and 1 if input_function is VECTOR.
     """
     if isinstance(input_obj, fem.FunctionSpace):  # scalar-valued functions have rank 0 is FEniCSx
-        if input_obj.num_sub_spaces == 0:
+        if input_obj.value_size == 1:
             return FunctionType.SCALAR
-        elif input_obj.num_sub_spaces >= 1:
+        elif input_obj.value_size > 1:
             return FunctionType.VECTOR
     elif isinstance(input_obj, fem.Function):
         input_fspace = input_obj.function_space
-        if input_fspace.num_sub_spaces == 0:
+        if input_fspace.value_size == 1:
             return FunctionType.SCALAR
-        elif input_fspace.num_sub_spaces >= 1:
+        elif input_fspace.value_size > 1:
             return FunctionType.VECTOR
         else:
             raise Exception("Error determining type of given dolfin Function")
