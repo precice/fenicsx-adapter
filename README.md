@@ -16,14 +16,13 @@ preCICE-adapter for the open source computing platform FEniCSx.
 Notes:
 
 * This adapter is a fork from the original [FEniCS-preCICE adapter](https://github.com/precice/fenics-adapter). Based on [v1.2.0](https://github.com/precice/fenics-adapter/releases/tag/v1.2.0).
-* This adapter is currently under development and experimental.
-* Target version: dolfinx v0.5.2. Other version that have been tested and might also work: v0.4.1
+* Target version: dolfinx v0.10.
 
 ## Installing the package
 
-### 🚧 Using pip3 to install from PyPI (under construction) 🚧
+### Using pip3 to install from PyPI
 
-It is recommended to install fenicsxprecice from PyPI (**TODO** link to `https://pypi.org/project/fenicsxprecice/` as soon as released) via
+It is recommended to install fenicsxprecice from [PyPI](https://pypi.org/project/fenicsxprecice/) via
 
 ```bash
 pip3 install --user fenicsxprecice
@@ -40,7 +39,8 @@ Make sure to install the following dependencies:
 * [preCICE](https://github.com/precice/precice/wiki)
 * python3 (this adapter **only supports python3**)
 * [the python language bindings for preCICE](https://github.com/precice/python-bindings)
-* :construction: [FEniCSx](https://fenicsproject.org/) (with python interface, installed by default) (under construction refer to notes on FEniCSx below) :construction:
+* MPI
+* [FEniCSx](https://fenicsproject.org/) and its python interface
 * and scipy (`pip3 install scipy`)
 
 #### Build and install the adapter
@@ -53,10 +53,10 @@ As a first test, try to import the adapter via `python3 -c "import fenicsxprecic
 
 You can run the other tests via `python3 setup.py test`.
 
-Single tests can be also be run. For example the test `test_vector_write` in the file `test_write_read.py` can be run as follows:
+Single tests can be also be run. For example the test `test_checkpoint_mechanism` in the file `test_fenicsxprecice.py` can be run as follows:
 
 ```bash
-python3 -m unittest tests.test_write_read.TestWriteandReadData.test_vector_write
+python3 -m unittest tests.integration.test_fenicsxprecice.TestCheckpointing.test_checkpoint_mechanism
 ```
 
 ## Use the adapter
@@ -84,3 +84,5 @@ To create and install the `fenicsxprecice` python package the following instruct
 2021: For development of FEniCSx support, `precice/fenics-adapter@v1.2.0` was forked as `precice/fenicsx-adapter`. The required modifications were carried out by [Benjamin Rodenberg](https://www.cs.cit.tum.de/sccs/personen/benjamin-rodenberg/) and [Ishaan Desai](https://www.ipvs.uni-stuttgart.de/institute/team/Desai/).
 
 2023:  [Philip Hildebrand](https://github.com/PhilipHildebrand) updated the adapter to a [first minimal working version](https://github.com/precice/fenicsx-adapter/pull/15) and contributed a [first tutorial](https://github.com/precice/tutorials/pull/317) in the scope of his Bachelor's thesis ["Extending the FEniCSx Adapter for the Coupling Library preCICE"](https://mediatum.ub.tum.de/1706280) under supervision of [Benjamin Rodenberg](https://www.cs.cit.tum.de/sccs/personen/benjamin-rodenberg/) and [Ishaan Desai](https://www.ipvs.uni-stuttgart.de/institute/team/Desai/).
+
+since 2024: [Niklas Vinnitchenko](https://github.com/NiklasVin) extended the adapter to support the communication of multiple data and multiple meshes, 3D and vector-valued coupling and Just-In-Time mapping. MPI support was also reintroduced.
