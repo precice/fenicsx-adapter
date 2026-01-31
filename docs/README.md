@@ -21,7 +21,7 @@ sudo apt install fenicsx
 
 ## Aim of this adapter
 
-This adapter supports the Python interface of FEniCSx and offers an API that allows the user to use FEniCSx-style data structures for solving coupled problems. It is an update of the [FEniCS adapter](https://precice.org/adapter-fenics.html) featuring similar API as the FEniCS adaper but with support of FEniCSx and new features of preCICE. The FEniCS solvers for the heat transport and conjugate heat transfer examples have been adapted for FEniCSx and FEniCSx-preCICE and serve as usage examples. However, the adapter is designed in a general fashion and can be used to couple any code using the FEniCS library.
+This adapter supports the Python interface of FEniCSx and offers an API that allows the user to use FEniCSx-style data structures for solving coupled problems. It is an update of the [FEniCS adapter](https://precice.org/adapter-fenics.html) featuring similar API as the FEniCS adapter but with support of FEniCSx and new features of preCICE. The FEniCS solvers for the heat transport and conjugate heat transfer examples have been adapted for FEniCSx and FEniCSx-preCICE and serve as usage examples. However, the adapter is designed in a general fashion and can be used to couple any code using the FEniCS library.
 
 ## How to install the adapter
 
@@ -31,7 +31,7 @@ The adapter requires FEniCSx and preCICE version 3.3.0 or greater and the preCIC
 
 The adapter is [published on PyPI](https://pypi.org/project/fenicsxprecice/). After installing preCICE and the python language bindings, run `pip3 install --user fenicsxprecice` to install the adapter via your Python package manager.
 
-The adapter can also be installed manually. First, the FEniCSx-preCICE adapter mut be cloned from the [GitHub repository](https://github.com/precice/fenicsx-adaper). Then, navigate to the cloned repository on your local machine and run `pip3 install --user .` in the root path of the repository.
+The adapter can also be installed manually. First, the FEniCSx-preCICE adapter mut be cloned from the [GitHub repository](https://github.com/precice/fenicsx-adapter). Then, navigate to the cloned repository on your local machine and run `pip3 install --user .` in the root path of the repository.
 
 ## Examples for coupled codes
 
@@ -58,7 +58,7 @@ If you are using our adapter, please consider citing our paper:
 > **Vinnitchenko, N., Desai, I., Rodenberg, B., Hildebrand, P., Uekermann, B., & Humbert, A.**  
 > *FEniCSx-preCICE: Coupling FEniCSx to other simulation software.*  
 > **SoftwareX**, Volume TODO, Year 2026, Pages TODO.  
-> [DOI/TODO](TODO) | [URL/TODO](TODO)
+> <!--[DOI/TODO](TODO) | [URL/TODO](TODO)-->
 
 ## Related literature
 
@@ -70,3 +70,4 @@ If you are using our adapter, please consider citing our paper:
 > **Hildebrand, P.**  
 > *Extending the FEniCSx Adapter for the Coupling Library preCICE.*  
 > Master's thesis, Technical University of Munich, March 2023.
+> [URL](https://mediatum.ub.tum.de/doc/1706280)
