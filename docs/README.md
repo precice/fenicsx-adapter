@@ -66,6 +66,8 @@ If you are using our adapter, please consider citing our paper:
 > **SoftwareX**, Volume 16, Elsevier, 2021.  
 > [DOI: 10.1016/j.softx.2021.1001072](https://doi.org/10.1016/j.softx.2021.1001072) | [Publisher's page](https://www.sciencedirect.com/science/article/pii/S2352711021001072)
 
+and
+
 > **Hildebrand, P.**  
 > _Extending the FEniCSx Adapter for the Coupling Library preCICE._
 > Master's thesis, Technical University of Munich, March 2023.
