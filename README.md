@@ -1,3 +1,4 @@
+
 # FEniCSx-preCICE adapter
 
 <a style="text-decoration: none" href="https://github.com/precice/fenicsx-adapter/blob/master/LICENSE" target="_blank">
@@ -22,8 +23,8 @@ The FEniCSx-preCICE adapter is a preCICE-adapter for the open source computing p
 
 For further information, refer to the [adapter documentation of the preCICE website](https://precice.org/adapter-fenicsx.html).
 
-
 ## Citing
+
 If you are using our adapter, please consider citing our [paper](https://precice.org/adapter-fenicsx.html#how-to-cite).
 
 ## Development history
