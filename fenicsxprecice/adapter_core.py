@@ -13,6 +13,75 @@ from mpi4py import MPI
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
+def quantize_to_chunks(coords, digit_cutoff, chunk_digits=10):
+    """
+    Quantize coordinates to fixed-point with digit_cutoff decimals,
+    represented as int64 chunks of size chunk_digits.
+
+    Parameters
+    ----------
+    coords: numpy array
+        Coordinate array to be rounded
+    digit_cutoff: int
+        Specifies at which decimal place the coordinates are rounded
+    chunk_digits: int
+        Chunk size
+
+    Returns
+    -------
+    numpy array:
+        ndarray of shape (N, dim, n_chunks) with dtype int64
+    """
+    N, dim = coords.shape
+
+    base = 10 ** chunk_digits
+    max_abs = np.max(np.abs(coords))
+    max_int_digits = int(np.ceil(np.log10(max_abs + 1))) if int(max_abs) > 0 else 0
+    total_digits = max_int_digits + digit_cutoff
+    n_chunks = (total_digits + chunk_digits - 1) // chunk_digits
+
+    # scale relevant region into int range (is still float)
+    scale = 10.0 ** digit_cutoff
+    q = np.floor(coords * scale + 0.5)
+
+    # store chunks
+    chunks = np.zeros((N, dim, n_chunks), dtype=np.int64)
+
+    for k in range(n_chunks):
+        chunks[..., k] = q % base
+        q //= base
+    #chunks[..., -1] = q
+
+    return chunks
+
+
+def unique_by_chunks(chunks):
+    """
+    Perform uniqueness over (dim × n_chunks) int64 keys.
+
+    Parameters
+    ----------
+    chunks: numpy array
+        ndarray of shape (N, dim, n_chunks) with dtype int64
+
+    Returns
+    -------
+    numpy array:
+        indices of unique keys
+    """
+    N, dim, n_chunks = chunks.shape
+    flat = chunks.reshape(N, dim * n_chunks)
+
+    dtype = np.dtype([
+        (f'f{i}', np.int64) for i in range(flat.shape[1])
+    ])
+    structured = flat.view(dtype).reshape(N)
+    _, idx = np.unique(structured, return_index=True)
+    # is equiv to: idx = np.unique(flat, axis=0, return_index=True)[1]
+    # should have better performance this way
+
+    return idx
+
 
 def round_unique_coordinates(coords, digit_cutoff):
     """
@@ -32,10 +101,11 @@ def round_unique_coordinates(coords, digit_cutoff):
     numpy array:
         array of rounded and unique coordinates
     """
-    tmp = np.zeros_like(coords)
-    np.round(coords, digit_cutoff, tmp)
-    tmp = np.unique(tmp, axis=0)
-    return tmp
+    chunks = quantize_to_chunks(coords, digit_cutoff, chunk_digits=10)
+    idx = unique_by_chunks(chunks)
+
+    coords_unique = coords[idx]
+    return coords_unique
 
 
 class Vertices:
