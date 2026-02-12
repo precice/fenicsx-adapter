@@ -7,7 +7,6 @@ import numpy as np
 from enum import Enum
 import logging
 import copy
-from numbers import Number
 from mpi4py import MPI
 
 logger = logging.getLogger(__name__)
@@ -425,6 +424,8 @@ def interpolate_boundary_function(
             # use the same rounding as when creating the read_values dictionary keys
             coords = round_unique_coordinates(coords, digit_cutoff=digit_cutoff)
             npoints = len(coords)
+
+            print("Coordinates after rounding in interpolation function: ", coords)
 
             if vector_length == 1:
                 # function is scalar valued
