@@ -13,6 +13,7 @@ from mpi4py import MPI
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
+
 def quantize_to_chunks(coords, digit_cutoff, chunk_digits=10):
     """
     Quantize coordinates to fixed-point with digit_cutoff decimals,
@@ -50,7 +51,7 @@ def quantize_to_chunks(coords, digit_cutoff, chunk_digits=10):
     for k in range(n_chunks):
         chunks[..., k] = q % base
         q //= base
-    #chunks[..., -1] = q
+    # chunks[..., -1] = q
 
     return chunks
 
