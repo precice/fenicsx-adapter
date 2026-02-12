@@ -6,10 +6,7 @@ Before starting this process make sure to check that all relevant changes are in
 
 2. [Open a Pull Request from the branch `fenicsx-adapter-vX.X.X` to `main`](https://github.com/precice/fenicsx-adapter/compare) named after the version (i.e. `Release v1.0.0`) and briefly describe the new features of the release in the PR description.
 
-3. Bump the version in the following places:
-
-    - Before merging the PR, make sure to bump the version in `CHANGELOG.md` on `fenicsx-adapter-vX.X.X`
-    - There is no need to bump the version anywhere else, since we use the [python-versioneer](https://github.com/python-versioneer/python-versioneer/) for maintaining the version everywhere else.
+3. Bump the version in the `CHANGELOG.md` on the release branch.
 
 4. [Draft a New Release](https://github.com/precice/fenicsx-adapter/releases/new) in the `Releases` section of the repository page in a web browser. The release tag needs to be the exact version number (i.e.`v1.0.0` or `v1.0.0rc1`, compare to [existing tags](https://github.com/precice/fenicsx-adapter/tags)). Use `@target:main`. Release title is also the version number (i.e. `v1.0.0` or `v1.0.0rc1`, compare to [existing releases](https://github.com/precice/fenicsx-adapter/tags)). *Note:* If it is a pre-release then the option *This is a pre-release* needs to be selected at the bottom of the page. Use `@target:fenicsx-adapter-vX.X.X` for a pre-release, since we will never merge a pre-release into main.
 
