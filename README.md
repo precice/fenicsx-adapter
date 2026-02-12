@@ -59,10 +59,6 @@ python3 -m unittest tests.test_write_read.TestWriteandReadData.test_vector_write
 
 Please refer to [our website](https://www.precice.org/adapter-fenics.html#how-can-i-use-my-own-solver-with-the-adapter-) :construction: Refers to the FEniCS version of the adapter :construction:.
 
-## Packaging
-
-To create and install the `fenicsxprecice` python package the following instructions were used: [How To Package Your Python Code from python-packaging.readthedocs.io](https://python-packaging.readthedocs.io/en/latest/index.html).
-
 ## Citing
 
 * FEniCSx-preCICE: If you are using this adapter (`fenicsx-adapter`), please consider citing the [thesis of Philip Hildebrand](https://mediatum.ub.tum.de/1706280). Additionally, you can refer to the [citing information on the (very similar) FEniCS adapter](https://www.precice.org/adapter-fenics.html#how-to-cite).
