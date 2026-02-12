@@ -39,6 +39,9 @@ Repository = "https://github.com/precice/fenicsx-adapter"
 packages = ["fenicsxprecice"]
 zip-safe = false
 
+[tool.setuptools-git-versioning]
+enabled = true
+
 [tool.versioneer]
 VCS = "git"
 style = "pep440"
