@@ -22,7 +22,7 @@
 
   <participant name="Left">
     <provide-mesh name="LeftMesh" />
-    <receive-mesh name="RightMesh" from="Right" api-access="true"/>
+    <receive-mesh name="RightMesh" from="Right" api-access="true" />
     <write-data name="LeftValue" mesh="LeftMesh" />
     <read-data name="RightValue" mesh="RightMesh" />
     <mapping:rbf-pum-direct
@@ -37,7 +37,7 @@
 
   <participant name="Right">
     <provide-mesh name="RightMesh" />
-    <receive-mesh name="LeftMesh" from="Left" api-access="true"/>
+    <receive-mesh name="LeftMesh" from="Left" api-access="true" />
     <write-data name="RightValue" mesh="RightMesh" />
     <read-data name="LeftValue" mesh="LeftMesh" />
     <mapping:rbf-pum-direct
