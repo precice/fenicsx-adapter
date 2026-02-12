@@ -2,6 +2,7 @@
 
 ## current development
 
+* Used `pyproject.toml` as build recipe file. [#69](https://github.com/precice/fenicsx-adapter/pull/69)
 * Set mpi4py dependency version requirement to `>=3`. [#68](https://github.com/precice/fenicsx-adapter/pull/68)
 * Add adapter-internal interpolation of boundary functions for 2D and 3D cases. [#55](https://github.com/precice/fenicsx-adapter/pull/55)
 * Add MPI support. [#55](https://github.com/precice/fenicsx-adapter/pull/55)
