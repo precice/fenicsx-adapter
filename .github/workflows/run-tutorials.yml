@@ -7,15 +7,15 @@ on:
   pull_request:
     paths:
       - '**'
-      
-jobs:  
+
+jobs:
   run_ht_simple:
     name: Run HT, simple
     runs-on: ubuntu-latest
     container: precice/precice:nightly
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2      
+        uses: actions/checkout@v2
       - name: Install Dependencies & FEniCSx
         run: |
           apt-get -qq update
@@ -44,6 +44,6 @@ jobs:
       # - name: Get tutorials
       #   run: git clone -b develop https://github.com/precice/tutorials.git
       - name: Run tutorial
-        run: | 
+        run: |
           cd tutorials/partitioned-heat-conduction
           cd dirichlet-fenicsx && ./run.sh & cd neumann-fenicsx && ./run.sh
