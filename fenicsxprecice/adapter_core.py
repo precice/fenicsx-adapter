@@ -421,9 +421,9 @@ def interpolate_boundary_function(
         # define the interpolation function
         def interpolation_function(x):
             # truncation to smaller dimension not necessary because fenicsx coordinates are always 3D
-            coords = np.zeros_like(x)
-            np.round(x, digit_cutoff, coords)
-            coords = np.transpose(coords)
+            coords = np.transpose(x)
+            # use the same rounding as when creating the read_values dictionary keys
+            coords = round_unique_coordinates(coords, digit_cutoff=digit_cutoff)
             npoints = len(coords)
 
             if vector_length == 1:
