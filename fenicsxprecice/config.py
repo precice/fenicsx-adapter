@@ -1,14 +1,15 @@
 """
-This is the configuration module of fenicsxadapter
+This is the configuration module of adapter
 """
 
 import json
 import os
+from preciceadapterschema import validate
 
 
 class Config:
     """
-    Handles reading of config. parameters of the fenicsxadapter based on JSON
+    Handles reading of config. parameters of the adapter based on JSON
     configuration file. Initializer calls read_json() method. Instance attributes
     can be accessed by provided getter functions.
     """
@@ -48,6 +49,8 @@ class Config:
         path = os.path.join(folder, os.path.basename(adapter_config_filename))
         read_file = open(path, "r")
         data = json.load(read_file)
+        validate(data)
+
         self._config_file_name = os.path.join(folder, data["precice_config_file_path"])
         self._participant_name = data["participant_name"]
 
