@@ -466,7 +466,7 @@ def interpolate_boundary_function(
         def interpolation_function(x):
             # truncation to smaller dimension not necessary because fenicsx coordinates are always 3D
             coords = np.transpose(x)
-            coords = round_coordinates(coords, digit_cutoff, unique=True)
+            coords = round_coordinates(coords, digit_cutoff, unique=False)
             npoints = len(coords)
 
             if vector_length == 1:
