@@ -12,7 +12,6 @@ from mpi4py import MPI
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
-
 def quantize_to_chunks(coords, digit_cutoff, chunk_digits=10):
     """
     Quantize coordinates to fixed-point with digit_cutoff decimals,
@@ -50,7 +49,7 @@ def quantize_to_chunks(coords, digit_cutoff, chunk_digits=10):
     for k in range(n_chunks):
         chunks[..., k] = q % base
         q //= base
-    # chunks[..., -1] = q
+    #chunks[..., -1] = q
 
     return chunks
 
@@ -83,7 +82,48 @@ def unique_by_chunks(chunks):
     return idx
 
 
-def round_unique_coordinates(coords, digit_cutoff):
+def round_by_chunks(chunks, digit_cutoff, chunk_digits=10):
+    """
+    Reconstruct rounded coordinates from chunk representation.
+
+    This reverses quantize_to_chunks, but does NOT perform uniqueness.
+
+    Parameters
+    ----------
+    chunks : ndarray
+        Shape (N, dim, n_chunks), dtype int64
+
+    digit_cutoff : int
+        Number of decimal digits used during quantization
+
+    chunk_digits : int
+        Number of decimal digits per chunk
+
+    Returns
+    -------
+    ndarray
+        Rounded coordinates, shape (N, dim), dtype float64
+    """
+    chunks = np.asarray(chunks)
+    N, dim, n_chunks = chunks.shape
+
+    base = 10 ** chunk_digits
+
+    # reconstruct integer Q
+    q = np.zeros((N, dim), dtype=np.float64)
+
+    multiplier = 1.0
+    for k in range(n_chunks):
+        q += chunks[..., k] * multiplier
+        multiplier *= base
+
+    # scale back to float
+    scale = 10.0 ** digit_cutoff
+    coords = q / scale
+
+    return coords
+
+def round_coordinates(coords, digit_cutoff, unique):
     """
     round the coordinates (coords) to avoid close points (i.e. those that are equal
     until the 8 decimal place) to be able to use rbf mapping
@@ -94,6 +134,8 @@ def round_unique_coordinates(coords, digit_cutoff):
         Coordinate array to be rounded
     digit_cutoff: int
         Specifies at which decimal place the coordinates are rounded
+    unique: bool
+        True to also perform unique operation over coords
 
 
     Returns
@@ -102,10 +144,13 @@ def round_unique_coordinates(coords, digit_cutoff):
         array of rounded and unique coordinates
     """
     chunks = quantize_to_chunks(coords, digit_cutoff, chunk_digits=10)
-    idx = unique_by_chunks(chunks)
+    if unique:
+        idx = unique_by_chunks(chunks)
 
-    coords_unique = coords[idx]
-    return coords_unique
+        coords_unique = round_by_chunks(chunks, digit_cutoff, chunk_digits=10)[idx]
+        return coords_unique
+    else:
+        return round_by_chunks(chunks, digit_cutoff, chunk_digits=10)
 
 
 class Vertices:
@@ -292,8 +337,8 @@ def get_fenicsx_interpolation_points(
         # to avoid UnboundLocalError, interpolation_coordinates is an array to which x is appended to
         interpolation_coordinates.append(np.transpose(copy.deepcopy(x)))
         # directly round and make each rounded coordinate unique to keep the code clean and to reduce memory consumption
-        interpolation_coordinates[-1] = round_unique_coordinates(
-            interpolation_coordinates[-1], digit_cutoff=digit_cutoff)
+        interpolation_coordinates[-1] = round_coordinates(
+            interpolation_coordinates[-1], digit_cutoff=digit_cutoff, unique=True)
         return np.zeros((vec_len, x.shape[1]))
 
     # determine process local cells that are on the coupling boundary
@@ -421,11 +466,8 @@ def interpolate_boundary_function(
         def interpolation_function(x):
             # truncation to smaller dimension not necessary because fenicsx coordinates are always 3D
             coords = np.transpose(x)
-            # use the same rounding as when creating the read_values dictionary keys
-            coords = round_unique_coordinates(coords, digit_cutoff=digit_cutoff)
+            coords = round_coordinates(coords, digit_cutoff, unique=True)
             npoints = len(coords)
-
-            print("Coordinates after rounding in interpolation function: ", coords)
 
             if vector_length == 1:
                 # function is scalar valued
@@ -436,6 +478,8 @@ def interpolate_boundary_function(
                 # function is vector valued
                 return_value = np.zeros((vector_length, npoints))
                 for idx, c in enumerate(coords):
+                    if tuple(c) not in read_values:
+                        pass
                     return_value[:, idx] = read_values[tuple(c)]
             return return_value
 
