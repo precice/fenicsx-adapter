@@ -23,6 +23,8 @@ jobs:
           add-apt-repository -y ppa:fenics-packages/fenics
           apt-get -qq install --no-install-recommends fenicsx
           rm -rf /var/lib/apt/lists/*
+      - name: Get tutorials
+        run: git clone -b develop https://github.com/precice/tutorials.git
       - name: Check FEniCSx version
         run: python3 -c "import dolfinx; print('FEniCS-X version '+dolfinx.__version__)"
       - name: Create venv for Dirichlet participants and install adapter
@@ -40,9 +42,6 @@ jobs:
       - name: Remove fenicsxadapter from requirements to avoid overwriting develop version
         run: |
           sed -i '/fenicsxprecice/d' tutorials/partitioned-heat-conduction/solver-fenicsx/requirements.txt
-      # Tutorial is currently hosted under https://github.com/precice/fenicsx-adapter, should be moved to https://github.com/precice/tutorials when working. See https://github.com/precice/tutorials/issues/491
-      # - name: Get tutorials
-      #   run: git clone -b develop https://github.com/precice/tutorials.git
       - name: Run tutorial
         run: |
           cd tutorials/partitioned-heat-conduction
