@@ -54,21 +54,21 @@ Please don't hesitate to ask questions about the FEniCSx adapter on [discourse](
 
 If you are using our adapter, please consider citing our paper:
 
-> **Vinnitchenko, N., Desai, I., Rodenberg, B., Hildebrand, P., Uekermann, B., & Humbert, A.**  
+> **Vinnitchenko, N., Desai, I., Rodenberg, B., Hildebrand, P., Uekermann, B., & Humbert, A.**
 > _FEniCSx-preCICE: Coupling FEniCSx to other simulation software._
-> **SoftwareX**, Volume TODO, Year 2026, Pages TODO.  
+> **SoftwareX**, Volume TODO, Year 2026, Pages TODO.
 > [DOI/TODO](https://precice.org) | [URL/TODO](https://precice.org)
 
 ## Related literature
 
-> **Rodenberg, B., Desai, I., Hertrich, R., Jaust, A., & Uekermann, B.**  
-> _FEniCS–preCICE: Coupling FEniCS to other simulation software._  
-> **SoftwareX**, Volume 16, Elsevier, 2021.  
+> **Rodenberg, B., Desai, I., Hertrich, R., Jaust, A., & Uekermann, B.**
+> _FEniCS–preCICE: Coupling FEniCS to other simulation software._
+> **SoftwareX**, Volume 16, Elsevier, 2021.
 > [DOI: 10.1016/j.softx.2021.1001072](https://doi.org/10.1016/j.softx.2021.1001072) | [Publisher's page](https://www.sciencedirect.com/science/article/pii/S2352711021001072)
 
 and
 
-> **Hildebrand, P.**  
+> **Hildebrand, P.**
 > _Extending the FEniCSx Adapter for the Coupling Library preCICE._
 > Master's thesis, Technical University of Munich, March 2023.
 > [URL](https://mediatum.ub.tum.de/doc/1706280)
