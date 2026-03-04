@@ -8,4 +8,3 @@ clean_tutorial .
 clean_precice_logs .
 rm -fv ./*.log
 rm -fv ./*.vtu
-

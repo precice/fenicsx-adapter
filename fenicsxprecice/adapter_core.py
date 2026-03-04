@@ -7,14 +7,125 @@ import numpy as np
 from enum import Enum
 import logging
 import copy
-from numbers import Number
 from mpi4py import MPI
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 
-def round_unique_coordinates(coords, digit_cutoff):
+def quantize_to_chunks(coords, digit_cutoff, chunk_digits=10):
+    """
+    Quantize coordinates to fixed-point with digit_cutoff decimals,
+    represented as int64 chunks of size chunk_digits.
+
+    Parameters
+    ----------
+    coords: numpy array
+        Coordinate array to be rounded
+    digit_cutoff: int
+        Specifies at which decimal place the coordinates are rounded
+    chunk_digits: int
+        Chunk size
+
+    Returns
+    -------
+    numpy array:
+        ndarray of shape (N, dim, n_chunks) with dtype int64
+    """
+    N, dim = coords.shape
+
+    base = 10 ** chunk_digits
+    max_abs = np.max(np.abs(coords))
+    max_int_digits = int(np.ceil(np.log10(max_abs + 1))) if int(max_abs) > 0 else 0
+    total_digits = max_int_digits + digit_cutoff
+    n_chunks = (total_digits + chunk_digits - 1) // chunk_digits
+
+    # scale relevant region into int range (is still float)
+    scale = 10.0 ** digit_cutoff
+    q = np.floor(coords * scale + 0.5)
+
+    # store chunks
+    chunks = np.zeros((N, dim, n_chunks), dtype=np.int64)
+
+    for k in range(n_chunks):
+        chunks[..., k] = q % base
+        q //= base
+    # chunks[..., -1] = q
+
+    return chunks
+
+
+def unique_by_chunks(chunks):
+    """
+    Perform uniqueness over (dim × n_chunks) int64 keys.
+
+    Parameters
+    ----------
+    chunks: numpy array
+        ndarray of shape (N, dim, n_chunks) with dtype int64
+
+    Returns
+    -------
+    numpy array:
+        indices of unique keys
+    """
+    N, dim, n_chunks = chunks.shape
+    flat = chunks.reshape(N, dim * n_chunks)
+
+    dtype = np.dtype([
+        (f'f{i}', np.int64) for i in range(flat.shape[1])
+    ])
+    structured = flat.view(dtype).reshape(N)
+    _, idx = np.unique(structured, return_index=True)
+    # is equiv to: idx = np.unique(flat, axis=0, return_index=True)[1]
+    # should have better performance this way
+
+    return idx
+
+
+def round_by_chunks(chunks, digit_cutoff, chunk_digits=10):
+    """
+    Reconstruct rounded coordinates from chunk representation.
+
+    This reverses quantize_to_chunks, but does NOT perform uniqueness.
+
+    Parameters
+    ----------
+    chunks : ndarray
+        Shape (N, dim, n_chunks), dtype int64
+
+    digit_cutoff : int
+        Number of decimal digits used during quantization
+
+    chunk_digits : int
+        Number of decimal digits per chunk
+
+    Returns
+    -------
+    ndarray
+        Rounded coordinates, shape (N, dim), dtype float64
+    """
+    chunks = np.asarray(chunks)
+    N, dim, n_chunks = chunks.shape
+
+    base = 10 ** chunk_digits
+
+    # reconstruct integer Q
+    q = np.zeros((N, dim), dtype=np.float64)
+
+    multiplier = 1.0
+    for k in range(n_chunks):
+        q += chunks[..., k] * multiplier
+        multiplier *= base
+
+    # scale back to float
+    scale = 10.0 ** digit_cutoff
+    coords = q / scale
+
+    return coords
+
+
+def round_coordinates(coords, digit_cutoff, unique):
     """
     round the coordinates (coords) to avoid close points (i.e. those that are equal
     until the 8 decimal place) to be able to use rbf mapping
@@ -25,6 +136,8 @@ def round_unique_coordinates(coords, digit_cutoff):
         Coordinate array to be rounded
     digit_cutoff: int
         Specifies at which decimal place the coordinates are rounded
+    unique: bool
+        True to also perform unique operation over coords
 
 
     Returns
@@ -32,10 +145,14 @@ def round_unique_coordinates(coords, digit_cutoff):
     numpy array:
         array of rounded and unique coordinates
     """
-    tmp = np.zeros_like(coords)
-    np.round(coords, digit_cutoff, tmp)
-    tmp = np.unique(tmp, axis=0)
-    return tmp
+    chunks = quantize_to_chunks(coords, digit_cutoff, chunk_digits=10)
+    if unique:
+        idx = unique_by_chunks(chunks)
+
+        coords_unique = round_by_chunks(chunks, digit_cutoff, chunk_digits=10)[idx]
+        return coords_unique
+    else:
+        return round_by_chunks(chunks, digit_cutoff, chunk_digits=10)
 
 
 class Vertices:
@@ -222,8 +339,8 @@ def get_fenicsx_interpolation_points(
         # to avoid UnboundLocalError, interpolation_coordinates is an array to which x is appended to
         interpolation_coordinates.append(np.transpose(copy.deepcopy(x)))
         # directly round and make each rounded coordinate unique to keep the code clean and to reduce memory consumption
-        interpolation_coordinates[-1] = round_unique_coordinates(
-            interpolation_coordinates[-1], digit_cutoff=digit_cutoff)
+        interpolation_coordinates[-1] = round_coordinates(
+            interpolation_coordinates[-1], digit_cutoff=digit_cutoff, unique=True)
         return np.zeros((vec_len, x.shape[1]))
 
     # determine process local cells that are on the coupling boundary
@@ -350,9 +467,8 @@ def interpolate_boundary_function(
         # define the interpolation function
         def interpolation_function(x):
             # truncation to smaller dimension not necessary because fenicsx coordinates are always 3D
-            coords = np.zeros_like(x)
-            np.round(x, digit_cutoff, coords)
-            coords = np.transpose(coords)
+            coords = np.transpose(x)
+            coords = round_coordinates(coords, digit_cutoff, unique=False)
             npoints = len(coords)
 
             if vector_length == 1:
@@ -364,6 +480,8 @@ def interpolate_boundary_function(
                 # function is vector valued
                 return_value = np.zeros((vector_length, npoints))
                 for idx, c in enumerate(coords):
+                    if tuple(c) not in read_values:
+                        pass
                     return_value[:, idx] = read_values[tuple(c)]
             return return_value
 
