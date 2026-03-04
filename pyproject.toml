@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-git-versioning>=1.8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fenicsxprecice"
+dynamic = ["version"]
+description = "FEniCSx-preCICE adapter is a preCICE adapter for the open source computing platform FEniCSx."
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "LGPL-3.0"}
+authors = [
+    {name = "the preCICE developers", email = "info@precice.org"},
+]
+keywords = ["FEniCSx", "preCICE", "adapter"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7+",
+]
+dependencies = [
+    "pyprecice~=3.0",
+    "scipy<1.15.0",
+    "numpy>=1.13.3",
+    "mpi4py>=3",
+    "precice-adapter-schema"
+]
+
+[project.optional-dependencies]
+test = ["sympy"]
+
+[project.urls]
+Homepage = "https://github.com/precice/fenicsx-adapter"
+Repository = "https://github.com/precice/fenicsx-adapter"
+"Bug Tracker" = "https://github.com/precice/fenicsx-adapter/issues"
+
+[tool.setuptools]
+packages = ["fenicsxprecice"]
+zip-safe = false
+
+[tool.setuptools-git-versioning]
+enabled = true

@@ -194,7 +194,7 @@ clean_matlab(){
         echo "- Cleaning up MATLAB case in $(pwd)"
         clean_precice_logs .
         clean_case_logs .
-    )	
+    )
 }
 clean_gismo(){
     (
