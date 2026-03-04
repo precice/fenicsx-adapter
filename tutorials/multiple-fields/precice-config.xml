@@ -40,17 +40,14 @@
     <receive-mesh name="RightOne" from="Right" />
     <provide-mesh name="LeftTwo" />
     <receive-mesh name="RightTwo" from="Right" />
-
     <write-data name="LeftOutOne" mesh="LeftOne" />
     <write-data name="LeftOutTwo" mesh="LeftOne" />
-
     <read-data name="LeftInOne" mesh="LeftOne" />
     <mapping:nearest-neighbor
       direction="read"
       from="RightOne"
       to="LeftOne"
       constraint="consistent" />
-
     <write-data name="LeftOutThree" mesh="LeftTwo" />
     <read-data name="LeftInTwo" mesh="LeftTwo" />
     <mapping:nearest-neighbor
@@ -71,7 +68,6 @@
       from="LeftOne"
       to="RightOne"
       constraint="consistent" />
-
     <provide-mesh name="RightTwo" />
     <receive-mesh name="LeftTwo" from="Left" />
     <write-data name="LeftInTwo" mesh="RightTwo" />

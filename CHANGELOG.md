@@ -3,6 +3,10 @@
 ## current development
 
 * Add documentation and workflow for precice page. [#65](https://github.com/precice/fenicsx-adapter/pull/65)
+* Add support for the adapter config schema. [#59](https://github.com/precice/fenicsx-adapter/pull/59)
+* Used Git-based versioning instead of versioneer. [#70](https://github.com/precice/fenicsx-adapter/pull/70)
+* Used `pyproject.toml` as build recipe file. [#69](https://github.com/precice/fenicsx-adapter/pull/69)
+* Set mpi4py dependency version requirement to `>=3`. [#68](https://github.com/precice/fenicsx-adapter/pull/68)
 * Add adapter-internal interpolation of boundary functions for 2D and 3D cases. [#55](https://github.com/precice/fenicsx-adapter/pull/55)
 * Add MPI support. [#55](https://github.com/precice/fenicsx-adapter/pull/55)
 * Added functions which wrap profiling API [#56](https://github.com/precice/fenicsx-adapter/pull/56)

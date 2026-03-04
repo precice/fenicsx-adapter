@@ -16,7 +16,7 @@ jobs:
       - name: Get branch name
         if: github.event_name != 'pull_request'
         shell: bash
-        run: echo "branch=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV    
+        run: echo "branch=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV
       - name: Checkout Repository
         uses: actions/checkout@v2
       - name: Set up Docker Buildx
