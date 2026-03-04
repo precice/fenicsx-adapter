@@ -25,6 +25,7 @@ dependencies = [
     "scipy<1.15.0",
     "numpy>=1.13.3",
     "mpi4py>=3",
+    "precice-adapter-schema"
 ]
 
 [project.optional-dependencies]
