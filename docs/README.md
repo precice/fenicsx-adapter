@@ -32,10 +32,10 @@ Required dependencies
 | mpi4py                    | >=3.16    |
 | numpy                     | >=1.26.4  |
 
-
 ### Use `pip`
 
 Install the adapter using pip with 
+
 ```bash
 pip install fenicsxprecice
 ```
