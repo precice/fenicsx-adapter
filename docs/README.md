@@ -34,7 +34,7 @@ Required dependencies
 
 ### Use `pip`
 
-Install the adapter using pip with 
+Install the adapter using pip with
 
 ```bash
 pip install fenicsxprecice
