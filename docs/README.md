@@ -11,40 +11,49 @@ From the FEniCS Project website: _FEniCS is a popular open-source computing plat
 
 ## How to get FEniCSx
 
-You can install FEniCSx on your system following the instructions on [fenicsproject.org](https://fenicsproject.org/download/). The simplest way to install FEniCS on Ubuntu is using the official PPA repository of FEniCS:
-
-```bash
-sudo add-apt-repository ppa:fenics-packages/fenics
-sudo apt update
-sudo apt install fenicsx
-```
+Install FEniCSx on your system following the instructions on [fenicsproject.org](https://fenicsproject.org/download/).
 
 ## Aim of this adapter
 
-This adapter supports the Python interface of FEniCSx and offers an API that allows the user to use FEniCSx-style data structures for solving coupled problems. It is an update of the [FEniCS adapter](https://precice.org/adapter-fenics.html) featuring similar API as the FEniCS adapter but with support of FEniCSx and new features of preCICE. The FEniCS solvers for the heat transport and conjugate heat transfer examples have been adapted for FEniCSx and FEniCSx-preCICE and serve as usage examples. However, the adapter is designed in a general fashion and can be used to couple any code using the FEniCS library.
+This adapter supports the Python interface of FEniCSx and offers an API that allows the user to use FEniCSx-style data structures for solving coupled problems. It is an update to the [FEniCS adapter](https://precice.org/adapter-fenics.html) featuring an API similar to the FEniCS adapter, with support for FEniCSx and new preCICE features. The FEniCS solvers for the heat transport and conjugate heat transfer examples have been adapted for FEniCSx and FEniCSx-preCICE and serve as usage examples. However, the adapter is designed in a general fashion and can be used to couple any code using the FEniCS library.
 
 ## How to install the adapter
 
-The adapter requires FEniCSx and preCICE version 3.3.0 or greater and the preCICE language bindings for Python.
+Required dependencies
+| Name                      | Version   |
+|---------------------------|-----------|
+| preCICE                   | >=3.3.0   |
+| preCICE python bindings   | >=3.3.0   |
+| precice adapter schema    | >=0.4.1   |
+| dolfinx                   | >=0.10    |
+| basix                     | >=0.10    |
+| FFCx                      | >=0.10    |
+| UFL                       | >=2025.2.0|
+| mpi4py                    | >=3.16    |
+| numpy                     | >=1.26.4  |
+
 
 ### Use `pip`
 
-The adapter is [published on PyPI](https://pypi.org/project/fenicsxprecice/). After installing preCICE and the python language bindings, run `pip3 install --user fenicsxprecice` to install the adapter via your Python package manager.
+Install the adapter using pip with 
+```bash
+pip install fenicsxprecice
+```
 
-The adapter can also be installed manually. First, the FEniCSx-preCICE adapter mut be cloned from the [GitHub repository](https://github.com/precice/fenicsx-adapter). Then, navigate to the cloned repository on your local machine and run `pip3 install --user .` in the root path of the repository.
+The adapter can also be installed manually. First, the FEniCSx-preCICE adapter must be cloned from the [GitHub repository](https://github.com/precice/fenicsx-adapter). Then navigate to the cloned repository on your local machine and run `pip3 install --user .` from the repository root.
 
 ## Examples for coupled codes
 
 The following tutorials can be used as a usage example for the FEniCSx adapter:
 
-* Solving the heat equation in a partitioned fashion (heat equation solved via FEniCSx for both participants)
-* Flow over plate (heat equation solved via FEniCSx for solid participant)
+* [partitioned heat conduction equation](https://github.com/precice/tutorials/tree/develop/partitioned-heat-conduction)
+* [Solid participant for flow over plate](https://github.com/precice/tutorials/tree/develop/flow-over-heated-plate)
 
 For more details please consult the references given in the [reference section](#related-literature).
 
 ## How can I use my own solver with the adapter
 
-The FEniCSx adapter does not couple your code out-of-the-box, but you have to call the adapter API from within your code. You can use the tutorials from above as an example. The basic API of the adapter and the design is explained in the [reference paper](#how-to-cite). For more information about the purpose of each function provided by the FEniCSx adapter, you can refer to the respective Python docstrings within the [code](https://github.com/precice/fenicsx-adapter/blob/develop/fenicsxprecice/fenicsxprecice.py).
+The adapter exposes an API that must be called in a script using FEniCSx. Look at the tutorials from above as an example. For more information about the purpose of each function provided by the FEniCSx adapter, you can refer to the respective Python docstrings within the [code](https://github.com/precice/fenicsx-adapter/blob/develop/fenicsxprecice/fenicsxprecice.py).
 
 ## You need more information?
 
@@ -54,7 +63,7 @@ Please don't hesitate to ask questions about the FEniCSx adapter on [discourse](
 
 If you are using our adapter, please consider citing our paper:
 
-> **Vinnitchenko, N., Desai, I., Rodenberg, B., Hildebrand, P., Uekermann, B., & Humbert, A.**
+> **Vinnitchenko, N., Desai, I., Rodenberg, B., Hildebrand, P., Humbert, A. & Uekermann, B.**
 > _FEniCSx-preCICE: Coupling FEniCSx to other simulation software._
 > **SoftwareX**, Volume TODO, Year 2026, Pages TODO.
 > [DOI/TODO](https://precice.org) | [URL/TODO](https://precice.org)
@@ -64,7 +73,7 @@ If you are using our adapter, please consider citing our paper:
 > **Rodenberg, B., Desai, I., Hertrich, R., Jaust, A., & Uekermann, B.**
 > _FEniCS–preCICE: Coupling FEniCS to other simulation software._
 > **SoftwareX**, Volume 16, Elsevier, 2021.
-> [DOI: 10.1016/j.softx.2021.1001072](https://doi.org/10.1016/j.softx.2021.1001072) | [Publisher's page](https://www.sciencedirect.com/science/article/pii/S2352711021001072)
+> [DOI: 10.1016/j.softx.2021.1001072](https://doi.org/10.1016/j.softx.2021.1001072)
 
 and
 
