@@ -46,8 +46,8 @@ The adapter can also be installed manually. First, the FEniCSx-preCICE adapter m
 
 The following tutorials can be used as a usage example for the FEniCSx adapter:
 
-* [partitioned heat conduction equation](https://github.com/precice/tutorials/tree/develop/partitioned-heat-conduction)
-* [Solid participant for flow over plate](https://github.com/precice/tutorials/tree/develop/flow-over-heated-plate)
+* Solver for Neumann and Dirichlet participants of the [partitioned heat conduction equation](https://github.com/precice/tutorials/tree/develop/partitioned-heat-conduction/solver-fenicsx)
+* [Solid participant for flow over plate](https://github.com/precice/tutorials/tree/develop/flow-over-heated-plate/solid-fenicsx)
 
 For more details please consult the references given in the [reference section](#related-literature).
 
