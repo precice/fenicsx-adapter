@@ -1,7 +1,7 @@
 ---
 title: The FEniCSx adapter
 permalink: adapter-fenicsx.html
-keywords: adapter, fenicsx
+keywords: adapter, fenicsx, dolfinx, finite element method
 summary: "A general adapter for the open source computing platform FEniCSx"
 ---
 
@@ -15,7 +15,7 @@ Install FEniCSx on your system following the instructions on [fenicsproject.org]
 
 ## Aim of this adapter
 
-This adapter supports the Python interface of FEniCSx and offers an API that allows the user to use FEniCSx-style data structures for solving coupled problems. It is an update to the [FEniCS adapter](https://precice.org/adapter-fenics.html) featuring an API similar to the FEniCS adapter, with support for FEniCSx and new preCICE features. The FEniCS solvers for the heat transport and conjugate heat transfer examples have been adapted for FEniCSx and FEniCSx-preCICE and serve as usage examples. However, the adapter is designed in a general fashion and can be used to couple any code using the FEniCS library.
+This adapter supports the Python interface of FEniCSx and offers an API that allows the user to use FEniCSx-style data structures for solving coupled problems. It is an update to the [FEniCS adapter](https://precice.org/adapter-fenics.html) featuring a similar API, with support for FEniCSx and new preCICE features. The FEniCS solvers for the heat transport and conjugate heat transfer examples have been adapted for FEniCSx and FEniCSx-preCICE and serve as usage examples. However, the adapter is designed in a general fashion and can be used to couple any code using the FEniCS library.
 
 ## How to install the adapter
 
@@ -40,7 +40,7 @@ Install the adapter using pip with
 pip install fenicsxprecice
 ```
 
-The adapter can also be installed manually. First, the FEniCSx-preCICE adapter must be cloned from the [GitHub repository](https://github.com/precice/fenicsx-adapter). Then navigate to the cloned repository on your local machine and run `pip3 install --user .` from the repository root.
+The adapter can also be installed manually. First, the FEniCSx-preCICE adapter must be cloned from the [GitHub repository](https://github.com/precice/fenicsx-adapter). Then navigate to the cloned repository on your local machine and run `pip install --user .` from the repository root.
 
 ## Examples for coupled codes
 
