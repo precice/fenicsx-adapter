@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "versioneer[toml]"]
+requires = ["setuptools>=61.0", "setuptools-git-versioning>=1.8.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -25,6 +25,7 @@ dependencies = [
     "scipy<1.15.0",
     "numpy>=1.13.3",
     "mpi4py>=3",
+    "precice-adapter-schema"
 ]
 
 [project.optional-dependencies]
@@ -41,11 +42,3 @@ zip-safe = false
 
 [tool.setuptools-git-versioning]
 enabled = true
-
-[tool.versioneer]
-VCS = "git"
-style = "pep440"
-versionfile_source = "fenicsxprecice/_version.py"
-versionfile_build = "fenicsxprecice/_version.py"
-tag_prefix = "v"
-parentdir_prefix = "fenicsxprecice-"

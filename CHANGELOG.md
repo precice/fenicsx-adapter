@@ -2,6 +2,7 @@
 
 ## current development
 
+* Add support for the adapter config schema. [#59](https://github.com/precice/fenicsx-adapter/pull/59)
 * Used Git-based versioning instead of versioneer. [#70](https://github.com/precice/fenicsx-adapter/pull/70)
 * Used `pyproject.toml` as build recipe file. [#69](https://github.com/precice/fenicsx-adapter/pull/69)
 * Set mpi4py dependency version requirement to `>=3`. [#68](https://github.com/precice/fenicsx-adapter/pull/68)
