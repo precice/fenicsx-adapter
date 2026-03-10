@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: autopep8 
+      - name: autopep8
         id: autopep8
         uses: peter-evans/autopep8@v2
         with:
