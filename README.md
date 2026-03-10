@@ -36,7 +36,7 @@ Make sure to install the following dependencies:
 * [preCICE](https://github.com/precice/precice/wiki)
 * Python v3
 * [the python language bindings for preCICE](https://github.com/precice/python-bindings)
-* MPI
+* mpi4py
 * [FEniCSx](https://fenicsproject.org/) and its python interface
 * and scipy (`pip3 install scipy`)
 
