@@ -20,6 +20,7 @@ This adapter supports the Python interface of FEniCSx and offers an API that all
 ## How to install the adapter
 
 Required dependencies
+
 | Name                      | Version   |
 |---------------------------|-----------|
 | preCICE                   | >=3.3.0   |
