@@ -2,7 +2,7 @@
 
 Before starting this process make sure to check that all relevant changes are included in the `CHANGELOG.md`. After that, follow the steps:
 
-1. Create a release branch with the version number of the planned release. Use develop as base for the branch. `git checkout develop`; `git checkout -b fenicsx-adapter-vX.X.X`. Do the nexr steps only on the release branch, if not indicated otherwise.
+1. Create a release branch with the version number of the planned release. Use develop as base for the branch. `git checkout develop`; `git checkout -b fenicsx-adapter-vX.X.X`. Do the next steps only on the release branch, if not indicated otherwise.
 
 2. [Open a Pull Request from the branch `fenicsx-adapter-vX.X.X` to `main`](https://github.com/precice/fenicsx-adapter/compare) named after the version (i.e. `Release v1.0.0`) and briefly describe the new features of the release in the PR description.
 
