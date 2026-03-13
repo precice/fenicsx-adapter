@@ -1,6 +1,6 @@
 # FEniCSx-preCICE adapter changelog
 
-## current development
+## v1.0.0rc2
 
 * Add documentation and workflow for precice page. [#65](https://github.com/precice/fenicsx-adapter/pull/65)
 * Add support for the adapter config schema. [#59](https://github.com/precice/fenicsx-adapter/pull/59)
