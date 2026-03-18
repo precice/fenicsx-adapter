@@ -5,8 +5,8 @@ class SolverState:
 
         Parameters
         ----------
-        u : Object of class dolfin.functions.function.Function
-            FEniCS function related to the field during each coupling iteration.
+        u : Object of class dolfinx.functions.function.Function
+            FEniCSx function related to the field during each coupling iteration.
         t : double
             Time stamp.
         n : int
@@ -22,8 +22,8 @@ class SolverState:
 
         Returns
         -------
-        u : Object of class dolfin.functions.function.Function
-            A copy of FEniCS function related to the field during each coupling iteration.
+        u : Object of class dolfinx.functions.function.Function
+            A copy of FEniCSx function related to the field during each coupling iteration.
         t : double
             Time stamp.
         n : int

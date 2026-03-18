@@ -1,13 +1,20 @@
 name: autopep8
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - "*"
 jobs:
   autopep8:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: autopep8 
+      - name: autopep8
         id: autopep8
-        uses: peter-evans/autopep8@v1
+        uses: peter-evans/autopep8@v2
         with:
           args: --recursive --diff --aggressive --aggressive --exit-code --ignore E402 --max-line-length 120 .
       - name: Fail if autopep8 made changes

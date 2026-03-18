@@ -1,14 +1,14 @@
-# Dockerfile to build a ubuntu image containing the installed Debian package of a release 
+# Dockerfile to build a ubuntu image containing the fenicsx-adapter. Based on the preCICE Python bindings
+# then we add the official package of FEniCSx and get the adapter.
 ARG branch=develop
 ARG from=precice/python-bindings:${branch}
 FROM $from
 
+# Install FEniCSx
 USER root
-# Installing necessary dependencies
-RUN add-apt-repository -y ppa:fenics-packages/fenics && \
-    apt-get -qq update && \
-    apt-get -qq install --no-install-recommends fenics && \
-    rm -rf /var/lib/apt/lists/*
+RUN add-apt-repository ppa:fenics-packages/fenics -y
+RUN apt update
+RUN apt install fenicsx -y
 
 USER precice
 
@@ -19,5 +19,5 @@ RUN python3 -m pip install --user --upgrade pip
 ARG CACHEBUST
 ARG branch=develop
 
-# Building fenics-adapter
-RUN python3 -m pip install --user git+https://github.com/precice/fenics-adapter.git@$branch
+# Building fenicsx-adapter
+RUN python3 -m pip install --user git+https://github.com/precice/fenicsx-adapter.git@$branch

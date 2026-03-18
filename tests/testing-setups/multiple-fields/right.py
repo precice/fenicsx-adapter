@@ -1,0 +1,58 @@
+from mpi4py import MPI
+from dolfinx import mesh
+from dolfinx.fem import functionspace
+from dolfinx import fem
+import numpy
+
+import fenicsxprecice
+
+domain1 = mesh.create_rectangle(
+    MPI.COMM_WORLD, [
+        numpy.asarray((1, 0)),
+        numpy.asarray((2, 1))],
+    [10, 10], mesh.CellType.quadrilateral)
+domain2 = mesh.create_rectangle(
+    MPI.COMM_WORLD, [
+        numpy.asarray((1, 0)),
+        numpy.asarray((2, 1))],
+    [11, 11], mesh.CellType.quadrilateral)
+V1 = functionspace(domain1, ("Lagrange", 1))
+V2 = functionspace(domain2, ("Lagrange", 1))
+uD1 = fem.Function(V1)
+uD1.interpolate(lambda x: 3 + x[0])
+uD2 = fem.Function(V2)
+uD2.interpolate(lambda x: 4 + x[0])
+
+
+def coupling_bc(x):
+    tol = 1E-14
+    return numpy.isclose(x[0], 1, tol)
+
+
+precice = fenicsxprecice.Adapter(adapter_config_filename="precice-adapter-config-R.json", mpi_comm=MPI.COMM_WORLD)
+rightOne = fenicsxprecice.CouplingMesh("RightOne", coupling_bc,
+                                       {"LeftOutOne": V1, "LeftOutTwo": V1},
+                                       {"LeftInOne": uD1})
+rightTwo = fenicsxprecice.CouplingMesh("RightTwo", coupling_bc, {"LeftOutThree": V2}, {"LeftInTwo": uD2})
+precice.initialize([rightOne, rightTwo])
+
+while precice.is_coupling_ongoing():
+
+    if precice.requires_writing_checkpoint():
+        precice.store_checkpoint(uD1, 0, 0)
+
+    read_data1 = precice.read_data(rightOne.get_name(), "LeftOutOne", 0)
+    read_data100 = precice.read_data(rightOne.get_name(), "LeftOutTwo", 0)
+
+    precice.write_data(rightOne.get_name(), "LeftInOne", uD1)
+    precice.write_data(rightTwo.get_name(), "LeftInTwo", uD2)
+
+    precice.advance(1)
+
+    if precice.requires_reading_checkpoint():
+        pass
+
+precice.finalize()
+
+print(read_data1)  # expected: x[0]+1
+print(read_data100)  # expected: x[0]+100

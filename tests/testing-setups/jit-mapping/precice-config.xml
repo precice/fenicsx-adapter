@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<precice-configuration experimental="true">
+  <log>
+    <sink
+      filter="%Severity% > debug and %Rank% = 0"
+      format="---[precice] %ColorizedSeverity% %Message%"
+      enabled="true" />
+  </log>
+
+  <data:scalar name="LeftValue" waveform-degree="1" />
+  <data:scalar name="RightValue" waveform-degree="1" />
+
+  <mesh name="LeftMesh" dimensions="2">
+    <use-data name="LeftValue" />
+    <use-data name="RightValue" />
+  </mesh>
+
+  <mesh name="RightMesh" dimensions="2">
+    <use-data name="LeftValue" />
+    <use-data name="RightValue" />
+  </mesh>
+
+  <participant name="Left">
+    <provide-mesh name="LeftMesh" />
+    <receive-mesh name="RightMesh" from="Right" api-access="true" />
+    <write-data name="LeftValue" mesh="LeftMesh" />
+    <read-data name="RightValue" mesh="RightMesh" />
+    <mapping:rbf-pum-direct
+      direction="read"
+      from="RightMesh"
+      constraint="consistent"
+      project-to-input="off"
+      polynomial="separate">
+      <basis-function:compact-polynomial-c2 support-radius="0.1" />
+    </mapping:rbf-pum-direct>
+  </participant>
+
+  <participant name="Right">
+    <provide-mesh name="RightMesh" />
+    <receive-mesh name="LeftMesh" from="Left" api-access="true" />
+    <write-data name="RightValue" mesh="RightMesh" />
+    <read-data name="LeftValue" mesh="LeftMesh" />
+    <mapping:rbf-pum-direct
+      direction="read"
+      from="LeftMesh"
+      constraint="consistent"
+      project-to-input="off"
+      polynomial="separate">
+      <basis-function:compact-polynomial-c2 support-radius="1" />
+    </mapping:rbf-pum-direct>
+  </participant>
+
+  <m2n:sockets acceptor="Left" connector="Right" exchange-directory=".." />
+
+  <coupling-scheme:serial-implicit>
+    <participants first="Left" second="Right" />
+    <max-time value="1.0" />
+    <time-window-size value="0.25" />
+    <max-iterations value="100" />
+    <exchange
+      data="LeftValue"
+      mesh="LeftMesh"
+      from="Left"
+      to="Right"
+      initialize="true"
+      substeps="true" />
+    <exchange
+      data="RightValue"
+      mesh="RightMesh"
+      from="Right"
+      to="Left"
+      initialize="true"
+      substeps="true" />
+    <relative-convergence-measure data="LeftValue" mesh="LeftMesh" limit="1e-10" />
+    <relative-convergence-measure data="RightValue" mesh="RightMesh" limit="1e-10" />
+    <acceleration:constant>
+      <relaxation value="0.5" />
+    </acceleration:constant>
+  </coupling-scheme:serial-implicit>
+</precice-configuration>

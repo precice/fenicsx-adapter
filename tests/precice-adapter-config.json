@@ -1,10 +1,19 @@
 {
   "participant_name": "Test",
-  "config_file_name": "dummy.xml",
-  "interface": {
-      "coupling_mesh_name": "Dummy-Mesh",
-      "write_data_name": "Dummy-Write",
-      "read_data_name": "Dummy-Read",
-      "interpolation_type": "rbf_segregated"
+  "precice_config_file_path": "dummy.xml",
+  "interfaces": [
+    {
+      "mesh_name": "Dummy-Mesh",
+      "write_data": [
+        {
+          "name": "Dummy-Write"
+        }
+      ],
+      "read_data": [
+        {
+          "name": "Dummy-Read"
+        }
+      ]
     }
+  ]
 }

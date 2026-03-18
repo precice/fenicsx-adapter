@@ -1,0 +1,119 @@
+# comments on test layout: https://docs.pytest.org/en/latest/goodpractices.html
+
+from unittest.mock import MagicMock, patch
+from unittest import TestCase
+from tests import MockedPrecice
+import numpy as np
+from mpi4py import MPI
+from dolfinx import fem, mesh as msh
+
+
+class MockedArray:
+    """
+    mock of dolfinx.Function
+    """
+
+    def __init__(self):
+        self.value = MagicMock()
+
+    def assign(self, new_value):
+        """
+        mock of dolfinx.Function.assign
+        :param new_value:
+        :return:
+        """
+        self.value = new_value.value
+
+    def copy(self):
+        returned_array = MockedArray()
+        returned_array.value = self.value
+        return returned_array
+
+    def value_rank(self):
+        return 0
+
+
+@patch.dict('sys.modules', {'precice': MockedPrecice})
+class TestAdapter(TestCase):
+    """
+    Test suite for basic API functions
+    """
+
+    def test_version(self):
+        """
+        Test that adapter provides a version
+        """
+        import fenicsxprecice
+        fenicsxprecice.__version__
+
+
+@patch.dict('sys.modules', {'precice': MockedPrecice})
+class TestCheckpointing(TestCase):
+    """
+    Test suite to check if Checkpointing functionality of the Adapter is working.
+    """
+    dt = 1  # timestep size
+    n = 0  # current iteration count
+    t = 0  # current time
+    u_n_mocked = MockedArray()  # result at the beginning of the timestep
+    u_np1_mocked = MockedArray()  # newly computed result
+    write_function_mocked = MockedArray()
+    u_cp_mocked = MockedArray()  # value of the checkpoint
+    t_cp_mocked = t  # time for the checkpoint
+    n_cp_mocked = n  # iteration count for the checkpoint
+    dummy_config = "tests/precice-adapter-config.json"
+
+    # todo if we support multirate, we should use the lines below for checkpointing
+    # for the general case the checkpoint u_cp (and t_cp and n_cp) can differ from u_n and u_np1
+    # t_cp_mocked = MagicMock()  # time for the checkpoint
+    # n_cp_mocked = nMagicMock()  # iteration count for the checkpoint
+
+    def test_checkpoint_mechanism(self):
+        """
+        Test correct checkpoint storing
+        """
+        import fenicsxprecice
+        from precice import Participant
+
+        Participant.initialize = MagicMock(return_value=self.dt)
+        Participant.get_mesh_dimensions = MagicMock()
+        Participant.is_time_window_complete = MagicMock(return_value=True)
+        Participant.advance = MagicMock()
+
+        precice = fenicsxprecice.Adapter(MPI.COMM_WORLD, self.dummy_config)
+
+        precice.store_checkpoint(self.u_n_mocked, self.t, self.n)
+
+        # Replicating control flow where implicit iteration has not converged and solver state needs to be restored
+        # to a checkpoint
+        precice.advance(self.dt)
+        Participant.is_time_window_complete = MagicMock(return_value=False)
+
+        # Check if the checkpoint is stored correctly in the adapter
+        self.assertEqual(precice.retrieve_checkpoint() == self.u_n_mocked, self.t, self.n)
+
+
+@patch.dict('sys.modules', {'precice': MockedPrecice})
+class TestExpressionHandling(TestCase):
+    """
+    Test Expression creation and updating mechanism based on data provided by user.
+    """
+    dummy_config = "tests/precice-adapter-config.json"
+
+    mesh = msh.create_unit_square(MPI.COMM_WORLD, 10, 10)
+    dimension = 2
+
+    def scalar_expr(x): return x[0] + x[1]
+    scalar_V = fem.functionspace(mesh, ("P", 1))
+    scalar_function = fem.Function(scalar_V)
+    scalar_function.interpolate(scalar_expr)
+
+    n_vertices = 11
+    fake_id = 15
+    vertices_x = [1 for _ in range(n_vertices)]
+    vertices_y = np.linspace(0, 1, n_vertices)
+    vertex_ids = np.arange(n_vertices)
+
+    n_samples = 1000
+    samplepts_x = [1 for _ in range(n_samples)]
+    samplepts_y = np.linspace(0, 1, n_samples)
