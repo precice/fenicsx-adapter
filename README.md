@@ -12,7 +12,7 @@
     <img src="https://github.com/precice/fenicsx-adapter/actions/workflows/run-tutorials.yml/badge.svg" alt="Run preCICE Tutorials">
 </a>
 
-This adapter is a fork from the original [FEniCS-preCICE adapter v1.2.0](https://github.com/precice/fenics-adapter/releases/tag/v1.2.0). This adapter works with dolfinx v0.10.
+This adapter is based on the [FEniCS-preCICE adapter v1.2.0](https://github.com/precice/fenics-adapter/releases/tag/v1.2.0). It works with dolfinx v0.10.
 
 ## Documentation
 
