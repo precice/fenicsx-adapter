@@ -1,0 +1,46 @@
+FROM precice/precice:nightly
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Berlin
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+	software-properties-common \
+	python3-venv \
+	python3-setuptools
+
+RUN add-apt-repository ppa:fenics-packages/fenics
+RUN apt update -y
+RUN apt install fenicsx -y
+
+# get tutorial case
+RUN git clone https://github.com/precice/tutorials.git
+# use this commit to avoid modifications of later commits
+RUN cd tutorials && git checkout 231b05d6af3435c34ba35e5d2f6045026c48833f
+
+
+RUN cat << 'EOF' > /startScript.sh \
+ && chmod +x /startScript.sh
+#!/bin/bash
+set -e
+
+# Start Dirichlet participant
+(
+  cd /tutorials/partitioned-heat-conduction/dirichlet-fenicsx
+  ./run.sh
+) &
+PID1=$!
+
+# Start Neumann participant
+(
+  cd /tutorials/partitioned-heat-conduction/neumann-fenicsx
+  ./run.sh
+) &
+PID2=$!
+
+# Wait for both
+wait $PID1
+wait $PID2
+EOF
+
+CMD ["/startScript.sh"]
