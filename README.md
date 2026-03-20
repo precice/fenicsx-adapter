@@ -1,7 +1,7 @@
 
 # FEniCSx-preCICE adapter
 
-<a style="text-decoration: none" href="https://github.com/precice/fenicsx-adapter/blob/master/LICENSE" target="_blank">
+<a style="text-decoration: none" href="https://github.com/precice/fenicsx-adapter/blob/main/LICENSE" target="_blank">
     <img src="https://img.shields.io/github/license/precice/fenicsx-adapter.svg" alt="GNU LGPL license">
 </a>
 
