@@ -19,8 +19,7 @@ RUN git clone https://github.com/precice/tutorials.git
 RUN cd tutorials && git checkout 231b05d6af3435c34ba35e5d2f6045026c48833f
 
 
-RUN cat << 'EOF' > /startScript.sh \
- && chmod +x /startScript.sh
+RUN cat << 'EOF' > /startScript.sh
 #!/bin/bash
 set -e
 
@@ -42,5 +41,7 @@ PID2=$!
 wait $PID1
 wait $PID2
 EOF
+
+RUN chmod +x /startScript.sh
 
 CMD ["/startScript.sh"]
