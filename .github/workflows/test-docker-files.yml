@@ -1,0 +1,21 @@
+name: Build and Run Docker container for partitioned heat conduction
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  main-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f docker/Dockerfile-runPartitionedHeat -t partitioned-heat .
+      - run: docker run --rm partitioned-heat
+
+  adapter-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f docker/Dockerfile -t fenicsxprecice-install .
+      - run: docker run --rm fenicsxprecice-install
