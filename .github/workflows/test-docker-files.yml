@@ -2,7 +2,8 @@ name: Build and Run Docker container for partitioned heat conduction
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
 
 jobs:
