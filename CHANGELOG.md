@@ -2,6 +2,8 @@
 
 ## latest
 
+* Added Dockerfile for building a container to run partitioned heat conduction [#75](https://github.com/precice/fenicsx-adapter/pull/75)
+
 ## v1.0.0
 
 * Add documentation and workflow for precice page. [#65](https://github.com/precice/fenicsx-adapter/pull/65)
