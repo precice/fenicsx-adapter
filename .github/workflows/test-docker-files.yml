@@ -10,13 +10,13 @@ jobs:
   tutorial-image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: docker build -f docker/Dockerfile-runPartitionedHeat -t partitioned-heat .
       - run: docker run --rm partitioned-heat
 
   adapter-image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: docker build -f docker/Dockerfile -t fenicsxprecice-install .
       - run: docker run --rm fenicsxprecice-install
