@@ -30,7 +30,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           load: true
-          file: "./tools/releasing/packaging/docker/Dockerfile"
+          file: "./docker/Dockerfile"
           tags: ${{ env.docker_username }}/fenicsx-adapter:${{ env.branch }},${{ env.docker_username }}/fenicsx-adapter:latest
           build-args: |
             branch=${{ env.branch }}
@@ -41,7 +41,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          file: "./tools/releasing/packaging/docker/Dockerfile"
+          file: "./docker/Dockerfile"
           tags: ${{ env.docker_username }}/fenicsx-adapter:${{ env.branch }},${{ env.docker_username }}/fenicsx-adapter:latest
           build-args: |
             branch=${{ env.branch }}
