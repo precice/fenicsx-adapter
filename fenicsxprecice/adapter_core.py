@@ -48,9 +48,8 @@ def quantize_to_chunks(coords, digit_cutoff, chunk_digits=10):
     chunks = np.zeros((N, dim, n_chunks), dtype=np.int64)
 
     for k in range(n_chunks):
-        chunks[..., k] = q % base
-        q //= base
-    # chunks[..., -1] = q
+        chunks[..., k] = np.fmod(q, base).astype(np.int64)
+        q = np.modf(q / base)[1]
 
     return chunks
 
