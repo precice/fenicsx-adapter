@@ -235,8 +235,7 @@ class Adapter:
                 write_function,
                 self._fenicsx_vertices[mesh_name].get_coordinates(),
                 self._digit_cutoff)
-            
-            
+
         self._participant.write_data(
             mesh_name,
             write_data_name,
