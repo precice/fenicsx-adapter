@@ -98,9 +98,9 @@ class Adapter:
         # Problem dimension in FEniCSx
         self._fenicsx_dims = None
         self._empty_rank = True
-        
+
         # Caching to avoid recomputation
-        self._conversion_cache = None # initialized later
+        self._conversion_cache = None  # initialized later
 
     def get_point_sources(self, data):
         raise Exception("PointSources are not implemented for the FEniCSx adapter.")
@@ -228,7 +228,7 @@ class Adapter:
 
         write_function_type = determine_function_type(write_function)
         assert write_function_type in list(FunctionType)
-        if self._conversion_cache is None: 
+        if self._conversion_cache is None:
             write_data, self._conversion_cache = convert_fenicsx_to_precice(
                 write_function,
                 self._fenicsx_vertices[mesh_name].get_coordinates(),
