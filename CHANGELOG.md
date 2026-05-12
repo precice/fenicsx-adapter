@@ -3,6 +3,7 @@
 ## latest
 
 * Added Dockerfile for building a container to run partitioned heat conduction [#75](https://github.com/precice/fenicsx-adapter/pull/75)
+* Add caching mechanism for `write_data` [#78](https://github.com/precice/fenicsx-adapter/pull/78)
 
 ## v1.0.0
 
