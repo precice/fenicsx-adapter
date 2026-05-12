@@ -7,7 +7,7 @@ from .config import Config
 import logging
 import precice
 from .adapter_core import FunctionType, CouplingMode, Vertices, CouplingBoundaryInterpolation
-from .adapter_core import determine_function_type, convert_fenicsx_to_precice, get_fenicsx_interpolation_points, interpolate_boundary_function
+from .adapter_core import determine_function_type, convert_fenicsx_to_precice, convert_fenicsx_to_precice_cached, get_fenicsx_interpolation_points, interpolate_boundary_function
 from .solverstate import SolverState
 from .coupling_mesh import CouplingMesh
 from dolfinx import fem
@@ -98,6 +98,9 @@ class Adapter:
         # Problem dimension in FEniCSx
         self._fenicsx_dims = None
         self._empty_rank = True
+
+        # Caching to avoid recomputation
+        self._conversion_cache = {}  # initialized later
 
     def get_point_sources(self, data):
         raise Exception("PointSources are not implemented for the FEniCSx adapter.")
@@ -225,10 +228,14 @@ class Adapter:
 
         write_function_type = determine_function_type(write_function)
         assert write_function_type in list(FunctionType)
-        write_data = convert_fenicsx_to_precice(
-            write_function,
-            self._fenicsx_vertices[mesh_name].get_coordinates(),
-            self._digit_cutoff)
+        if mesh_name in self._conversion_cache:
+            write_data = convert_fenicsx_to_precice_cached(write_function, self._conversion_cache[mesh_name])
+        else:
+            write_data, self._conversion_cache[mesh_name] = convert_fenicsx_to_precice(
+                write_function,
+                self._fenicsx_vertices[mesh_name].get_coordinates(),
+                self._digit_cutoff)
+
         self._participant.write_data(
             mesh_name,
             write_data_name,
@@ -252,7 +259,7 @@ class Adapter:
 
         write_function_type = determine_function_type(write_function)
         assert write_function_type in list(FunctionType)
-        write_data = convert_fenicsx_to_precice(write_function, coordinates, self._digit_cutoff)
+        write_data, _ = convert_fenicsx_to_precice(write_function, coordinates, self._digit_cutoff)
         self._participant.write_and_map_data(mesh_name, write_data_name, coordinates, write_data)
 
     def validate_function_space(self, function_objects, mesh_name, check_if_condition):

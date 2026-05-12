@@ -295,6 +295,11 @@ def convert_fenicsx_to_precice(fenicsx_function, local_coords, digit_cutoff):
             points.append(moved_point)
 
     precice_data = fenicsx_function.eval(points, cells)
+    return np.array(precice_data), {"points": points, "cells": cells}
+
+
+def convert_fenicsx_to_precice_cached(fenicsx_function, cached_elements):
+    precice_data = fenicsx_function.eval(cached_elements["points"], cached_elements["cells"])
     return np.array(precice_data)
 
 
