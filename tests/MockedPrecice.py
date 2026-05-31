@@ -46,3 +46,9 @@ class Participant:
 
     def is_time_window_complete(self):
         raise Exception("not implemented")
+
+    def start_profiling_section(self, section_name):
+        pass
+
+    def stop_last_profiling_section(self):
+        pass
