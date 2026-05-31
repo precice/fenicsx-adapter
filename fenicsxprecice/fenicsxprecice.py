@@ -217,9 +217,10 @@ class Adapter:
         mesh_name :
             Specifies the mesh from which the data is written
         """
-        self.start_profiling_section("fenicsxprecice.write_data")
         if self._empty_rank:
             return
+        else: # to avoid unnecessary profiling sections for ranks that do not write data
+            self.start_profiling_section("fenicsxprecice.write_data")
 
         assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING or
                 CouplingMode.BI_DIRECTIONAL_COUPLING)
@@ -453,7 +454,6 @@ class Adapter:
                         self.write_data(mesh_name, write_data_name, write_function)
 
         self.stop_last_profiling_section()
-
         self._participant.initialize()
 
     def store_checkpoint(self, payload, t, n):
