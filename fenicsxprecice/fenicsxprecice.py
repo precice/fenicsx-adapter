@@ -11,7 +11,6 @@ from .adapter_core import determine_function_type, convert_fenicsx_to_precice, c
 from .solverstate import SolverState
 from .coupling_mesh import CouplingMesh
 from dolfinx import fem
-from mpi4py import MPI
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)

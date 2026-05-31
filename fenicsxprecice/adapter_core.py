@@ -138,12 +138,15 @@ def round_coordinates(coords, digit_cutoff, unique):
     unique: bool
         True to also perform unique operation over coords
 
-
     Returns
     -------
     numpy array:
         array of rounded and unique coordinates
     """
+    # if there are no coordinates, return empty array to avoid errors in quantize_to_chunks
+    if len(coords) == 0:
+        return coords
+
     chunks = quantize_to_chunks(coords, digit_cutoff, chunk_digits=10)
     if unique:
         idx = unique_by_chunks(chunks)
