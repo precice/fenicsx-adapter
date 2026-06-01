@@ -219,7 +219,7 @@ class Adapter:
         """
         if self._empty_rank:
             return
-        else: # to avoid unnecessary profiling sections for ranks that do not write data
+        else:  # to avoid unnecessary profiling sections for ranks that do not write data
             self.start_profiling_section("fenicsxprecice.write_data")
 
         assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING or
