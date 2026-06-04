@@ -37,7 +37,7 @@ class Adapter:
 
     def __init__(self, mpi_comm, adapter_config_filename='precice-adapter-config.json',
                  boundary_processing_mode=CouplingBoundaryInterpolation.ADAPTER,
-                 digit_cutoff=25):
+                 digit_cutoff=10):
         """
         Constructor of Adapter class.
 
