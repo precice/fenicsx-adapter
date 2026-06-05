@@ -138,12 +138,15 @@ def round_coordinates(coords, digit_cutoff, unique):
     unique: bool
         True to also perform unique operation over coords
 
-
     Returns
     -------
     numpy array:
         array of rounded and unique coordinates
     """
+    # if there are no coordinates, return empty array to avoid errors in quantize_to_chunks
+    if len(coords) == 0:
+        return coords
+
     chunks = quantize_to_chunks(coords, digit_cutoff, chunk_digits=10)
     if unique:
         idx = unique_by_chunks(chunks)
@@ -370,8 +373,11 @@ def get_fenicsx_interpolation_points(
 
     # get all interpolation points of owned domain
     query_function.interpolate(query_coordinates, owned_and_candidate_cells_local)
-    # convert the numpy array to a set of tuples to allow set operations
-    interpolation_coordinates = set(map(tuple, interpolation_coordinates[0]))
+    # FEniCSx may call the callback in multiple batches; concatenate all of them before building the set
+    if interpolation_coordinates:
+        interpolation_coordinates = set(map(tuple, np.concatenate(interpolation_coordinates, axis=0)))
+    else:
+        interpolation_coordinates = set()
 
     # to avoid creating an ill-posed mapping problem for preCICE (especially RBF mapping), equal coordinates used by multiple MPI ranks
     # must be determined and removed by all but one MPI rank.
@@ -405,8 +411,8 @@ def get_fenicsx_interpolation_points(
     for dest_rank in range(comm_rank):
         comm.send(duplicate_coordinates_per_rank[dest_rank], dest_rank)
 
-    # convert set of tuples to numpy array
-    interpolation_coordinates = np.array(list(interpolation_coordinates))
+    # convert set of tuples to numpy array; sort for a canonical, machine-independent ordering
+    interpolation_coordinates = np.array(sorted(interpolation_coordinates))
     # no need to change coordinates_to_send as they need to be tuples anyways
 
     return interpolation_coordinates, owned_and_candidate_cells_local, coordinates_to_send
@@ -458,15 +464,18 @@ def interpolate_boundary_function(
             # vector length is determined by getting one value of the values dict
             vector_length = len(read_values[next(iter(read_values))])
 
-        # append filtered coordinates again to provide all necessary points for interpolation
-        for source_rank in range(comm.Get_rank()):
-            value = comm.recv(source=source_rank)
-            read_values.update(value)
+        # Post all receives upfront (non-blocking)
+        recv_requests = [comm.irecv(source=source_rank) for source_rank in range(comm.Get_rank())]
 
         # send the values that other ranks need for interpolation
         for dest_rank in values_to_send.keys():
             payload = {coord: read_values[coord] for coord in values_to_send[dest_rank]}
             comm.send(payload, dest_rank)
+
+        # collect all received values
+        for req in recv_requests:
+            value = req.wait()
+            read_values.update(value)
 
         # define the interpolation function
         def interpolation_function(x):
