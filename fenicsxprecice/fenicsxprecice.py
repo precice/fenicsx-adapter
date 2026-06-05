@@ -7,11 +7,10 @@ from .config import Config
 import logging
 import precice
 from .adapter_core import FunctionType, CouplingMode, Vertices, CouplingBoundaryInterpolation
-from .adapter_core import determine_function_type, convert_fenicsx_to_precice, get_fenicsx_interpolation_points, interpolate_boundary_function
+from .adapter_core import determine_function_type, convert_fenicsx_to_precice, convert_fenicsx_to_precice_cached, get_fenicsx_interpolation_points, interpolate_boundary_function
 from .solverstate import SolverState
 from .coupling_mesh import CouplingMesh
 from dolfinx import fem
-from mpi4py import MPI
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
@@ -99,6 +98,9 @@ class Adapter:
         self._fenicsx_dims = None
         self._empty_rank = True
 
+        # Caching to avoid recomputation
+        self._conversion_cache = {}  # initialized later
+
     def get_point_sources(self, data):
         raise Exception("PointSources are not implemented for the FEniCSx adapter.")
 
@@ -128,6 +130,7 @@ class Adapter:
             The coupling data. A dictionary containing nodal data with vertex coordinates as key and associated data as
             value.
         """
+        self.start_profiling_section("fenicsxprecice.read_data")
         assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_READ_COUPLING or
                 CouplingMode.BI_DIRECTIONAL_COUPLING)
 
@@ -160,8 +163,10 @@ class Adapter:
                 self._comm,
                 self._empty_rank,
                 self._digit_cutoff)
+            self.stop_last_profiling_section()
             return None
         else:
+            self.stop_last_profiling_section()
             return read_data
 
     def read_data_at_coordinates(self, mesh_name, read_data_name, coordinates, dt):
@@ -179,6 +184,7 @@ class Adapter:
         -------
             dict: Returns a dict of coordinates as key and read data as value
         """
+        self.start_profiling_section("fenicsxprecice.read_data_at_coordinates")
         read_data = None
 
         if not self._empty_rank:
@@ -196,6 +202,7 @@ class Adapter:
         else:
             pass
 
+        self.stop_last_profiling_section()
         return read_data
 
     def write_data(self, mesh_name, write_data_name, write_function):
@@ -210,9 +217,10 @@ class Adapter:
         mesh_name :
             Specifies the mesh from which the data is written
         """
-
         if self._empty_rank:
             return
+        else:  # to avoid unnecessary profiling sections for ranks that do not write data
+            self.start_profiling_section("fenicsxprecice.write_data")
 
         assert (self._coupling_types[mesh_name] is CouplingMode.UNI_DIRECTIONAL_WRITE_COUPLING or
                 CouplingMode.BI_DIRECTIONAL_COUPLING)
@@ -225,10 +233,16 @@ class Adapter:
 
         write_function_type = determine_function_type(write_function)
         assert write_function_type in list(FunctionType)
-        write_data = convert_fenicsx_to_precice(
-            write_function,
-            self._fenicsx_vertices[mesh_name].get_coordinates(),
-            self._digit_cutoff)
+        if mesh_name in self._conversion_cache:
+            write_data = convert_fenicsx_to_precice_cached(write_function, self._conversion_cache[mesh_name])
+        else:
+            write_data, self._conversion_cache[mesh_name] = convert_fenicsx_to_precice(
+                write_function,
+                self._fenicsx_vertices[mesh_name].get_coordinates(),
+                self._digit_cutoff)
+
+        self.stop_last_profiling_section()
+
         self._participant.write_data(
             mesh_name,
             write_data_name,
@@ -247,12 +261,17 @@ class Adapter:
             coordinates: A list of coordinates that defines where write_function is evaluated
             write_function: The function whose values at the given coordinates will be written
         """
+        self.start_profiling_section("fenicsxprecice.write_data_at_coordinates")
+
         if self._empty_rank:
             return
 
         write_function_type = determine_function_type(write_function)
         assert write_function_type in list(FunctionType)
-        write_data = convert_fenicsx_to_precice(write_function, coordinates, self._digit_cutoff)
+        write_data, _ = convert_fenicsx_to_precice(write_function, coordinates, self._digit_cutoff)
+
+        self.stop_last_profiling_section()
+
         self._participant.write_and_map_data(mesh_name, write_data_name, coordinates, write_data)
 
     def validate_function_space(self, function_objects, mesh_name, check_if_condition):
@@ -271,6 +290,7 @@ class Adapter:
         function_space : Object of class dolfinx.functions.functionspace.FunctionSpace
             The function space on which all functions provided by the user are defined.
         """
+        self.start_profiling_section("fenicsxprecice.validate_function_space")
 
         # get first and extract function space
         function_space = None
@@ -313,6 +333,7 @@ class Adapter:
                     raise Exception(
                         "A given object of {} is not of type dolfinx.functions.functionspace.FunctionSpace".format(mesh_name))
 
+        self.stop_last_profiling_section()
         return function_space
 
     def initialize(self, coupling_meshes: list[CouplingMesh], precice_meshes=None):
@@ -333,6 +354,7 @@ class Adapter:
         dt : double
             Recommended time step value from preCICE.
         """
+        self.start_profiling_section("fenicsxprecice.initialize")
 
         if self.boundary_proc_mode == CouplingBoundaryInterpolation.USER:
             assert len(precice_meshes) == len(
@@ -431,6 +453,7 @@ class Adapter:
                                 "preCICE requires you to write initial data. Please provide a write_function to initialize(...)")
                         self.write_data(mesh_name, write_data_name, write_function)
 
+        self.stop_last_profiling_section()
         self._participant.initialize()
 
     def store_checkpoint(self, payload, t, n):
@@ -561,6 +584,7 @@ class Adapter:
             mesh_name: The name of the mesh for which the access region is defined
             access_region: A list of tuples defining the access region. Expects a list of 2 points.
         """
+        self.start_profiling_section("fenicsxprecice.set_mesh_access_region")
         if len(access_region) != 2:  # should also be fine for 3d cases
             raise Exception(
                 "Two points to define the access region were expected but {} were given.".format(
@@ -572,6 +596,8 @@ class Adapter:
             ar[idx * 2] = v
         for idx, v in enumerate(access_region[1]):
             ar[1 + idx * 2] = v
+
+        self.stop_last_profiling_section()
 
         self._participant.set_mesh_access_region(mesh_name, ar)
 

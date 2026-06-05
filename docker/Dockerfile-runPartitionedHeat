@@ -1,0 +1,29 @@
+# syntax=docker/dockerfile:1.4
+
+FROM precice/precice:nightly
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Berlin
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+	software-properties-common \
+	python3-venv \
+	python3-setuptools
+
+RUN add-apt-repository ppa:fenics-packages/fenics
+RUN apt update -y
+RUN apt install fenicsx -y
+
+# get tutorial case
+RUN git clone https://github.com/precice/tutorials.git
+# use this commit to avoid modifications of later commits
+RUN cd tutorials && git checkout 231b05d6af3435c34ba35e5d2f6045026c48833f
+
+
+RUN printf '#!/bin/bash \nset -e \n \n# Start Dirichlet participant \n( \n  cd /tutorials/partitioned-heat-conduction/dirichlet-fenicsx \n  ./run.sh \n) & \nPID1=$! \n \n# Start Neumann participant \n( \n  cd /tutorials/partitioned-heat-conduction/neumann-fenicsx \n  ./run.sh \n) & \nPID2=$! \n\n# Wait for both \nwait $PID1 \nwait $PID2' > startScript.sh
+
+
+RUN chmod +x /startScript.sh
+
+CMD ["/startScript.sh"]

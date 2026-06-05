@@ -37,6 +37,6 @@ class TestAdapterCore(TestCase):
             manual_sampling.append([fun_lambda(v[0], v[1])])
         manual_sampling = np.array(manual_sampling).squeeze()
 
-        data = convert_fenicsx_to_precice(fenicsx_function, np.array(local_coords), 25).squeeze()
+        data = convert_fenicsx_to_precice(fenicsx_function, np.array(local_coords), 25)[0].squeeze()
 
         np.testing.assert_allclose(data, manual_sampling, atol=10**-16)
