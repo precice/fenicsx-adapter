@@ -1,6 +1,6 @@
 # FEniCSx-preCICE adapter changelog
 
-## latest
+## v1.0.1
 
 * Several fixes and enhancements for parallel use [#80](https://github.com/precice/fenicsx-adapter/pull/80)
 * Added Dockerfile for building a container to run partitioned heat conduction [#75](https://github.com/precice/fenicsx-adapter/pull/75)
