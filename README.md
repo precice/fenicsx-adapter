@@ -22,4 +22,4 @@ For further information, refer to the [adapter documentation of the preCICE webs
 
 ## Citing
 
-If you are using our adapter, please consider citing our [paper](https://precice.org/adapter-fenicsx.html#how-to-cite).
+If you are using the adapter, please consider citing our [paper](https://doi.org/10.1016/j.softx.2026.102807).
