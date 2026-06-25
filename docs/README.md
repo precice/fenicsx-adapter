@@ -1,6 +1,7 @@
 ---
 title: The FEniCSx adapter
 permalink: adapter-fenicsx.html
+url: /adapter-fenicsx.html
 keywords: adapter, fenicsx, dolfinx, finite element method
 summary: "A general adapter for the open source computing platform FEniCSx"
 ---
