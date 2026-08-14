@@ -76,7 +76,7 @@ If you are using our adapter, please consider citing our paper:
 > **Rodenberg, B., Desai, I., Hertrich, R., Jaust, A., & Uekermann, B.**
 > _FEniCS–preCICE: Coupling FEniCS to other simulation software._
 > **SoftwareX**, Volume 16, Elsevier, 2021.
-> [DOI: 10.1016/j.softx.2021.1001072](https://doi.org/10.1016/j.softx.2021.1001072)
+> [DOI: 10.1016/j.softx.2021.100807](https://doi.org/10.1016/j.softx.2021.100807)
 
 and
 
