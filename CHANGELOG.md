@@ -1,5 +1,9 @@
 # FEniCSx-preCICE adapter changelog
 
+## latest
+
+* Removed the version restrictions of `scipy`, since the required modules are again compatible with the latest version. [#85](https://github.com/precice/fenicsx-adapter/pull/85)
+
 ## v1.0.1
 
 * Several fixes and enhancements for parallel use [#80](https://github.com/precice/fenicsx-adapter/pull/80)
