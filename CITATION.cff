@@ -1,0 +1,51 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Vinnitchenko
+  given-names: Niklas
+  orcid: "https://orcid.org/0009-0003-3503-506X"
+- family-names: Desai
+  given-names: Ishaan
+  orcid: "https://orcid.org/0000-0002-2552-7509"
+- family-names: Rodenberg
+  given-names: Benjamin
+  orcid: "https://orcid.org/0000-0002-3116-0133"
+- family-names: Hildebrand
+  given-names: Philip
+  orcid: "https://orcid.org/0009-0003-0017-4684"
+- family-names: Humbert
+  given-names: Angelika
+  orcid: "https://orcid.org/0000-0002-0244-8760"
+- family-names: Uekermann
+  given-names: Benjamin
+  orcid: "https://orcid.org/0000-0002-1314-9969"
+preferred-citation:
+  authors:
+  - family-names: Vinnitchenko
+    given-names: Niklas
+    orcid: "https://orcid.org/0009-0003-3503-506X"
+  - family-names: Desai
+    given-names: Ishaan
+    orcid: "https://orcid.org/0000-0002-2552-7509"
+  - family-names: Rodenberg
+    given-names: Benjamin
+    orcid: "https://orcid.org/0000-0002-3116-0133"
+  - family-names: Hildebrand
+    given-names: Philip
+    orcid: "https://orcid.org/0009-0003-0017-4684"
+  - family-names: Humbert
+    given-names: Angelika
+    orcid: "https://orcid.org/0000-0002-0244-8760"
+  - family-names: Uekermann
+    given-names: Benjamin
+    orcid: "https://orcid.org/0000-0002-1314-9969"
+  date-published: 2026-06-19
+  doi: 10.1016/j.softx.2026.102807
+  issn: 2352-7110
+  journal: SoftwareX
+  publisher:
+    name: Elsevier
+  title: "Version 1.0.1 – FEniCSx-preCICE: Coupling FEniCSx to other simulation software"
+  type: article
+  url: "https://www.sciencedirect.com/science/article/pii/S2352711026002992"
+  volume: 35
+title: "Version 1.0.1 – FEniCSx-preCICE: Coupling FEniCSx to other simulation software"

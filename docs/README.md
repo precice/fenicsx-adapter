@@ -1,6 +1,8 @@
 ---
 title: The FEniCSx adapter
 permalink: adapter-fenicsx.html
+aliases:
+  - /adapter-fenicsx.html
 keywords: adapter, fenicsx, dolfinx, finite element method
 summary: "A general adapter for the open source computing platform FEniCSx"
 ---
@@ -65,16 +67,16 @@ Please don't hesitate to ask questions about the FEniCSx adapter on [discourse](
 If you are using our adapter, please consider citing our paper:
 
 > **Vinnitchenko, N., Desai, I., Rodenberg, B., Hildebrand, P., Humbert, A. & Uekermann, B.**
-> _FEniCSx-preCICE: Coupling FEniCSx to other simulation software._
-> **SoftwareX**, Volume TODO, Year 2026, Pages TODO.
-> [DOI/TODO](https://precice.org) | [URL/TODO](https://precice.org)
+> _Version 1.0.1 - FEniCSx-preCICE: Coupling FEniCSx to other simulation software._
+> **SoftwareX**, Volume 32, Year 2026, Pages 102807.
+> [DOI: 10.1016/j.softx.2026.102807](https://doi.org/10.1016/j.softx.2026.102807)
 
 ## Related literature
 
 > **Rodenberg, B., Desai, I., Hertrich, R., Jaust, A., & Uekermann, B.**
 > _FEniCS–preCICE: Coupling FEniCS to other simulation software._
 > **SoftwareX**, Volume 16, Elsevier, 2021.
-> [DOI: 10.1016/j.softx.2021.1001072](https://doi.org/10.1016/j.softx.2021.1001072)
+> [DOI: 10.1016/j.softx.2021.100807](https://doi.org/10.1016/j.softx.2021.100807)
 
 and
 
